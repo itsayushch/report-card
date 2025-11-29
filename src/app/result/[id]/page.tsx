@@ -1,6 +1,6 @@
 'use client';
 import { Printer } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Suspense } from 'react';
 import { useSearchParams, useParams } from 'next/navigation';
 
 interface ReportData {
@@ -31,7 +31,7 @@ interface ReportData {
   isPublished: boolean;
 }
 
-export default function PrintableReportCard() {
+function PrintableReportCardContent() {
   const params = useParams();
   const searchParams = useSearchParams();
   const [data, setData] = useState<ReportData | null>(null);
@@ -604,5 +604,17 @@ export default function PrintableReportCard() {
         </div>
       </div>
     </>
+  );
+}
+
+export default function PrintableReportCard() {
+  return (
+    <Suspense fallback={
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      </div>
+    }>
+      <PrintableReportCardContent />
+    </Suspense>
   );
 }
