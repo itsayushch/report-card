@@ -1,0 +1,161 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+model Student {
+  id              String          @id @default(auto()) @map("_id") @db.ObjectId
+  name            String
+  rollNo          String          @unique
+  email           String          @unique
+  password        String          // Date of birth in DDMMYYYY format
+  dateOfBirth     String          // Date of birth in DDMMYYYY format (used as password)
+  class           String
+  section         String
+  parentName      String
+  phone           String
+  photo           String?
+  status          Status          @default(ACTIVE)
+  academicYear    String
+  promotionStatus PromotionStatus @default(PENDING)
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  // Relations
+  marks Mark[]
+
+  @@index([class, section])
+  @@index([academicYear])
+  @@map("students")
+}
+
+enum Status {
+  ACTIVE
+  INACTIVE
+}
+
+enum PromotionStatus {
+  PROMOTED
+  DETAINED
+  PENDING
+}
+
+model Teacher {
+  id              String   @id @default(auto()) @map("_id") @db.ObjectId
+  name            String
+  email           String   @unique
+  password        String   // Email ID (same as email, to be reset on first login)
+  phone           String
+  subjects        String[]
+  assignedClasses String[]
+  isAdmin         Boolean  @default(false)
+  firstLogin      Boolean  @default(true)  // Track if password needs to be reset
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // Relations
+  marks      Mark[]
+  adminLogs  AdminLog[]
+  reportPublishes ReportPublish[]
+
+  @@map("teachers")
+}
+
+model Subject {
+  id           String   @id @default(auto()) @map("_id") @db.ObjectId
+  name         String
+  code         String   @unique
+  maxMarks     Int
+  passingMarks Int
+  academicYear String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  // Relations
+  marks Mark[]
+
+  @@map("subjects")
+}
+
+model AcademicYear {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  year      String   @unique
+  startDate DateTime
+  endDate   DateTime
+  isActive  Boolean  @default(false)
+  terms     Term[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("academic_years")
+}
+
+type Term {
+  name      String
+  startDate DateTime
+  endDate   DateTime
+}
+
+model Mark {
+  id             String   @id @default(auto()) @map("_id") @db.ObjectId
+  studentId      String   @db.ObjectId
+  subjectId      String   @db.ObjectId
+  marks          Float
+  grade          String
+  term           String
+  academicYear   String
+  teacherRemarks String?
+  enteredById    String   @db.ObjectId
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  // Relations
+  student   Student @relation(fields: [studentId], references: [id])
+  subject   Subject @relation(fields: [subjectId], references: [id])
+  enteredBy Teacher @relation(fields: [enteredById], references: [id])
+
+  @@unique([studentId, subjectId, term, academicYear])
+  @@index([academicYear, term])
+  @@map("marks")
+}
+
+model ReportPublish {
+  id           String   @id @default(auto()) @map("_id") @db.ObjectId
+  class        String
+  section      String
+  term         String
+  academicYear String
+  isPublished  Boolean  @default(false)
+  publishedAt  DateTime?
+  publishedById String?  @db.ObjectId
+  publishedBy  Teacher? @relation(fields: [publishedById], references: [id])
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@unique([class, section, term, academicYear])
+  @@index([class, term, academicYear])
+  @@map("report_publish")
+}
+
+model AdminLog {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  adminId     String   @db.ObjectId
+  admin       Teacher  @relation(fields: [adminId], references: [id])
+  action      String   // e.g., "CREATE_STUDENT", "UPDATE_TEACHER", "DELETE_SUBJECT", "PUBLISH_REPORT"
+  entityType  String   // e.g., "Student", "Teacher", "Subject", "Report"
+  entityId    String?  // ID of the affected entity
+  description String   // Human-readable description
+  metadata    Json?    // Additional data like old/new values
+  ipAddress   String?
+  userAgent   String?
+  createdAt   DateTime @default(now())
+
+  @@index([adminId])
+  @@index([action])
+  @@index([createdAt])
+  @@map("admin_logs")
+}

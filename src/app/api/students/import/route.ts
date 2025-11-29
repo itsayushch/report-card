@@ -1,0 +1,153 @@
+import { NextRequest, NextResponse } from 'next/server'
+import { auth } from '@/lib/auth'
+import { prisma } from '@/lib/prisma'
+
+interface StudentImportData {
+  name: string
+  rollNo: string
+  dateOfBirth?: string
+  class: string
+  section: string
+  parentName?: string
+  email: string
+  phone?: string
+  academicYear?: string
+}
+
+export async function POST(request: NextRequest) {
+  try {
+    const session = await auth()
+
+    if (!session || session.user.role !== 'ADMIN') {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    const body = await request.json()
+    const { students } = body as { students: StudentImportData[] }
+
+    if (!students || !Array.isArray(students) || students.length === 0) {
+      return NextResponse.json(
+        { error: 'Invalid students data' },
+        { status: 400 }
+      )
+    }
+
+    // Get active academic year
+    const activeYear = await prisma.academicYear.findFirst({
+      where: { isActive: true },
+    })
+
+    const results = {
+      success: 0,
+      failed: 0,
+      errors: [] as Array<{ row: number; error: string }>,
+    }
+
+    for (let i = 0; i < students.length; i++) {
+      const student = students[i]
+
+      try {
+        // Validate required fields
+        if (!student.name || !student.rollNo || !student.class || !student.email) {
+          results.failed++
+          results.errors.push({
+            row: i + 1,
+            error: 'Missing required fields (name, rollNo, class, email)',
+          })
+          continue
+        }
+
+        // Check if student already exists
+        const existing = await prisma.student.findUnique({
+          where: { rollNo: student.rollNo },
+        })
+
+        if (existing) {
+          results.failed++
+          results.errors.push({
+            row: i + 1,
+            error: `Student with roll number ${student.rollNo} already exists`,
+          })
+          continue
+        }
+
+        // Check if email already exists
+        const existingEmail = await prisma.student.findFirst({
+          where: { email: student.email },
+        })
+
+        if (existingEmail) {
+          results.failed++
+          results.errors.push({
+            row: i + 1,
+            error: `Email ${student.email} already exists`,
+          })
+          continue
+        }
+
+        // Parse class and section
+        const classSection = student.class.split('-')
+        const className = classSection[0] || student.class
+        const section = student.section || classSection[1] || 'A'
+
+        // Password is dateOfBirth in DDMMYYYY format (plain text, no slashes)
+        // dateOfBirth is stored with slashes DD/MM/YYYY
+        let password: string
+        let dateOfBirth: string
+
+        if (student.dateOfBirth) {
+          // Remove any slashes from input to get DDMMYYYY
+          const dobWithoutSlashes = student.dateOfBirth.replace(/\//g, '')
+          password = dobWithoutSlashes
+          
+          // Format as DD/MM/YYYY for storage
+          if (dobWithoutSlashes.length === 8) {
+            dateOfBirth = `${dobWithoutSlashes.slice(0, 2)}/${dobWithoutSlashes.slice(2, 4)}/${dobWithoutSlashes.slice(4, 8)}`
+          } else {
+            dateOfBirth = student.dateOfBirth
+          }
+        } else {
+          password = student.rollNo
+          dateOfBirth = ''
+        }
+
+        // Create student with embedded auth
+        await prisma.student.create({
+          data: {
+            name: student.name,
+            rollNo: student.rollNo,
+            email: student.email,
+            password: password,
+            dateOfBirth: dateOfBirth,
+            class: className,
+            section: section,
+            parentName: student.parentName || 'Parent',
+            phone: student.phone || '',
+            status: 'ACTIVE',
+            academicYear: student.academicYear || activeYear?.year || '2024-2025',
+            promotionStatus: 'PENDING',
+          },
+        })
+
+        results.success++
+      } catch (error: any) {
+        results.failed++
+        results.errors.push({
+          row: i + 1,
+          error: error.message || 'Failed to create student',
+        })
+      }
+    }
+
+    return NextResponse.json({
+      message: `Import completed: ${results.success} successful, ${results.failed} failed`,
+      ...results,
+    })
+  } catch (error) {
+    console.error('Import students error:', error)
+    return NextResponse.json(
+      { error: 'Failed to import students' },
+      { status: 500 }
+    )
+  }
+}
