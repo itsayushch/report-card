@@ -75,18 +75,13 @@ async function main() {
   ]
 
   for (const subject of subjects) {
-    await prisma.subject.upsert({
-      where: { 
-        name_academicYear: {
-          name: subject.name,
-          academicYear: '2025'
-        }
-      },
-      update: {},
-      create: {
+    await prisma.subject.create({
+      data: {
         ...subject,
         academicYear: '2025'
       },
+    }).catch(() => {
+      // Subject already exists, skip
     })
   }
 
