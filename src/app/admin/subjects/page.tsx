@@ -5,6 +5,7 @@ import { Subject } from '@prisma/client'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -22,6 +23,8 @@ export default function SubjectsPage() {
   const [isFormOpen, setIsFormOpen] = useState(false)
   const [selectedSubject, setSelectedSubject] = useState<Subject | null>(null)
   const [formLoading, setFormLoading] = useState(false)
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+  const [subjectToDelete, setSubjectToDelete] = useState<string | null>(null)
 
   const { register, handleSubmit, reset, formState: { errors } } = useForm<SubjectFormData>({
     resolver: zodResolver(subjectSchema),
@@ -61,11 +64,16 @@ export default function SubjectsPage() {
     setIsFormOpen(true)
   }
 
-  const handleDelete = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this subject?')) return
+  const handleDelete = (id: string) => {
+    setSubjectToDelete(id)
+    setDeleteDialogOpen(true)
+  }
+
+  const confirmDelete = async () => {
+    if (!subjectToDelete) return
 
     try {
-      const response = await fetch(`/api/subjects/${id}`, { method: 'DELETE' })
+      const response = await fetch(`/api/subjects/${subjectToDelete}`, { method: 'DELETE' })
       if (response.ok) {
         toast.success('Subject deleted successfully')
         fetchSubjects()
@@ -75,6 +83,9 @@ export default function SubjectsPage() {
       }
     } catch (error) {
       toast.error('Failed to delete subject')
+    } finally {
+      setDeleteDialogOpen(false)
+      setSubjectToDelete(null)
     }
   }
 
@@ -246,6 +257,23 @@ export default function SubjectsPage() {
           </form>
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete this subject. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDelete} className="bg-red-600 hover:bg-red-700">
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

@@ -5,6 +5,7 @@ import { AcademicYear } from '@prisma/client'
 import { useForm, useFieldArray } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -22,6 +23,8 @@ export default function AcademicYearsPage() {
   const [isFormOpen, setIsFormOpen] = useState(false)
   const [selectedYear, setSelectedYear] = useState<AcademicYear | null>(null)
   const [formLoading, setFormLoading] = useState(false)
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+  const [yearToDelete, setYearToDelete] = useState<string | null>(null)
 
   const { register, handleSubmit, reset, control, formState: { errors } } = useForm<AcademicYearFormData>({
     resolver: zodResolver(academicYearSchema),
@@ -81,11 +84,16 @@ export default function AcademicYearsPage() {
     setIsFormOpen(true)
   }
 
-  const handleDelete = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this academic year?')) return
+  const handleDelete = (id: string) => {
+    setYearToDelete(id)
+    setDeleteDialogOpen(true)
+  }
+
+  const confirmDelete = async () => {
+    if (!yearToDelete) return
 
     try {
-      const response = await fetch(`/api/academic-years/${id}`, { method: 'DELETE' })
+      const response = await fetch(`/api/academic-years/${yearToDelete}`, { method: 'DELETE' })
       if (response.ok) {
         toast.success('Academic year deleted successfully')
         fetchAcademicYears()
@@ -94,6 +102,9 @@ export default function AcademicYearsPage() {
       }
     } catch (error) {
       toast.error('Failed to delete academic year')
+    } finally {
+      setDeleteDialogOpen(false)
+      setYearToDelete(null)
     }
   }
 
@@ -359,6 +370,23 @@ export default function AcademicYearsPage() {
           </form>
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Academic Year?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete this academic year. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDelete} className="bg-red-600 hover:bg-red-700">
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

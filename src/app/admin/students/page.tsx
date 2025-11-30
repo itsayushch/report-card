@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { StudentTable } from '@/components/admin/students/StudentTable'
 import { StudentForm } from '@/components/admin/students/StudentForm'
 import { StudentFilters } from '@/components/admin/students/StudentFilters'
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog'
 import { Plus, ChevronLeft, ChevronRight, Download, Upload, Loader2 } from 'lucide-react'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Alert, AlertDescription } from '@/components/ui/alert'
@@ -27,6 +28,10 @@ export default function StudentsPage() {
   const [isFormOpen, setIsFormOpen] = useState(false)
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null)
   const [selectedStudents, setSelectedStudents] = useState<string[]>([])
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+  const [studentToDelete, setStudentToDelete] = useState<string | null>(null)
+  const [bulkInactiveDialogOpen, setBulkInactiveDialogOpen] = useState(false)
+  const [bulkDeleteDialogOpen, setBulkDeleteDialogOpen] = useState(false)
   const [pagination, setPagination] = useState<PaginationData>({
     total: 0,
     page: 1,
@@ -74,11 +79,16 @@ export default function StudentsPage() {
     setIsFormOpen(true)
   }
 
-  const handleDelete = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this student?')) return
+  const handleDelete = (id: string) => {
+    setStudentToDelete(id)
+    setDeleteDialogOpen(true)
+  }
+
+  const confirmDelete = async () => {
+    if (!studentToDelete) return
 
     try {
-      const response = await fetch(`/api/students/${id}`, {
+      const response = await fetch(`/api/students/${studentToDelete}`, {
         method: 'DELETE',
       })
 
@@ -90,6 +100,9 @@ export default function StudentsPage() {
       }
     } catch (error) {
       toast.error('Failed to delete student')
+    } finally {
+      setDeleteDialogOpen(false)
+      setStudentToDelete(null)
     }
   }
 
@@ -98,16 +111,15 @@ export default function StudentsPage() {
     setSelectedStudent(null)
   }
 
-  const handleBulkMarkInactive = async () => {
+  const handleBulkMarkInactive = () => {
     if (selectedStudents.length === 0) {
       toast.error('Please select students to mark as inactive')
       return
     }
+    setBulkInactiveDialogOpen(true)
+  }
 
-    if (!confirm(`Are you sure you want to mark ${selectedStudents.length} student(s) as inactive?`)) {
-      return
-    }
-
+  const confirmBulkInactive = async () => {
     try {
       const response = await fetch('/api/students/bulk-status', {
         method: 'PATCH',
@@ -128,19 +140,20 @@ export default function StudentsPage() {
       }
     } catch (error) {
       toast.error('Failed to update students')
+    } finally {
+      setBulkInactiveDialogOpen(false)
     }
   }
 
-  const handleBulkDelete = async () => {
+  const handleBulkDelete = () => {
     if (selectedStudents.length === 0) {
       toast.error('Please select students to delete')
       return
     }
+    setBulkDeleteDialogOpen(true)
+  }
 
-    if (!confirm(`Are you sure you want to delete ${selectedStudents.length} student(s)? This action cannot be undone.`)) {
-      return
-    }
-
+  const confirmBulkDelete = async () => {
     try {
       const response = await fetch('/api/students/bulk-delete', {
         method: 'DELETE',
@@ -160,6 +173,8 @@ export default function StudentsPage() {
       }
     } catch (error) {
       toast.error('Failed to delete students')
+    } finally {
+      setBulkDeleteDialogOpen(false)
     }
   }
 
@@ -374,6 +389,57 @@ export default function StudentsPage() {
         student={selectedStudent}
         onSuccess={handleFormSuccess}
       />
+
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Student?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete this student. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDelete} className="bg-red-600 hover:bg-red-700">
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={bulkInactiveDialogOpen} onOpenChange={setBulkInactiveDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Mark Students as Inactive?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to mark {selectedStudents.length} student(s) as inactive?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmBulkInactive}>
+              Mark Inactive
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={bulkDeleteDialogOpen} onOpenChange={setBulkDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Multiple Students?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete {selectedStudents.length} student(s)? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmBulkDelete} className="bg-red-600 hover:bg-red-700">
+              Delete All
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

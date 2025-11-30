@@ -10,6 +10,7 @@ import { Input } from '@/components/ui/input'
 import { TeacherForm } from '@/components/admin/teachers/TeacherForm'
 import { Plus, Edit, Trash2, Mail, Phone, Search } from 'lucide-react'
 import { Skeleton } from '@/components/ui/skeleton'
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog'
 import { toast } from 'sonner'
 
 export default function TeachersPage() {
@@ -18,6 +19,8 @@ export default function TeachersPage() {
   const [isFormOpen, setIsFormOpen] = useState(false)
   const [selectedTeacher, setSelectedTeacher] = useState<Teacher | null>(null)
   const [searchTerm, setSearchTerm] = useState('')
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+  const [teacherToDelete, setTeacherToDelete] = useState<string | null>(null)
 
   const fetchTeachers = async () => {
     try {
@@ -52,11 +55,16 @@ export default function TeachersPage() {
     setIsFormOpen(true)
   }
 
-  const handleDelete = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this teacher?')) return
+  const handleDelete = (id: string) => {
+    setTeacherToDelete(id)
+    setDeleteDialogOpen(true)
+  }
+
+  const confirmDelete = async () => {
+    if (!teacherToDelete) return
 
     try {
-      const response = await fetch(`/api/teachers/${id}`, { method: 'DELETE' })
+      const response = await fetch(`/api/teachers/${teacherToDelete}`, { method: 'DELETE' })
       if (response.ok) {
         toast.success('Teacher deleted successfully')
         fetchTeachers()
@@ -65,6 +73,9 @@ export default function TeachersPage() {
       }
     } catch (error) {
       toast.error('Failed to delete teacher')
+    } finally {
+      setDeleteDialogOpen(false)
+      setTeacherToDelete(null)
     }
   }
 
@@ -221,6 +232,23 @@ export default function TeachersPage() {
         teacher={selectedTeacher}
         onSuccess={fetchTeachers}
       />
+
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete this teacher. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDelete} className="bg-red-600 hover:bg-red-700">
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }
