@@ -12,6 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { teacherSchema, type TeacherFormData } from '@/lib/validations'
 import { Loader2, X } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
+import { toast } from 'sonner'
 
 interface TeacherFormProps {
   open: boolean
@@ -151,10 +152,11 @@ export function TeacherForm({ open, onOpenChange, teacher, onSuccess }: TeacherF
         throw new Error(error.error || 'Failed to save teacher')
       }
 
+      toast.success(teacher ? 'Teacher updated successfully' : 'Teacher created successfully')
       onSuccess()
       onOpenChange(false)
     } catch (error: any) {
-      alert(error.message)
+      toast.error(error.message)
     } finally {
       setIsLoading(false)
     }

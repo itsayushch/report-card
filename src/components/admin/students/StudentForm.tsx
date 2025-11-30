@@ -24,6 +24,7 @@ import {
 } from '@/components/ui/select'
 import { studentSchema, type StudentFormData } from '@/lib/validations'
 import { Loader2 } from 'lucide-react'
+import { toast } from 'sonner'
 
 interface StudentFormProps {
   open: boolean
@@ -100,10 +101,11 @@ export function StudentForm({ open, onOpenChange, student, onSuccess }: StudentF
         throw new Error(error.error || 'Failed to save student')
       }
 
+      toast.success(student ? 'Student updated successfully' : 'Student created successfully')
       onSuccess()
       onOpenChange(false)
     } catch (error: any) {
-      alert(error.message)
+      toast.error(error.message)
     } finally {
       setIsLoading(false)
     }

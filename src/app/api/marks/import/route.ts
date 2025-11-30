@@ -5,7 +5,7 @@ import { calculateGrade } from '@/lib/calculations'
 
 interface MarkImportData {
   rollNo: string
-  subjectCode: string
+  subjectName: string
   marks: number
   remarks?: string
   term?: string
@@ -63,11 +63,11 @@ export async function POST(request: NextRequest) {
 
       try {
         // Validate required fields
-        if (!markEntry.rollNo || !markEntry.subjectCode || markEntry.marks === undefined) {
+        if (!markEntry.rollNo || !markEntry.subjectName || markEntry.marks === undefined) {
           results.failed++
           results.errors.push({
             row: i + 1,
-            error: 'Missing required fields (rollNo, subjectCode, marks)',
+            error: 'Missing required fields (rollNo, subjectName, marks)',
           })
           continue
         }
@@ -86,16 +86,16 @@ export async function POST(request: NextRequest) {
           continue
         }
 
-        // Find subject by code
-        const subject = await prisma.subject.findUnique({
-          where: { code: markEntry.subjectCode },
+        // Find subject by name
+        const subject = await prisma.subject.findFirst({
+          where: { name: markEntry.subjectName },
         })
 
         if (!subject) {
           results.failed++
           results.errors.push({
             row: i + 1,
-            error: `Subject with code ${markEntry.subjectCode} not found`,
+            error: `Subject with name ${markEntry.subjectName} not found`,
           })
           continue
         }

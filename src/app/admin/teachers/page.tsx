@@ -10,6 +10,7 @@ import { Input } from '@/components/ui/input'
 import { TeacherForm } from '@/components/admin/teachers/TeacherForm'
 import { Plus, Edit, Trash2, Mail, Phone, Search } from 'lucide-react'
 import { Skeleton } from '@/components/ui/skeleton'
+import { toast } from 'sonner'
 
 export default function TeachersPage() {
   const [teachers, setTeachers] = useState<Teacher[]>([])
@@ -57,12 +58,13 @@ export default function TeachersPage() {
     try {
       const response = await fetch(`/api/teachers/${id}`, { method: 'DELETE' })
       if (response.ok) {
+        toast.success('Teacher deleted successfully')
         fetchTeachers()
       } else {
-        alert('Failed to delete teacher')
+        toast.error('Failed to delete teacher')
       }
     } catch (error) {
-      alert('Failed to delete teacher')
+      toast.error('Failed to delete teacher')
     }
   }
 

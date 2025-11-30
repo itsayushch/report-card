@@ -14,6 +14,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge'
 import { Plus, Edit, Trash2, Loader2, CheckCircle2, X } from 'lucide-react'
 import { Skeleton } from '@/components/ui/skeleton'
+import { toast } from 'sonner'
 
 export default function AcademicYearsPage() {
   const [academicYears, setAcademicYears] = useState<AcademicYear[]>([])
@@ -86,12 +87,13 @@ export default function AcademicYearsPage() {
     try {
       const response = await fetch(`/api/academic-years/${id}`, { method: 'DELETE' })
       if (response.ok) {
+        toast.success('Academic year deleted successfully')
         fetchAcademicYears()
       } else {
-        alert('Failed to delete academic year')
+        toast.error('Failed to delete academic year')
       }
     } catch (error) {
-      alert('Failed to delete academic year')
+      toast.error('Failed to delete academic year')
     }
   }
 
@@ -99,12 +101,13 @@ export default function AcademicYearsPage() {
     try {
       const response = await fetch(`/api/academic-years/${id}/activate`, { method: 'PUT' })
       if (response.ok) {
+        toast.success('Academic year activated successfully')
         fetchAcademicYears()
       } else {
-        alert('Failed to activate academic year')
+        toast.error('Failed to activate academic year')
       }
     } catch (error) {
-      alert('Failed to activate academic year')
+      toast.error('Failed to activate academic year')
     }
   }
 
@@ -130,11 +133,12 @@ export default function AcademicYearsPage() {
         throw new Error(error.error || 'Failed to save academic year')
       }
 
+      toast.success(selectedYear ? 'Academic year updated successfully' : 'Academic year created successfully')
       fetchAcademicYears()
       setIsFormOpen(false)
       setSelectedYear(null)
     } catch (error: any) {
-      alert(error.message)
+      toast.error(error.message)
     } finally {
       setFormLoading(false)
     }

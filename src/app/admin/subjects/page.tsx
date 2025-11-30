@@ -14,6 +14,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Plus, Edit, Trash2 } from 'lucide-react'
+import { toast } from 'sonner'
 
 export default function SubjectsPage() {
   const [subjects, setSubjects] = useState<Subject[]>([])
@@ -66,13 +67,14 @@ export default function SubjectsPage() {
     try {
       const response = await fetch(`/api/subjects/${id}`, { method: 'DELETE' })
       if (response.ok) {
+        toast.success('Subject deleted successfully')
         fetchSubjects()
       } else {
         const error = await response.json()
-        alert(error.error || 'Failed to delete subject')
+        toast.error(error.error || 'Failed to delete subject')
       }
     } catch (error) {
-      alert('Failed to delete subject')
+      toast.error('Failed to delete subject')
     }
   }
 
@@ -98,11 +100,12 @@ export default function SubjectsPage() {
         throw new Error(error.error || 'Failed to save subject')
       }
 
+      toast.success(selectedSubject ? 'Subject updated successfully' : 'Subject created successfully')
       fetchSubjects()
       setIsFormOpen(false)
       setSelectedSubject(null)
     } catch (error: any) {
-      alert(error.message)
+      toast.error(error.message)
     } finally {
       setFormLoading(false)
     }

@@ -83,12 +83,13 @@ export default function StudentsPage() {
       })
 
       if (response.ok) {
+        toast.success('Student deleted successfully')
         fetchStudents()
       } else {
-        alert('Failed to delete student')
+        toast.error('Failed to delete student')
       }
     } catch (error) {
-      alert('Failed to delete student')
+      toast.error('Failed to delete student')
     }
   }
 

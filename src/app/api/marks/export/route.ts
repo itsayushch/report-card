@@ -52,7 +52,6 @@ export async function GET(request: NextRequest) {
         },
         subject: {
           select: {
-            code: true,
             name: true,
           },
         },
@@ -66,7 +65,6 @@ export async function GET(request: NextRequest) {
       rollNo: mark.student.rollNo,
       studentName: mark.student.name,
       class: mark.student.class,
-      subjectCode: mark.subject.code,
       subjectName: mark.subject.name,
       marks: mark.marks,
       grade: mark.grade,
