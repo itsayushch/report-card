@@ -14,26 +14,9 @@ export async function GET(request: NextRequest) {
     const [student, activeYear] = await Promise.all([
       prisma.student.findUnique({
         where: { email: session.user.email! },
-        select: {
-          id: true,
-          name: true,
-          rollNo: true,
-          class: true,
-          section: true,
-          email: true,
-          academicYear: true,
-          promotionStatus: true,
-        },
       }),
       prisma.academicYear.findFirst({
         where: { isActive: true },
-        select: {
-          id: true,
-          year: true,
-          startDate: true,
-          endDate: true,
-          terms: true,
-        },
       }),
     ])
 
@@ -60,10 +43,6 @@ export async function GET(request: NextRequest) {
       orderBy: {
         createdAt: 'asc', // Get the earliest published report
       },
-      select: {
-        term: true,
-        createdAt: true,
-      },
     })
 
 
@@ -77,15 +56,8 @@ export async function GET(request: NextRequest) {
           term: publishStatus.term,
           academicYear: activeYear.year,
         },
-        select: {
-          marks: true,
-          subject: {
-            select: {
-              name: true,
-              maxMarks: true,
-              passingMarks: true,
-            },
-          },
+        include: {
+          subject: true,
         },
       })
 

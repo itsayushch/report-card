@@ -32,17 +32,6 @@ export async function GET(request: NextRequest) {
       orderBy: {
         rollNo: 'asc',
       },
-      select: {
-        name: true,
-        rollNo: true,
-        class: true,
-        section: true,
-        parentName: true,
-        email: true,
-        phone: true,
-        status: true,
-        academicYear: true,
-      },
     })
 
     return NextResponse.json(students)

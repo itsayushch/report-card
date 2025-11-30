@@ -11,7 +11,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { toast } from 'sonner'
 import Papa from 'papaparse'
-import { Download, Upload, FileText, AlertCircle, CheckCircle2 } from 'lucide-react'
+import { Download, Upload, FileText, AlertCircle, CheckCircle2, Loader2 } from 'lucide-react'
+import { Skeleton } from '@/components/ui/skeleton'
 
 interface StudentImportData {
   name: string
@@ -38,7 +39,35 @@ export default function StudentImportPage() {
 
   // Redirect if not authenticated or not admin
   if (status === 'loading') {
-    return <div>Loading...</div>
+    return (
+      <div className="p-6 space-y-6">
+        <div className="space-y-2">
+          <Skeleton className="h-9 w-64" />
+          <Skeleton className="h-5 w-96" />
+        </div>
+        <div className="grid gap-6 md:grid-cols-2">
+          <Card>
+            <CardHeader>
+              <Skeleton className="h-6 w-40" />
+              <Skeleton className="h-4 w-64 mt-2" />
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <Skeleton className="h-32 w-full" />
+              <Skeleton className="h-10 w-full" />
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader>
+              <Skeleton className="h-6 w-48" />
+              <Skeleton className="h-4 w-72 mt-2" />
+            </CardHeader>
+            <CardContent>
+              <Skeleton className="h-10 w-full" />
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    )
   }
 
   if (!session || session.user.role !== 'ADMIN') {

@@ -36,10 +36,10 @@ async function main() {
 
   // Create a sample academic year
   const academicYear = await prisma.academicYear.upsert({
-    where: { year: '2024-2025' },
+    where: { year: '2025' },
     update: {},
     create: {
-      year: '2024-2025',
+      year: '2025',
       startDate: new Date('2024-06-01'),
       endDate: new Date('2025-05-31'),
       isActive: true,
@@ -67,21 +67,26 @@ async function main() {
 
   // Create sample subjects
   const subjects = [
-    { name: 'Mathematics', code: 'MATH101', maxMarks: 100, passingMarks: 40 },
-    { name: 'English', code: 'ENG101', maxMarks: 100, passingMarks: 40 },
-    { name: 'Science', code: 'SCI101', maxMarks: 100, passingMarks: 40 },
-    { name: 'Social Studies', code: 'SS101', maxMarks: 100, passingMarks: 40 },
-    { name: 'Hindi', code: 'HIN101', maxMarks: 100, passingMarks: 40 },
+    { name: 'Mathematics', maxMarks: 100, passingMarks: 40 },
+    { name: 'English', maxMarks: 100, passingMarks: 40 },
+    { name: 'Science', maxMarks: 100, passingMarks: 40 },
+    { name: 'Social Studies', maxMarks: 100, passingMarks: 40 },
+    { name: 'Hindi', maxMarks: 100, passingMarks: 40 },
   ]
 
   for (const subject of subjects) {
     await prisma.subject.upsert({
-      where: { code: subject.code },
+      where: { 
+        name_academicYear: {
+          name: subject.name,
+          academicYear: '2025'
+        }
+      },
       update: {},
       create: {
         ...subject,
-        academicYear: '2024-2025'
-      }
+        academicYear: '2025'
+      },
     })
   }
 
@@ -94,7 +99,7 @@ async function main() {
       email: 'john.smith@sthelens.edu',
       password: 'john.smith@sthelens.edu',
       phone: '+1234567891',
-      subjects: ['MATH101', 'SCI101'],
+      subjects: ['Mathematics', 'Science'],
       assignedClasses: ['10-A', '10-B'],
       isAdmin: false,
       firstLogin: true
@@ -104,7 +109,7 @@ async function main() {
       email: 'sarah.johnson@sthelens.edu',
       password: 'sarah.johnson@sthelens.edu',
       phone: '+1234567892',
-      subjects: ['ENG101', 'HIN101'],
+      subjects: ['English', 'Hindi'],
       assignedClasses: ['10-A', '9-A'],
       isAdmin: false,
       firstLogin: true
@@ -114,7 +119,7 @@ async function main() {
       email: 'michael.brown@sthelens.edu',
       password: 'michael.brown@sthelens.edu',
       phone: '+1234567893',
-      subjects: ['SS101'],
+      subjects: ['Social Studies'],
       assignedClasses: ['10-B', '9-B'],
       isAdmin: false,
       firstLogin: true
@@ -144,7 +149,7 @@ async function main() {
       section: 'A',
       parentName: 'Suresh Kumar',
       phone: '+1234560001',
-      academicYear: '2024-2025',
+      academicYear: '2025',
       status: Status.ACTIVE,
       promotionStatus: PromotionStatus.PENDING
     },
@@ -158,7 +163,7 @@ async function main() {
       section: 'A',
       parentName: 'Ramesh Sharma',
       phone: '+1234560002',
-      academicYear: '2024-2025',
+      academicYear: '2025',
       status: 'ACTIVE',
       promotionStatus: 'PENDING'
     },
@@ -172,7 +177,7 @@ async function main() {
       section: 'A',
       parentName: 'Vijay Patel',
       phone: '+1234560003',
-      academicYear: '2024-2025',
+      academicYear: '2025',
       status: 'ACTIVE',
       promotionStatus: 'PENDING'
     },
@@ -187,7 +192,7 @@ async function main() {
       section: 'B',
       parentName: 'Krishna Reddy',
       phone: '+1234560004',
-      academicYear: '2024-2025',
+      academicYear: '2025',
       status: 'ACTIVE',
       promotionStatus: 'PENDING'
     },
@@ -201,7 +206,7 @@ async function main() {
       section: 'B',
       parentName: 'Ranjit Singh',
       phone: '+1234560005',
-      academicYear: '2024-2025',
+      academicYear: '2025',
       status: 'ACTIVE',
       promotionStatus: 'PENDING'
     },
@@ -215,7 +220,7 @@ async function main() {
       section: 'B',
       parentName: 'Anil Gupta',
       phone: '+1234560006',
-      academicYear: '2024-2025',
+      academicYear: '2025',
       status: 'ACTIVE',
       promotionStatus: 'PENDING'
     },
@@ -230,7 +235,7 @@ async function main() {
       section: 'A',
       parentName: 'Prakash Verma',
       phone: '+1234560007',
-      academicYear: '2024-2025',
+      academicYear: '2025',
       status: 'ACTIVE',
       promotionStatus: 'PENDING'
     },
@@ -244,7 +249,7 @@ async function main() {
       section: 'A',
       parentName: 'Sundar Iyer',
       phone: '+1234560008',
-      academicYear: '2024-2025',
+      academicYear: '2025',
       status: 'ACTIVE',
       promotionStatus: 'PENDING'
     },
@@ -259,7 +264,7 @@ async function main() {
       section: 'B',
       parentName: 'Mohan Rao',
       phone: '+1234560009',
-      academicYear: '2024-2025',
+      academicYear: '2025',
       status: 'ACTIVE',
       promotionStatus: 'PENDING'
     },
@@ -273,7 +278,7 @@ async function main() {
       section: 'B',
       parentName: 'Rajesh Nair',
       phone: '+1234560010',
-      academicYear: '2024-2025',
+      academicYear: '2025',
       status: 'ACTIVE',
       promotionStatus: 'PENDING'
     }
@@ -299,37 +304,37 @@ async function main() {
   
   const sampleMarks = [
     // Student 2024001 (Raj Kumar) - Class 10-A
-    { studentRollNo: '2024001', subjectCode: 'MATH101', term: 'Term 1', marks: 85 },
-    { studentRollNo: '2024001', subjectCode: 'ENG101', term: 'Term 1', marks: 78 },
-    { studentRollNo: '2024001', subjectCode: 'SCI101', term: 'Term 1', marks: 92 },
-    { studentRollNo: '2024001', subjectCode: 'SS101', term: 'Term 1', marks: 88 },
-    { studentRollNo: '2024001', subjectCode: 'HIN101', term: 'Term 1', marks: 75 },
+    { studentRollNo: '2024001', subjectName: 'Mathematics', term: 'Term 1', marks: 85 },
+    { studentRollNo: '2024001', subjectName: 'English', term: 'Term 1', marks: 78 },
+    { studentRollNo: '2024001', subjectName: 'Science', term: 'Term 1', marks: 92 },
+    { studentRollNo: '2024001', subjectName: 'Social Studies', term: 'Term 1', marks: 88 },
+    { studentRollNo: '2024001', subjectName: 'Hindi', term: 'Term 1', marks: 75 },
     
     // Student 2024002 (Priya Sharma) - Class 10-A
-    { studentRollNo: '2024002', subjectCode: 'MATH101', term: 'Term 1', marks: 90 },
-    { studentRollNo: '2024002', subjectCode: 'ENG101', term: 'Term 1', marks: 95 },
-    { studentRollNo: '2024002', subjectCode: 'SCI101', term: 'Term 1', marks: 88 },
-    { studentRollNo: '2024002', subjectCode: 'SS101', term: 'Term 1', marks: 92 },
-    { studentRollNo: '2024002', subjectCode: 'HIN101', term: 'Term 1', marks: 87 },
+    { studentRollNo: '2024002', subjectName: 'Mathematics', term: 'Term 1', marks: 90 },
+    { studentRollNo: '2024002', subjectName: 'English', term: 'Term 1', marks: 95 },
+    { studentRollNo: '2024002', subjectName: 'Science', term: 'Term 1', marks: 88 },
+    { studentRollNo: '2024002', subjectName: 'Social Studies', term: 'Term 1', marks: 92 },
+    { studentRollNo: '2024002', subjectName: 'Hindi', term: 'Term 1', marks: 87 },
     
     // Student 2024003 (Amit Patel) - Class 10-A
-    { studentRollNo: '2024003', subjectCode: 'MATH101', term: 'Term 1', marks: 72 },
-    { studentRollNo: '2024003', subjectCode: 'ENG101', term: 'Term 1', marks: 68 },
-    { studentRollNo: '2024003', subjectCode: 'SCI101', term: 'Term 1', marks: 75 },
-    { studentRollNo: '2024003', subjectCode: 'SS101', term: 'Term 1', marks: 70 },
-    { studentRollNo: '2024003', subjectCode: 'HIN101', term: 'Term 1', marks: 65 },
+    { studentRollNo: '2024003', subjectName: 'Mathematics', term: 'Term 1', marks: 72 },
+    { studentRollNo: '2024003', subjectName: 'English', term: 'Term 1', marks: 68 },
+    { studentRollNo: '2024003', subjectName: 'Science', term: 'Term 1', marks: 75 },
+    { studentRollNo: '2024003', subjectName: 'Social Studies', term: 'Term 1', marks: 70 },
+    { studentRollNo: '2024003', subjectName: 'Hindi', term: 'Term 1', marks: 65 },
   ]
 
   for (const mark of sampleMarks) {
     const student = await prisma.student.findUnique({
       where: { rollNo: mark.studentRollNo }
     })
-    const subject = subjectRecords.find(s => s.code === mark.subjectCode)
+    const subject = subjectRecords.find(s => s.name === mark.subjectName)
     
     if (student && subject) {
       // Find a teacher who teaches this subject
       const teacher = teacherRecords.find(t => 
-        t.subjects.includes(mark.subjectCode)
+        t.subjects.includes(mark.subjectName)
       )
       
       if (teacher) {
@@ -339,7 +344,7 @@ async function main() {
               studentId: student.id,
               subjectId: subject.id,
               term: mark.term,
-              academicYear: '2024-2025'
+              academicYear: '2025'
             }
           },
           update: {},
@@ -349,7 +354,7 @@ async function main() {
             term: mark.term,
             marks: mark.marks,
             grade: mark.marks >= 90 ? 'A+' : mark.marks >= 80 ? 'A' : mark.marks >= 70 ? 'B' : mark.marks >= 60 ? 'C' : mark.marks >= 40 ? 'D' : 'F',
-            academicYear: '2024-2025',
+            academicYear: '2025',
             enteredById: teacher.id
           }
         })

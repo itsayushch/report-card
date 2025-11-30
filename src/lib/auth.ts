@@ -43,13 +43,6 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         if (role === 'STUDENT') {
           const student = await prisma.student.findUnique({
             where: { rollNo: credentials.email as string },  // Use rollNo as username
-            select: {
-              id: true,
-              email: true,
-              name: true,
-              password: true,
-              status: true,
-            },
           })
 
           if (!student) {
@@ -74,14 +67,6 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         } else if (role === 'TEACHER' || role === 'ADMIN') {
           const teacher = await prisma.teacher.findUnique({
             where: { email: credentials.email as string },
-            select: {
-              id: true,
-              email: true,
-              name: true,
-              password: true,
-              isAdmin: true,
-              firstLogin: true,
-            },
           })
 
           if (!teacher) {

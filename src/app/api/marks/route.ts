@@ -47,29 +47,9 @@ export async function GET(request: NextRequest) {
     const marks = await prisma.mark.findMany({
       where,
       include: {
-        student: {
-          select: {
-            id: true,
-            name: true,
-            rollNo: true,
-            class: true,
-            section: true,
-          },
-        },
-        subject: {
-          select: {
-            id: true,
-            name: true,
-            code: true,
-            maxMarks: true,
-            passingMarks: true,
-          },
-        },
-        enteredBy: {
-          select: {
-            name: true,
-          },
-        },
+        student: true,
+        subject: true,
+        enteredBy: true,
       },
       orderBy: [
         { student: { rollNo: 'asc' } },

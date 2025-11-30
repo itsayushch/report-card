@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Users, BookOpen, GraduationCap, ClipboardEdit } from 'lucide-react'
+import { Skeleton } from '@/components/ui/skeleton'
 import Link from 'next/link'
 import { toast } from 'sonner'
 
@@ -17,7 +18,8 @@ interface TeacherStats {
 interface Subject {
   id: string
   name: string
-  code: string
+  maxMarks: number
+  passingMarks: number
 }
 
 interface RecentMark {
@@ -33,7 +35,6 @@ interface RecentMark {
   }
   subject: {
     name: string
-    code: string
   }
 }
 
@@ -69,8 +70,56 @@ export default function TeacherDashboardPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
+      <div className="p-6 space-y-6">
+        <div className="space-y-2">
+          <Skeleton className="h-9 w-48" />
+          <Skeleton className="h-5 w-96" />
+        </div>
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+          {[...Array(4)].map((_, i) => (
+            <Card key={i}>
+              <CardHeader className="flex flex-row items-center justify-between pb-2">
+                <Skeleton className="h-4 w-24" />
+                <Skeleton className="h-4 w-4" />
+              </CardHeader>
+              <CardContent>
+                <Skeleton className="h-8 w-16 mb-1" />
+                <Skeleton className="h-3 w-32" />
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+        <div className="grid gap-6 md:grid-cols-2">
+          <Card>
+            <CardHeader>
+              <Skeleton className="h-6 w-32" />
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {[...Array(3)].map((_, i) => (
+                <div key={i} className="p-4 border rounded-lg">
+                  <Skeleton className="h-5 w-40" />
+                  <Skeleton className="h-4 w-48 mt-2" />
+                </div>
+              ))}
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader>
+              <Skeleton className="h-6 w-40" />
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {[...Array(5)].map((_, i) => (
+                <div key={i} className="flex justify-between items-center py-2 border-b">
+                  <div className="space-y-1 flex-1">
+                    <Skeleton className="h-4 w-32" />
+                    <Skeleton className="h-3 w-24" />
+                  </div>
+                  <Skeleton className="h-6 w-12" />
+                </div>
+              ))}
+            </CardContent>
+          </Card>
+        </div>
       </div>
     )
   }
@@ -174,7 +223,7 @@ export default function TeacherDashboardPage() {
               >
                 <div>
                   <p className="font-medium">{subject.name}</p>
-                  <p className="text-sm text-gray-500">Code: {subject.code}</p>
+                  <p className="text-sm text-gray-500">Max: {subject.maxMarks} | Pass: {subject.passingMarks}</p>
                 </div>
               </div>
             ))}

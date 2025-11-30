@@ -1,7 +1,6 @@
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Users, GraduationCap, BookOpen, Calendar } from 'lucide-react'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Users, GraduationCap, BookOpen, Calendar, ArrowRight, TrendingUp } from 'lucide-react'
 import Link from 'next/link'
-import { Button } from '@/components/ui/button'
 
 async function getStats() {
   const response = await fetch(`${process.env.NEXTAUTH_URL}/api/stats`, {
@@ -25,148 +24,113 @@ export default async function AdminDashboard() {
 
   const statCards = [
     {
-      title: 'Total Students',
+      title: 'Students',
       value: stats.totalStudents,
       icon: Users,
       color: 'text-blue-600',
-      bgColor: 'bg-blue-100',
+      bgColor: 'bg-blue-50',
+      borderColor: 'border-blue-200',
       href: '/admin/students',
+      description: 'Total enrolled'
     },
     {
-      title: 'Total Teachers',
+      title: 'Teachers',
       value: stats.totalTeachers,
       icon: GraduationCap,
       color: 'text-green-600',
-      bgColor: 'bg-green-100',
+      bgColor: 'bg-green-50',
+      borderColor: 'border-green-200',
       href: '/admin/teachers',
+      description: 'Teaching staff'
     },
     {
-      title: 'Total Subjects',
+      title: 'Subjects',
       value: stats.totalSubjects,
       icon: BookOpen,
       color: 'text-purple-600',
-      bgColor: 'bg-purple-100',
+      bgColor: 'bg-purple-50',
+      borderColor: 'border-purple-200',
       href: '/admin/subjects',
+      description: 'Courses offered'
     },
     {
       title: 'Academic Year',
       value: stats.activeAcademicYear,
       icon: Calendar,
       color: 'text-orange-600',
-      bgColor: 'bg-orange-100',
+      bgColor: 'bg-orange-50',
+      borderColor: 'border-orange-200',
       href: '/admin/academic-years',
+      description: 'Current session'
     },
   ]
 
+  const quickActions = [
+    { title: 'Manage Students', href: '/admin/students', icon: Users, description: 'Add, edit, or view student records' },
+    { title: 'Manage Teachers', href: '/admin/teachers', icon: GraduationCap, description: 'Handle staff and assignments' },
+    { title: 'Manage Subjects', href: '/admin/subjects', icon: BookOpen, description: 'Configure courses and grades' },
+    { title: 'Academic Years', href: '/admin/academic-years', icon: Calendar, description: 'Set up terms and sessions' },
+  ]
+
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold">Dashboard</h1>
-        <p className="text-gray-600 mt-1">Overview of St. Helen&apos;s School</p>
+    <div className="space-y-8">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
+          <p className="text-muted-foreground mt-1">Welcome to St. Helen&apos;s School Management System</p>
+        </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      {/* Stats Grid */}
+      <div className="grid gap-3 grid-cols-2 lg:grid-cols-4">
         {statCards.map((card) => {
           const Icon = card.icon
           return (
-            <Card key={card.title} className="hover:shadow-lg transition-shadow">
-              <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle className="text-sm font-medium text-gray-600">
-                  {card.title}
-                </CardTitle>
-                <div className={`p-2 rounded-lg ${card.bgColor}`}>
-                  <Icon className={`h-5 w-5 ${card.color}`} />
+            <Card key={card.title} className={`border ${card.borderColor}`}>
+              <CardContent className="px-4 py-0">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-xs font-medium text-muted-foreground uppercase mb-1">{card.title}</p>
+                    <p className="text-2xl font-bold leading-none">{card.value}</p>
+                  </div>
+                  <div className={`p-3 rounded-full ${card.bgColor} shrink-0`}>
+                    <Icon className={`h-6 w-6 ${card.color}`} />
+                  </div>
                 </div>
-              </CardHeader>
-              <CardContent>
-                <div className="text-3xl font-bold">{card.value}</div>
-                <Link href={card.href}>
-                  <Button variant="link" className="px-0 mt-2 text-indigo-600">
-                    View Details →
-                  </Button>
-                </Link>
               </CardContent>
             </Card>
           )
         })}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card>
-          <CardHeader>
-            <CardTitle>Quick Actions</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2">
-            <Link href="/admin/students">
-              <Button variant="outline" className="w-full justify-start">
-                <Users className="mr-2 h-4 w-4" />
-                Manage Students
-              </Button>
-            </Link>
-            <Link href="/admin/teachers">
-              <Button variant="outline" className="w-full justify-start">
-                <GraduationCap className="mr-2 h-4 w-4" />
-                Manage Teachers
-              </Button>
-            </Link>
-            <Link href="/admin/subjects">
-              <Button variant="outline" className="w-full justify-start">
-                <BookOpen className="mr-2 h-4 w-4" />
-                Manage Subjects
-              </Button>
-            </Link>
-            <Link href="/admin/academic-years">
-              <Button variant="outline" className="w-full justify-start">
-                <Calendar className="mr-2 h-4 w-4" />
-                Manage Academic Years
-              </Button>
-            </Link>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>System Information</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <div className="flex justify-between items-center">
-              <span className="text-gray-600">Active Academic Year:</span>
-              <span className="font-medium">{stats.activeAcademicYear}</span>
-            </div>
-            <div className="flex justify-between items-center">
-              <span className="text-gray-600">Active Students:</span>
-              <span className="font-medium">{stats.totalStudents}</span>
-            </div>
-            <div className="flex justify-between items-center">
-              <span className="text-gray-600">Teaching Staff:</span>
-              <span className="font-medium">{stats.totalTeachers}</span>
-            </div>
-            <div className="flex justify-between items-center">
-              <span className="text-gray-600">Subjects Offered:</span>
-              <span className="font-medium">{stats.totalSubjects}</span>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
+      {/* Quick Actions */}
       <Card>
         <CardHeader>
-          <CardTitle>Welcome to St. Helen&apos;s School</CardTitle>
+          <CardTitle className="text-xl">Quick Actions</CardTitle>
+          <CardDescription>Navigate to key management sections</CardDescription>
         </CardHeader>
         <CardContent>
-          <p className="text-gray-600">
-            This is the admin dashboard for the Report Card Management System. 
-            Use the navigation menu to manage students, teachers, subjects, and academic years. 
-            All changes are saved automatically to the database.
-          </p>
-          <div className="mt-4 p-4 bg-indigo-50 rounded-lg border border-indigo-200">
-            <p className="text-sm font-medium text-indigo-900">Part 1 Features:</p>
-            <ul className="mt-2 text-sm text-indigo-700 space-y-1 list-disc list-inside">
-              <li>Student Management with search and filters</li>
-              <li>Teacher Management with subject assignments</li>
-              <li>Subject Management with validation</li>
-              <li>Academic Year Management with terms</li>
-            </ul>
+          <div className="grid gap-3 sm:grid-cols-2">
+            {quickActions.map((action) => {
+              const Icon = action.icon
+              return (
+                <Link key={action.title} href={action.href}>
+                  <div className="group flex items-start gap-3 rounded-lg border p-4 hover:bg-accent hover:shadow-sm transition-all cursor-pointer">
+                    <div className="p-2 rounded-md bg-muted">
+                      <Icon className="h-4 w-4 text-muted-foreground" />
+                    </div>
+                    <div className="flex-1 space-y-1">
+                      <div className="flex items-center justify-between">
+                        <p className="font-medium leading-none">{action.title}</p>
+                        <ArrowRight className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+                      </div>
+                      <p className="text-sm text-muted-foreground">{action.description}</p>
+                    </div>
+                  </div>
+                </Link>
+              )
+            })}
           </div>
         </CardContent>
       </Card>

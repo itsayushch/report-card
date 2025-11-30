@@ -14,23 +14,9 @@ export async function GET(request: NextRequest) {
     const [teacher, activeYear] = await Promise.all([
       prisma.teacher.findUnique({
         where: { email: session.user.email! },
-        select: {
-          id: true,
-          name: true,
-          email: true,
-          assignedClasses: true,
-          subjects: true,
-        },
       }),
       prisma.academicYear.findFirst({
         where: { isActive: true },
-        select: {
-          id: true,
-          year: true,
-          startDate: true,
-          endDate: true,
-          terms: true,
-        },
       }),
     ])
 
@@ -40,19 +26,14 @@ export async function GET(request: NextRequest) {
 
     // Get assigned classes and subjects
     const assignedClasses = teacher.assignedClasses
-    const assignedSubjectCodes = teacher.subjects
+    const assignedSubjectNames = teacher.subjects
 
     // Get subject details and student counts in parallel
     const [subjects, ...studentCountResults] = await Promise.all([
       prisma.subject.findMany({
         where: {
-          code: { in: assignedSubjectCodes },
-        },
-        select: {
-          id: true,
-          name: true,
-          code: true,
-          maxMarks: true,
+          name: { in: assignedSubjectNames },
+          academicYear: activeYear?.year,
         },
       }),
       ...assignedClasses.map((cls: string) => {
@@ -62,6 +43,7 @@ export async function GET(request: NextRequest) {
             class: className,
             section: section,
             status: 'ACTIVE',
+            academicYear: activeYear?.year,
           },
         })
       }),
@@ -97,7 +79,6 @@ export async function GET(request: NextRequest) {
         subject: {
           select: {
             name: true,
-            code: true,
           },
         },
       },

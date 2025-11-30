@@ -9,7 +9,6 @@ export const studentSchema = z.object({
   parentName: z.string().min(2, 'Parent name is required'),
   email: z.string().email('Invalid email address'),
   phone: z.string().regex(/^\+?[1-9]\d{9,14}$/, 'Invalid phone number'),
-  photo: z.string().url().optional().or(z.literal('')),
   status: z.enum(['ACTIVE', 'INACTIVE']).optional(),
   academicYear: z.string().optional(),
 })
@@ -18,14 +17,22 @@ export const teacherSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters'),
   email: z.string().email('Invalid email address'),
   phone: z.string().regex(/^\+?[1-9]\d{9,14}$/, 'Invalid phone number'),
-  subjects: z.array(z.string()).min(1, 'At least one subject is required'),
-  assignedClasses: z.array(z.string()).min(1, 'At least one class is required'),
+  subjects: z.array(z.string()),
+  assignedClasses: z.array(z.string()),
   isAdmin: z.boolean().optional(),
+}).refine((data) => {
+  // If subjects are present, at least one class must be assigned
+  if (data.subjects.length > 0) {
+    return data.assignedClasses.length > 0
+  }
+  return true
+}, {
+  message: 'At least one class is required',
+  path: ['assignedClasses'],
 })
 
 export const subjectSchema = z.object({
   name: z.string().min(2, 'Subject name is required'),
-  code: z.string().min(2, 'Subject code is required'),
   maxMarks: z.number().int().positive('Max marks must be positive'),
   passingMarks: z.number().int().positive('Passing marks must be positive'),
   academicYear: z.string().optional(),
@@ -35,7 +42,7 @@ export const subjectSchema = z.object({
 })
 
 export const academicYearSchema = z.object({
-  year: z.string().regex(/^\d{4}-\d{4}$/, 'Year must be in format YYYY-YYYY'),
+  year: z.string().regex(/^\d{4}$/, 'Year must be in format YYYY'),
   startDate: z.string().or(z.date()),
   endDate: z.string().or(z.date()),
   isActive: z.boolean().optional(),

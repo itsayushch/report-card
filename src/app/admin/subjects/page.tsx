@@ -10,6 +10,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { subjectSchema, type SubjectFormData } from '@/lib/validations'
 import { Loader2 } from 'lucide-react'
+import { Skeleton } from '@/components/ui/skeleton'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Plus, Edit, Trash2 } from 'lucide-react'
@@ -46,12 +47,11 @@ export default function SubjectsPage() {
     if (selectedSubject) {
       reset({
         name: selectedSubject.name,
-        code: selectedSubject.code,
         maxMarks: selectedSubject.maxMarks,
         passingMarks: selectedSubject.passingMarks,
       })
     } else {
-      reset({ name: '', code: '', maxMarks: 100, passingMarks: 40 })
+      reset({ name: '', maxMarks: 100, passingMarks: 40 })
     }
   }, [selectedSubject, reset])
 
@@ -128,14 +128,39 @@ export default function SubjectsPage() {
         </CardHeader>
         <CardContent>
           {isLoading ? (
-            <div className="text-center py-8">Loading...</div>
+            <div className="space-y-4">
+              <div className="border rounded-lg overflow-hidden">
+                <div className="border-b bg-muted/50 p-4">
+                  <div className="grid grid-cols-5 gap-4">
+                    <Skeleton className="h-4 w-28" />
+                    <Skeleton className="h-4 w-20" />
+                    <Skeleton className="h-4 w-24" />
+                    <Skeleton className="h-4 w-28" />
+                    <Skeleton className="h-4 w-16 ml-auto" />
+                  </div>
+                </div>
+                {[...Array(5)].map((_, i) => (
+                  <div key={i} className="border-b p-4">
+                    <div className="grid grid-cols-5 gap-4 items-center">
+                      <Skeleton className="h-4 w-32" />
+                      <Skeleton className="h-4 w-12" />
+                      <Skeleton className="h-4 w-12" />
+                      <Skeleton className="h-4 w-24" />
+                      <div className="flex gap-2 justify-end">
+                        <Skeleton className="h-8 w-8" />
+                        <Skeleton className="h-8 w-8" />
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
           ) : (
             <div className="border rounded-lg overflow-hidden">
               <Table>
                 <TableHeader>
                   <TableRow>
                     <TableHead>Subject Name</TableHead>
-                    <TableHead>Code</TableHead>
                     <TableHead>Max Marks</TableHead>
                     <TableHead>Passing Marks</TableHead>
                     <TableHead>Academic Year</TableHead>
@@ -153,7 +178,6 @@ export default function SubjectsPage() {
                     subjects.map((subject) => (
                       <TableRow key={subject.id}>
                         <TableCell className="font-medium">{subject.name}</TableCell>
-                        <TableCell className="font-mono text-sm">{subject.code}</TableCell>
                         <TableCell>{subject.maxMarks}</TableCell>
                         <TableCell>{subject.passingMarks}</TableCell>
                         <TableCell>{subject.academicYear}</TableCell>
@@ -191,12 +215,6 @@ export default function SubjectsPage() {
               <Label htmlFor="name">Subject Name *</Label>
               <Input id="name" {...register('name')} placeholder="e.g., Mathematics" />
               {errors.name && <p className="text-sm text-red-600">{errors.name.message}</p>}
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="code">Subject Code *</Label>
-              <Input id="code" {...register('code')} placeholder="e.g., MATH101" />
-              {errors.code && <p className="text-sm text-red-600">{errors.code.message}</p>}
             </div>
 
             <div className="grid grid-cols-2 gap-4">

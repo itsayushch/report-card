@@ -6,14 +6,17 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
+import { Input } from '@/components/ui/input'
 import { TeacherForm } from '@/components/admin/teachers/TeacherForm'
-import { Plus, Edit, Trash2, Mail, Phone } from 'lucide-react'
+import { Plus, Edit, Trash2, Mail, Phone, Search } from 'lucide-react'
+import { Skeleton } from '@/components/ui/skeleton'
 
 export default function TeachersPage() {
   const [teachers, setTeachers] = useState<Teacher[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [isFormOpen, setIsFormOpen] = useState(false)
   const [selectedTeacher, setSelectedTeacher] = useState<Teacher | null>(null)
+  const [searchTerm, setSearchTerm] = useState('')
 
   const fetchTeachers = async () => {
     try {
@@ -31,6 +34,17 @@ export default function TeachersPage() {
   useEffect(() => {
     fetchTeachers()
   }, [])
+
+  const filteredTeachers = teachers.filter((teacher) => {
+    const search = searchTerm.toLowerCase()
+    return (
+      teacher.name.toLowerCase().includes(search) ||
+      teacher.email.toLowerCase().includes(search) ||
+      teacher.phone.toLowerCase().includes(search) ||
+      teacher.subjects.some((s) => s.toLowerCase().includes(search)) ||
+      teacher.assignedClasses.some((c) => c.toLowerCase().includes(search))
+    )
+  })
 
   const handleEdit = (teacher: Teacher) => {
     setSelectedTeacher(teacher)
@@ -72,12 +86,60 @@ export default function TeachersPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>All Teachers ({teachers.length})</CardTitle>
-          <CardDescription>Manage teachers and their assigned subjects</CardDescription>
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div>
+              <CardTitle>All Teachers ({filteredTeachers.length})</CardTitle>
+              <CardDescription>Manage teachers and their assigned subjects</CardDescription>
+            </div>
+            <div className="relative w-full sm:w-64">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+              <Input
+                placeholder="Search teachers..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-9"
+              />
+            </div>
+          </div>
         </CardHeader>
         <CardContent>
           {isLoading ? (
-            <div className="text-center py-8">Loading...</div>
+            <div className="space-y-4">
+              <div className="border rounded-lg overflow-hidden">
+                <div className="border-b bg-muted/50 p-4">
+                  <div className="grid grid-cols-5 gap-4">
+                    <Skeleton className="h-4 w-20" />
+                    <Skeleton className="h-4 w-24" />
+                    <Skeleton className="h-4 w-20" />
+                    <Skeleton className="h-4 w-32" />
+                    <Skeleton className="h-4 w-16 ml-auto" />
+                  </div>
+                </div>
+                {[...Array(5)].map((_, i) => (
+                  <div key={i} className="border-b p-4">
+                    <div className="grid grid-cols-5 gap-4 items-center">
+                      <Skeleton className="h-4 w-32" />
+                      <div className="space-y-2">
+                        <Skeleton className="h-3 w-40" />
+                        <Skeleton className="h-3 w-36" />
+                      </div>
+                      <div className="flex gap-1">
+                        <Skeleton className="h-5 w-16" />
+                        <Skeleton className="h-5 w-16" />
+                      </div>
+                      <div className="flex gap-1">
+                        <Skeleton className="h-5 w-12" />
+                        <Skeleton className="h-5 w-12" />
+                      </div>
+                      <div className="flex gap-2 justify-end">
+                        <Skeleton className="h-8 w-8" />
+                        <Skeleton className="h-8 w-8" />
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
           ) : (
             <div className="border rounded-lg overflow-hidden">
               <Table>
@@ -91,14 +153,14 @@ export default function TeachersPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {teachers.length === 0 ? (
+                  {filteredTeachers.length === 0 ? (
                     <TableRow>
                       <TableCell colSpan={5} className="text-center py-8 text-gray-500">
-                        No teachers found
+                        {searchTerm ? 'No teachers found matching your search' : 'No teachers found'}
                       </TableCell>
                     </TableRow>
                   ) : (
-                    teachers.map((teacher) => (
+                    filteredTeachers.map((teacher) => (
                       <TableRow key={teacher.id}>
                         <TableCell className="font-medium">{teacher.name}</TableCell>
                         <TableCell>

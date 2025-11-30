@@ -59,7 +59,6 @@ export function StudentForm({ open, onOpenChange, student, onSuccess }: StudentF
         parentName: student.parentName,
         email: student.email,
         phone: student.phone,
-        photo: student.photo || '',
         status: student.status,
       })
     } else {
@@ -71,7 +70,6 @@ export function StudentForm({ open, onOpenChange, student, onSuccess }: StudentF
         parentName: '',
         email: '',
         phone: '',
-        photo: '',
         status: 'ACTIVE',
       })
     }
@@ -231,18 +229,6 @@ export function StudentForm({ open, onOpenChange, student, onSuccess }: StudentF
                 <p className="text-sm text-red-600">{errors.phone.message}</p>
               )}
             </div>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="photo">Photo URL (optional)</Label>
-            <Input
-              id="photo"
-              {...register('photo')}
-              placeholder="https://example.com/photo.jpg"
-            />
-            {errors.photo && (
-              <p className="text-sm text-red-600">{errors.photo.message}</p>
-            )}
           </div>
 
           {student && (

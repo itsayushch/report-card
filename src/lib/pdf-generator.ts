@@ -7,7 +7,6 @@ export interface ReportData {
     rollNo: string;
     class: string;
     section: string;
-    photo?: string;
   };
   academicYear: string;
   term: string;

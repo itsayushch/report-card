@@ -32,27 +32,12 @@ export async function GET(
     const [student, publishStatus] = await Promise.all([
       prisma.student.findUnique({
         where: { id },
-        select: {
-          id: true,
-          name: true,
-          rollNo: true,
-          class: true,
-          section: true,
-          photo: true,
-          email: true,
-          promotionStatus: true,
-        },
       }),
       prisma.reportPublish.findFirst({
         where: {
           term,
           academicYear,
           isPublished: true,
-        },
-        select: {
-          class: true,
-          section: true,
-          term: true,
         },
       }),
     ])
@@ -92,19 +77,8 @@ export async function GET(
         term,
         academicYear,
       },
-      select: {
-        marks: true,
-        grade: true,
-        teacherRemarks: true,
-        subject: {
-          select: {
-            id: true,
-            name: true,
-            code: true,
-            maxMarks: true,
-            passingMarks: true,
-          },
-        },
+      include: {
+        subject: true,
       },
       orderBy: {
         subject: {
@@ -127,13 +101,11 @@ export async function GET(
         rollNo: student.rollNo,
         class: student.class,
         section: student.section,
-        photo: student.photo,
       },
       academicYear,
       term,
       marks: marks.map((m) => ({
         subject: m.subject.name,
-        subjectCode: m.subject.code,
         maxMarks: m.subject.maxMarks,
         obtainedMarks: m.marks,
         grade: m.grade,

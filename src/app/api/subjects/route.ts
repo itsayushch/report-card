@@ -37,14 +37,17 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Check if code already exists
-    const existingSubject = await prisma.subject.findUnique({
-      where: { code: validatedData.code },
+    // Check if subject name already exists in this academic year
+    const existingSubject = await prisma.subject.findFirst({
+      where: { 
+        name: validatedData.name,
+        academicYear: activeYear.year,
+      },
     })
 
     if (existingSubject) {
       return NextResponse.json(
-        { error: 'Subject code already exists' },
+        { error: 'This subject already exists for the current academic year' },
         { status: 400 }
       )
     }

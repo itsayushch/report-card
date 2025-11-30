@@ -18,7 +18,6 @@ model Student {
   section         String
   parentName      String
   phone           String
-  photo           String?
   status          Status          @default(ACTIVE)
   academicYear    String
   promotionStatus PromotionStatus @default(PENDING)
@@ -68,7 +67,6 @@ model Teacher {
 model Subject {
   id           String   @id @default(auto()) @map("_id") @db.ObjectId
   name         String
-  code         String   @unique
   maxMarks     Int
   passingMarks Int
   academicYear String
@@ -78,6 +76,7 @@ model Subject {
   // Relations
   marks Mark[]
 
+  @@unique([name, academicYear])
   @@map("subjects")
 }
 

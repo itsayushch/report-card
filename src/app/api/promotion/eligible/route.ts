@@ -59,12 +59,7 @@ export async function GET(request: NextRequest) {
             },
           },
           include: {
-            subject: {
-              select: {
-                maxMarks: true,
-                passingMarks: true,
-              },
-            },
+            subject: true,
           },
         })
 

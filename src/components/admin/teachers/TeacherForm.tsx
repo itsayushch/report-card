@@ -8,6 +8,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { teacherSchema, type TeacherFormData } from '@/lib/validations'
 import { Loader2, X } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
@@ -19,41 +20,88 @@ interface TeacherFormProps {
   onSuccess: () => void
 }
 
-const availableSubjects = ['Mathematics', 'English', 'Science', 'Social Studies', 'Hindi', 'Physics', 'Chemistry', 'Biology', 'Computer Science', 'Physical Education']
 const availableClasses = ['1-A', '1-B', '2-A', '2-B', '3-A', '3-B', '4-A', '4-B', '5-A', '5-B', '6-A', '6-B', '7-A', '7-B', '8-A', '8-B', '9-A', '9-B', '10-A', '10-B', '11-A', '11-B', '12-A', '12-B']
 
 export function TeacherForm({ open, onOpenChange, teacher, onSuccess }: TeacherFormProps) {
   const [isLoading, setIsLoading] = useState(false)
   const [selectedSubjects, setSelectedSubjects] = useState<string[]>([])
   const [selectedClasses, setSelectedClasses] = useState<string[]>([])
+  const [availableSubjects, setAvailableSubjects] = useState<string[]>([])
   const [subjectInput, setSubjectInput] = useState('')
   const [classInput, setClassInput] = useState('')
+  const [originalData, setOriginalData] = useState<TeacherFormData | null>(null)
+  const [hasChanges, setHasChanges] = useState(false)
 
-  const { register, handleSubmit, reset, setValue, formState: { errors } } = useForm<TeacherFormData>({
+  const { register, handleSubmit, reset, setValue, watch, formState: { errors } } = useForm<TeacherFormData>({
     resolver: zodResolver(teacherSchema),
   })
 
+  const formValues = watch()
+
+  // Fetch available subjects from database
+  useEffect(() => {
+    const fetchSubjects = async () => {
+      try {
+        const response = await fetch('/api/subjects')
+        const data = await response.json()
+        const subjectNames = data.subjects.map((s: any) => s.name)
+        setAvailableSubjects(subjectNames)
+      } catch (error) {
+        console.error('Failed to fetch subjects:', error)
+      }
+    }
+    if (open) {
+      fetchSubjects()
+    }
+  }, [open])
+
   useEffect(() => {
     if (teacher) {
-      reset({
+      const data = {
         name: teacher.name,
         email: teacher.email,
         phone: teacher.phone,
         subjects: teacher.subjects,
         assignedClasses: teacher.assignedClasses,
-      })
+      }
+      reset(data)
+      setOriginalData(data)
       setSelectedSubjects(teacher.subjects)
       setSelectedClasses(teacher.assignedClasses)
     } else {
-      reset({ name: '', email: '', phone: '', subjects: [], assignedClasses: [] })
+      const data = { name: '', email: '', phone: '', subjects: [], assignedClasses: [] }
+      reset(data)
+      setOriginalData(data)
       setSelectedSubjects([])
       setSelectedClasses([])
     }
+    setHasChanges(false)
   }, [teacher, reset])
+
+  // Check for changes
+  useEffect(() => {
+    if (!originalData) return
+
+    const arraysEqual = (a: string[], b: string[]) => {
+      if (a.length !== b.length) return false
+      const sortedA = [...a].sort()
+      const sortedB = [...b].sort()
+      return sortedA.every((val, idx) => val === sortedB[idx])
+    }
+
+    const changed = 
+      formValues.name !== originalData.name ||
+      formValues.email !== originalData.email ||
+      formValues.phone !== originalData.phone ||
+      !arraysEqual(selectedSubjects, originalData.subjects) ||
+      !arraysEqual(selectedClasses, originalData.assignedClasses)
+
+    setHasChanges(changed)
+  }, [formValues, selectedSubjects, selectedClasses, originalData])
 
   const addSubject = (subject: string) => {
     if (subject && !selectedSubjects.includes(subject)) {
-      const updated = [...selectedSubjects, subject]
+      const updated = [...selectedSubjects, subject].sort((a, b) => a.localeCompare(b))
       setSelectedSubjects(updated)
       setValue('subjects', updated)
       setSubjectInput('')
@@ -68,7 +116,12 @@ export function TeacherForm({ open, onOpenChange, teacher, onSuccess }: TeacherF
 
   const addClass = (cls: string) => {
     if (cls && !selectedClasses.includes(cls)) {
-      const updated = [...selectedClasses, cls]
+      const updated = [...selectedClasses, cls].sort((a, b) => {
+        const numA = parseInt(a.split('-')[0])
+        const numB = parseInt(b.split('-')[0])
+        if (numA !== numB) return numA - numB
+        return a.localeCompare(b)
+      })
       setSelectedClasses(updated)
       setValue('assignedClasses', updated)
       setClassInput('')
@@ -139,25 +192,28 @@ export function TeacherForm({ open, onOpenChange, teacher, onSuccess }: TeacherF
           </div>
 
           <div className="space-y-2">
-            <Label>Subjects *</Label>
-            <div className="flex gap-2">
-              <Input
-                value={subjectInput}
-                onChange={(e) => setSubjectInput(e.target.value)}
-                placeholder="Type or select subject"
-                list="subjects-list"
-              />
-              <datalist id="subjects-list">
-                {availableSubjects.map(s => <option key={s} value={s} />)}
-              </datalist>
-              <Button type="button" onClick={() => addSubject(subjectInput)}>Add</Button>
-            </div>
+            <Label>Subjects</Label>
+            <Select value={subjectInput} onValueChange={(value) => {
+              addSubject(value)
+            }}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select subject" />
+              </SelectTrigger>
+              <SelectContent>
+                {availableSubjects
+                  .filter(s => !selectedSubjects.includes(s))
+                  .sort((a, b) => a.localeCompare(b))
+                  .map(s => (
+                    <SelectItem key={s} value={s}>{s}</SelectItem>
+                  ))}
+              </SelectContent>
+            </Select>
             <div className="flex flex-wrap gap-2 mt-2">
               {selectedSubjects.map(s => (
-                <Badge key={s} variant="secondary">
+                <Badge key={s} variant="secondary" className="text-sm px-3 py-1.5">
                   {s}
                   <button type="button" onClick={() => removeSubject(s)} className="ml-2">
-                    <X className="h-3 w-3" />
+                    <X className="h-3.5 w-3.5" />
                   </button>
                 </Badge>
               ))}
@@ -167,36 +223,38 @@ export function TeacherForm({ open, onOpenChange, teacher, onSuccess }: TeacherF
 
           <div className="space-y-2">
             <Label>Assigned Classes *</Label>
-            <div className="flex gap-2">
-              <Input
-                value={classInput}
-                onChange={(e) => setClassInput(e.target.value)}
-                placeholder="Type or select class"
-                list="classes-list"
-              />
-              <datalist id="classes-list">
-                {availableClasses.map(c => <option key={c} value={c} />)}
-              </datalist>
-              <Button type="button" onClick={() => addClass(classInput)}>Add</Button>
-            </div>
+            <Select value={classInput} onValueChange={(value) => {
+              addClass(value)
+            }} disabled={selectedSubjects.length === 0}>
+              <SelectTrigger>
+                <SelectValue placeholder={selectedSubjects.length === 0 ? "Add subjects first" : "Select class"} />
+              </SelectTrigger>
+              <SelectContent>
+                {availableClasses
+                  .filter(c => !selectedClasses.includes(c))
+                  .map(c => (
+                    <SelectItem key={c} value={c}>{c}</SelectItem>
+                  ))}
+              </SelectContent>
+            </Select>
             <div className="flex flex-wrap gap-2 mt-2">
               {selectedClasses.map(c => (
-                <Badge key={c} variant="secondary">
+                <Badge key={c} variant="secondary" className="text-sm px-3 py-1.5">
                   {c}
                   <button type="button" onClick={() => removeClass(c)} className="ml-2">
-                    <X className="h-3 w-3" />
+                    <X className="h-3.5 w-3.5" />
                   </button>
                 </Badge>
               ))}
             </div>
-            {errors.assignedClasses && <p className="text-sm text-red-600">{errors.assignedClasses.message}</p>}
+            {errors.assignedClasses && selectedSubjects.length > 0 && <p className="text-sm text-red-600">{errors.assignedClasses.message}</p>}
           </div>
 
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isLoading}>
               Cancel
             </Button>
-            <Button type="submit" disabled={isLoading}>
+            <Button type="submit" disabled={isLoading || (!!teacher && !hasChanges)}>
               {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               {teacher ? 'Update' : 'Create'} Teacher
             </Button>

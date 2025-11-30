@@ -30,13 +30,11 @@ interface ReportData {
     rollNo: string
     class: string
     section: string
-    photo?: string
   }
   academicYear: string
   term: string
   marks: Array<{
     subject: string
-    subjectCode: string
     maxMarks: number
     obtainedMarks: number
     grade: string
@@ -66,6 +64,7 @@ export default function ReportCardPage() {
   const [studentId, setStudentId] = useState<string>('')
   const [termReports, setTermReports] = useState<TermReport[]>([])
   const [loading, setLoading] = useState(false)
+  const [initialLoading, setInitialLoading] = useState(true)
 
   useEffect(() => {
     fetchInitialData()
@@ -102,6 +101,8 @@ export default function ReportCardPage() {
     } catch (error) {
       console.error('Failed to fetch initial data:', error)
       toast.error('Failed to fetch initial data')
+    } finally {
+      setInitialLoading(false)
     }
   }
 
@@ -202,159 +203,256 @@ export default function ReportCardPage() {
   }
 
   return (
-    <div className="p-6 space-y-6">
-      {/* Header */}
-      <div>
-        <h1 className="text-3xl font-bold text-gray-900">Report Cards</h1>
-        <p className="text-gray-500 mt-2">
-          View all your report cards for the academic year
-        </p>
-      </div>
-
-      {/* Year Selector */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Academic Year</CardTitle>
-          <CardDescription>Select the academic year to view report cards</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="max-w-xs">
-            <Select value={selectedYear} onValueChange={setSelectedYear}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select year" />
-              </SelectTrigger>
-              <SelectContent>
-                {academicYears.map((year) => (
-                  <SelectItem key={year.id} value={year.year}>
-                    {year.year} {year.isActive && '(Current)'}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+    <div className="p-6 max-w-7xl mx-auto space-y-6">
+      {initialLoading ? (
+        <>
+          {/* Loading Header */}
+          <div className="space-y-2">
+            <div className="h-9 w-64 bg-gray-200 rounded animate-pulse" />
+            <div className="h-5 w-96 bg-gray-200 rounded animate-pulse" />
           </div>
-        </CardContent>
-      </Card>
 
-      {/* Loading */}
-      {loading && (
-        <div className="flex items-center justify-center py-12">
-          <Loader2 className="h-8 w-8 animate-spin text-indigo-600" />
-        </div>
-      )}
+          {/* Loading Year Selector */}
+          <Card className="border-2">
+            <CardHeader className="border-b bg-gray-50/50">
+              <div className="space-y-2">
+                <div className="h-6 w-40 bg-gray-200 rounded animate-pulse" />
+                <div className="h-4 w-64 bg-gray-200 rounded animate-pulse" />
+              </div>
+            </CardHeader>
+            <CardContent className="pt-6">
+              <div className="h-11 w-full max-w-sm bg-gray-200 rounded animate-pulse" />
+            </CardContent>
+          </Card>
 
-      {/* Term Reports Grid */}
-      {!loading && termReports.length > 0 && (
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {termReports.map((termReport) => (
-            <Card key={termReport.term} className="flex flex-col">
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <CardTitle className="text-lg">{termReport.term}</CardTitle>
-                  {termReport.isPublished ? (
-                    <Badge className="bg-green-100 text-green-800 hover:bg-green-100">
-                      Published
-                    </Badge>
-                  ) : (
-                    <Badge variant="secondary" className="flex items-center gap-1">
-                      <Lock className="h-3 w-3" />
-                      Not Published
-                    </Badge>
-                  )}
-                </div>
-              </CardHeader>
-              <CardContent className="flex-1 flex flex-col justify-between">
-                {termReport.loading ? (
-                  <div className="flex items-center justify-center py-8">
-                    <Loader2 className="h-6 w-6 animate-spin text-gray-400" />
-                  </div>
-                ) : termReport.isPublished && termReport.data ? (
-                  <>
-                    <div className="space-y-4 mb-4">
-                      <div className="grid grid-cols-2 gap-3">
-                        <div className="bg-gray-50 p-3 rounded-lg">
-                          <p className="text-xs text-gray-600 mb-1">Percentage</p>
-                          <p className="text-xl font-bold text-gray-900">
-                            {termReport.data.summary.percentage}%
-                          </p>
-                        </div>
-                        <div className="bg-gray-50 p-3 rounded-lg">
-                          <p className="text-xs text-gray-600 mb-1">GPA</p>
-                          <p className="text-xl font-bold text-gray-900">
-                            {termReport.data.summary.gpa}
-                          </p>
-                        </div>
-                      </div>
-                      
-                      <div className="bg-gray-50 p-3 rounded-lg">
-                        <p className="text-xs text-gray-600 mb-1">Total Marks</p>
-                        <p className="text-lg font-semibold text-gray-900">
-                          {termReport.data.summary.totalObtained} / {termReport.data.summary.totalMax}
-                        </p>
-                      </div>
-
-                      <div 
-                        className="p-3 rounded-lg"
-                        style={{
-                          backgroundColor: termReport.data.summary.result === 'PASS' ? '#dcfce7' : '#fee2e2',
-                        }}
-                      >
-                        <p className="text-xs text-gray-600 mb-1">Result</p>
-                        <p 
-                          className="text-lg font-bold"
-                          style={{
-                            color: termReport.data.summary.result === 'PASS' ? '#15803d' : '#991b1b',
-                          }}
-                        >
-                          {termReport.data.summary.result}
-                        </p>
-                      </div>
-
-                      {/* Subject Count */}
-                      <div className="text-sm text-gray-600">
-                        {termReport.data.marks.length} Subjects
-                      </div>
-                    </div>
-
-                    {/* Actions */}
-                    <div className="flex flex-col gap-2">
-                      <Button 
-                        onClick={() => handleViewFullReport(termReport.term)}
-                        className="w-full bg-indigo-600 hover:bg-indigo-700"
-                      >
-                        <Eye className="mr-2 h-4 w-4" />
-                        View Report
-                      </Button>
-                    </div>
-                  </>
-                ) : (
-                  <div className="text-center py-8">
-                    <FileX className="h-12 w-12 text-gray-300 mx-auto mb-3" />
-                    <p className="text-sm text-gray-500">
-                      Not yet published
-                    </p>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      )}
-
-      {/* No Reports */}
-      {!loading && termReports.length === 0 && selectedYear && (
-        <Card>
-          <CardContent className="pt-6">
-            <div className="text-center py-12">
-              <FileX className="h-16 w-16 text-gray-300 mx-auto mb-4" />
-              <h3 className="text-xl font-semibold text-gray-900 mb-2">
-                No Terms Found
-              </h3>
-              <p className="text-gray-500 max-w-md mx-auto">
-                No terms are configured for the selected academic year.
+          {/* Loading Message */}
+          <Card className="border-2">
+            <CardContent className="pt-6">
+              <div className="flex flex-col items-center justify-center py-16">
+                <Loader2 className="h-12 w-12 animate-spin text-indigo-600 mb-4" />
+                <p className="text-gray-600 font-medium">Loading academic years...</p>
+              </div>
+            </CardContent>
+          </Card>
+        </>
+      ) : (
+        <>
+          {/* Header */}
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900">Report Cards</h1>
+              <p className="text-gray-600 mt-1">
+                View and download your academic performance reports
               </p>
             </div>
-          </CardContent>
-        </Card>
+            {selectedYear && (
+              <Badge variant="outline" className="text-lg px-4 py-2 font-semibold border-2">
+                {selectedYear}
+              </Badge>
+            )}
+          </div>
+
+          {/* Year Selector */}
+          <Card className="border-2">
+            <CardHeader className="border-b">
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="text-lg">Academic Year</CardTitle>
+                  <CardDescription>Select the academic year to view report cards</CardDescription>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="pt-2">
+              <div className="max-w-sm">
+                <Select value={selectedYear} onValueChange={setSelectedYear}>
+                  <SelectTrigger className="h-11 border-2">
+                    <SelectValue placeholder="Select academic year" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {academicYears.map((year) => (
+                      <SelectItem key={year.id} value={year.year}>
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium">{year.year}</span>
+                          {year.isActive && (
+                            <Badge className="ml-2 bg-indigo-100 text-indigo-700 hover:bg-indigo-100">
+                              Current
+                            </Badge>
+                          )}
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Loading */}
+          {loading && (
+            <Card className="border-2">
+              <CardContent className="pt-6">
+                <div className="flex flex-col items-center justify-center py-16">
+                  <Loader2 className="h-12 w-12 animate-spin text-indigo-600 mb-4" />
+                  <p className="text-gray-600 font-medium">Loading report cards...</p>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Term Reports Grid */}
+          {!loading && termReports.length > 0 && (
+            <div>
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xl font-semibold text-gray-900">
+                  Term Reports ({termReports.length})
+                </h2>
+                <p className="text-sm text-gray-500">
+                  {termReports.filter(r => r.isPublished).length} Published
+                </p>
+              </div>
+              
+              <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                {termReports.map((termReport) => (
+                  <Card 
+                    key={termReport.term} 
+                    className={`flex flex-col border-2 transition-all ${
+                      termReport.isPublished 
+                        ? 'hover:shadow-xl hover:border-indigo-300' 
+                        : 'bg-gray-50/30'
+                    }`}
+                  >
+                    <CardHeader className="border-b pb-4">
+                      <div className="flex items-start justify-between">
+                        <div>
+                          <CardTitle className="text-xl font-bold text-gray-900">
+                            {termReport.term}
+                          </CardTitle>
+                          <p className="text-sm text-gray-500 mt-1">
+                            {selectedYear}
+                          </p>
+                        </div>
+                        {termReport.isPublished ? (
+                          <Badge className="bg-green-600 hover:bg-green-600 text-white">
+                            Published
+                          </Badge>
+                        ) : (
+                          <Badge variant="secondary" className="flex items-center gap-1.5 bg-gray-200">
+                            <Lock className="h-3.5 w-3.5" />
+                            Locked
+                          </Badge>
+                        )}
+                      </div>
+                    </CardHeader>
+                    
+                    <CardContent className="flex-1 flex flex-col justify-between pt-6">
+                      {termReport.loading ? (
+                        <div className="flex items-center justify-center py-12">
+                          <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
+                        </div>
+                      ) : termReport.isPublished && termReport.data ? (
+                        <>
+                          <div className="space-y-4 mb-6">
+                            {/* Stats Grid */}
+                            <div className="grid grid-cols-2 gap-3">
+                              <div className="border-2 border-indigo-200 bg-indigo-50 p-4 rounded-lg">
+                                <p className="text-xs font-medium text-indigo-700 uppercase tracking-wide mb-1">
+                                  Percentage
+                                </p>
+                                <p className="text-2xl font-bold text-indigo-900">
+                                  {termReport.data.summary.percentage}%
+                                </p>
+                              </div>
+                              <div className={`border-2 p-4 rounded-lg ${
+                                termReport.data.summary.result === 'PASS' 
+                                  ? 'border-green-200 bg-green-50' 
+                                  : 'border-red-200 bg-red-50'
+                              }`}>
+                              <p className={`text-xs font-medium uppercase tracking-wide mb-1 ${
+                                termReport.data.summary.result === 'PASS' 
+                                  ? 'text-green-700' 
+                                  : 'text-red-700'
+                              }`}>
+                                Result
+                              </p>
+                              <p className={`text-xl font-bold ${
+                                termReport.data.summary.result === 'PASS' 
+                                  ? 'text-green-900' 
+                                  : 'text-red-900'
+                              }`}>
+                                {termReport.data.summary.result}
+                              </p>
+                              </div>
+                            </div>
+                            
+                            {/* Total Marks */}
+                            <div className="border-2 bg-white p-4 rounded-lg">
+                              <p className="text-xs font-medium text-gray-600 uppercase tracking-wide mb-1">
+                                Total Marks
+                              </p>
+                              <p className="text-xl font-bold text-gray-900">
+                                {termReport.data.summary.totalObtained} 
+                                <span className="text-gray-400 font-medium"> / </span>
+                                {termReport.data.summary.totalMax}
+                              </p>
+                            </div>
+
+
+                            {/* Subject Count */}
+                            <div className="flex items-center justify-center gap-2 pt-2">
+                              <div className="h-2 w-2 rounded-full bg-indigo-600"></div>
+                              <p className="text-sm font-medium text-gray-700">
+                                {termReport.data.marks.length} Subjects Evaluated
+                              </p>
+                            </div>
+                          </div>
+
+                          {/* Actions */}
+                          <Button 
+                            onClick={() => handleViewFullReport(termReport.term)}
+                            className="w-full h-11 bg-indigo-600 hover:bg-indigo-700 font-semibold"
+                            size="lg"
+                          >
+                            <Eye className="mr-2 h-4 w-4" />
+                            View Full Report
+                          </Button>
+                        </>
+                      ) : (
+                        <div className="text-center py-12">
+                          <div className="inline-flex items-center justify-center h-16 w-16 rounded-full bg-gray-200 mb-4">
+                            <Lock className="h-8 w-8 text-gray-400" />
+                          </div>
+                          <h3 className="font-semibold text-gray-900 mb-1">Not Published Yet</h3>
+                          <p className="text-sm text-gray-500">
+                            Report will be available once published
+                          </p>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* No Reports */}
+          {!loading && termReports.length === 0 && selectedYear && (
+            <Card className="border-2">
+              <CardContent className="pt-6">
+                <div className="text-center py-16">
+                  <div className="inline-flex items-center justify-center h-20 w-20 rounded-full bg-gray-100 mb-4">
+                    <FileX className="h-10 w-10 text-gray-400" />
+                  </div>
+                  <h3 className="text-2xl font-bold text-gray-900 mb-2">
+                    No Terms Found
+                  </h3>
+                  <p className="text-gray-600 max-w-md mx-auto">
+                    No terms are configured for the selected academic year. Please check back later.
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+        </>
       )}
     </div>
   )

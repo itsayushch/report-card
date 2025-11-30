@@ -14,7 +14,6 @@ interface ReportData {
   term: string;
   marks: Array<{
     subject: string;
-    subjectCode: string;
     maxMarks: number;
     obtainedMarks: number;
     grade: string;
@@ -43,7 +42,7 @@ function PrintableReportCardContent() {
       try {
         const studentId = params.id as string;
         const term = searchParams.get('term') || 'Final';
-        const academicYear = searchParams.get('year') || '2024-2025';
+        const academicYear = searchParams.get('year') || '2025';
         
         const response = await fetch(`/api/reports/student/${studentId}?term=${term}&academicYear=${academicYear}`);
         
@@ -295,8 +294,6 @@ function PrintableReportCardContent() {
                     <tr key={index} className="border-b border-blue-800">
                       <td className="border-r border-blue-800 px-3 py-2 text-sm text-gray-900">
                         {mark.subject}
-                        <br/>
-                        <span className="text-xs text-gray-600">{mark.subjectCode}</span>
                       </td>
                       <td className="border-r border-blue-800 px-3 py-2 text-center text-base font-bold text-gray-900">
                         {mark.obtainedMarks}

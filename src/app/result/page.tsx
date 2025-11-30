@@ -14,7 +14,6 @@ interface ReportData {
   term: string;
   marks: Array<{
     subject: string;
-    subjectCode: string;
     maxMarks: number;
     obtainedMarks: number;
     grade: string;
@@ -45,7 +44,7 @@ function PrintableReportCardContent({ params }: PrintableReportCardProps) {
     const fetchReport = async () => {
       try {
         const term = searchParams.get('term') || 'Final';
-        const academicYear = searchParams.get('year') || '2024-2025';
+        const academicYear = searchParams.get('year') || '2025';
         
         const response = await fetch(`/api/reports/student/${params.id}?term=${term}&academicYear=${academicYear}`);
         
@@ -182,10 +181,7 @@ function PrintableReportCardContent({ params }: PrintableReportCardProps) {
                     <th className="border-2 border-slate-700 px-2 sm:px-4 py-2 sm:py-3 text-left text-xs sm:text-sm font-bold">
                       SUBJECT
                     </th>
-                    <th className="border-2 border-slate-700 px-2 sm:px-3 py-2 sm:py-3 text-center text-xs sm:text-sm font-bold w-20 sm:w-24">
-                      CODE
-                    </th>
-                    <th className="border-2 border-slate-700 px-2 sm:px-3 py-2 sm:py-3 text-center text-xs sm:text-sm font-bold w-20 sm:w-28">
+                    <th className="border-2 border-slate-700 px-2 sm:px-3 py-2 sm:py-3 text-center text-xs sm:text-sm font-bold w-24 sm:w-32">
                       MAX MARKS
                     </th>
                     <th className="border-2 border-slate-700 px-2 sm:px-3 py-2 sm:py-3 text-center text-xs sm:text-sm font-bold w-24 sm:w-32">
@@ -201,9 +197,6 @@ function PrintableReportCardContent({ params }: PrintableReportCardProps) {
                     <tr key={index} className={index % 2 === 0 ? 'bg-white' : 'bg-slate-50'}>
                       <td className="border-2 border-slate-300 px-2 sm:px-4 py-2 text-xs sm:text-sm font-medium text-slate-800">
                         {mark.subject}
-                      </td>
-                      <td className="border-2 border-slate-300 px-2 sm:px-3 py-2 text-center text-xs sm:text-sm text-slate-700">
-                        {mark.subjectCode}
                       </td>
                       <td className="border-2 border-slate-300 px-2 sm:px-3 py-2 text-center text-xs sm:text-sm font-semibold text-slate-800">
                         {mark.maxMarks}
