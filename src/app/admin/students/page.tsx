@@ -31,6 +31,7 @@ export default function StudentsPage() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [studentToDelete, setStudentToDelete] = useState<string | null>(null)
   const [bulkInactiveDialogOpen, setBulkInactiveDialogOpen] = useState(false)
+  const [bulkActiveDialogOpen, setBulkActiveDialogOpen] = useState(false)
   const [bulkDeleteDialogOpen, setBulkDeleteDialogOpen] = useState(false)
   const [pagination, setPagination] = useState<PaginationData>({
     total: 0,
@@ -42,7 +43,6 @@ export default function StudentsPage() {
   // Filters
   const [search, setSearch] = useState('')
   const [classFilter, setClassFilter] = useState('')
-  const [sectionFilter, setSectionFilter] = useState('')
   const [statusFilter, setStatusFilter] = useState('')
 
   const fetchStudents = useCallback(async () => {
@@ -55,7 +55,6 @@ export default function StudentsPage() {
 
       if (search) params.append('search', search)
       if (classFilter && classFilter !== 'all') params.append('class', classFilter)
-      if (sectionFilter && sectionFilter !== 'all') params.append('section', sectionFilter)
       if (statusFilter && statusFilter !== 'all') params.append('status', statusFilter)
 
       const response = await fetch(`/api/students?${params}`)
@@ -68,7 +67,7 @@ export default function StudentsPage() {
     } finally {
       setIsLoading(false)
     }
-  }, [pagination.page, pagination.limit, search, classFilter, sectionFilter, statusFilter])
+  }, [pagination.page, pagination.limit, search, classFilter, statusFilter])
 
   useEffect(() => {
     fetchStudents()
@@ -145,6 +144,40 @@ export default function StudentsPage() {
     }
   }
 
+  const handleBulkMarkActive = () => {
+    if (selectedStudents.length === 0) {
+      toast.error('Please select students to mark as active')
+      return
+    }
+    setBulkActiveDialogOpen(true)
+  }
+
+  const confirmBulkActive = async () => {
+    try {
+      const response = await fetch('/api/students/bulk-status', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          studentIds: selectedStudents,
+          status: 'ACTIVE',
+        }),
+      })
+
+      if (response.ok) {
+        toast.success(`${selectedStudents.length} student(s) marked as active`)
+        setSelectedStudents([])
+        fetchStudents()
+      } else {
+        const error = await response.json()
+        toast.error(error.error || 'Failed to update students')
+      }
+    } catch (error) {
+      toast.error('Failed to update students')
+    } finally {
+      setBulkActiveDialogOpen(false)
+    }
+  }
+
   const handleBulkDelete = () => {
     if (selectedStudents.length === 0) {
       toast.error('Please select students to delete')
@@ -203,7 +236,6 @@ export default function StudentsPage() {
     try {
       const params = new URLSearchParams()
       if (classFilter && classFilter !== 'all') params.append('class', classFilter)
-      if (sectionFilter && sectionFilter !== 'all') params.append('section', sectionFilter)
       if (statusFilter && statusFilter !== 'all') params.append('status', statusFilter)
 
       const response = await fetch(`/api/students/export?${params}`)
@@ -258,13 +290,32 @@ export default function StudentsPage() {
             </div>
             {selectedStudents.length > 0 && (
               <div className="flex flex-wrap gap-2">
-                <Button 
-                  onClick={handleBulkMarkInactive} 
-                  variant="outline"
-                  size="sm"
-                >
-                  Mark {selectedStudents.length} as Inactive
-                </Button>
+                {(() => {
+                  const selectedStudentObjects = students.filter(s => selectedStudents.includes(s.id))
+                  const activeCount = selectedStudentObjects.filter(s => s.status === 'ACTIVE').length
+                  const inactiveCount = selectedStudentObjects.filter(s => s.status === 'INACTIVE').length
+                  
+                  // Show Mark as Active if more inactive, or if equal count, or if all are inactive
+                  const showMarkAsActive = inactiveCount >= activeCount
+                  
+                  return showMarkAsActive ? (
+                    <Button 
+                      onClick={handleBulkMarkActive} 
+                      variant="outline"
+                      size="sm"
+                    >
+                      Mark {selectedStudents.length} as Active
+                    </Button>
+                  ) : (
+                    <Button 
+                      onClick={handleBulkMarkInactive} 
+                      variant="outline"
+                      size="sm"
+                    >
+                      Mark {selectedStudents.length} as Inactive
+                    </Button>
+                  )
+                })()}
                 <Button 
                   onClick={handleBulkDelete} 
                   variant="destructive"
@@ -282,7 +333,6 @@ export default function StudentsPage() {
             <StudentFilters
               search={search}
               classFilter={classFilter}
-              sectionFilter={sectionFilter}
               statusFilter={statusFilter}
               onSearchChange={(value) => {
                 setSearch(value)
@@ -290,10 +340,6 @@ export default function StudentsPage() {
               }}
               onClassChange={(value) => {
                 setClassFilter(value)
-                setPagination(prev => ({ ...prev, page: 1 }))
-              }}
-              onSectionChange={(value) => {
-                setSectionFilter(value)
                 setPagination(prev => ({ ...prev, page: 1 }))
               }}
               onStatusChange={(value) => {
@@ -419,6 +465,23 @@ export default function StudentsPage() {
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction onClick={confirmBulkInactive}>
               Mark Inactive
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={bulkActiveDialogOpen} onOpenChange={setBulkActiveDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Mark Students as Active?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to mark {selectedStudents.length} student(s) as active?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmBulkActive}>
+              Mark Active
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

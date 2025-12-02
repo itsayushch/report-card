@@ -15,7 +15,6 @@ model Student {
   password        String          // Date of birth in DDMMYYYY format
   dateOfBirth     String          // Date of birth in DDMMYYYY format (used as password)
   class           String
-  section         String
   parentName      String
   phone           String
   status          Status          @default(ACTIVE)
@@ -27,7 +26,7 @@ model Student {
   // Relations
   marks Mark[]
 
-  @@index([class, section])
+  @@index([class])
   @@index([academicYear])
   @@map("students")
 }
@@ -125,7 +124,6 @@ model Mark {
 model ReportPublish {
   id           String   @id @default(auto()) @map("_id") @db.ObjectId
   class        String
-  section      String
   term         String
   academicYear String
   isPublished  Boolean  @default(false)
@@ -135,8 +133,7 @@ model ReportPublish {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
-  @@unique([class, section, term, academicYear])
-  @@index([class, term, academicYear])
+  @@unique([class, term, academicYear])
   @@map("report_publish")
 }
 

@@ -6,19 +6,16 @@ export async function GET() {
     const [
       totalStudents,
       totalTeachers,
-      totalSubjects,
       activeAcademicYear,
     ] = await Promise.all([
       prisma.student.count({ where: { status: 'ACTIVE' } }),
       prisma.teacher.count(),
-      prisma.subject.count(),
       prisma.academicYear.findFirst({ where: { isActive: true } }),
     ])
 
     return NextResponse.json({
       totalStudents,
       totalTeachers,
-      totalSubjects,
       activeAcademicYear: activeAcademicYear?.year || 'Not set',
     })
   } catch (error) {

@@ -19,16 +19,7 @@ export async function GET(request: NextRequest) {
     const where: any = {}
 
     if (classParam) {
-      // Handle both "10" and "10-A" formats
-      if (classParam.includes('-')) {
-        const [className, section] = classParam.split('-')
-        where.student = { 
-          class: className,
-          section: section
-        }
-      } else {
-        where.student = { class: classParam }
-      }
+      where.student = { class: classParam }
     }
     if (subjectId) {
       where.subjectId = subjectId

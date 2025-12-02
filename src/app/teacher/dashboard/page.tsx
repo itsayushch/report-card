@@ -7,6 +7,7 @@ import { Users, BookOpen, GraduationCap, ClipboardEdit } from 'lucide-react'
 import { Skeleton } from '@/components/ui/skeleton'
 import Link from 'next/link'
 import { toast } from 'sonner'
+import { formatClass } from '@/lib/class-utils'
 
 interface TeacherStats {
   totalStudents: number
@@ -200,7 +201,7 @@ export default function TeacherDashboardPage() {
                 className="flex items-center justify-between p-4 border rounded-lg"
               >
                 <div>
-                  <p className="font-medium">Class {item.class}</p>
+                  <p className="font-medium">Class {formatClass(item.class)}</p>
                   <p className="text-sm text-gray-500">{item.count} students</p>
                 </div>
               </div>
@@ -249,7 +250,7 @@ export default function TeacherDashboardPage() {
                       {mark.student.name} ({mark.student.rollNo})
                     </p>
                     <p className="text-sm text-gray-500">
-                      {mark.subject.name} • {mark.term} • Class {mark.student.class}
+                      {mark.subject.name} • {mark.term} • Class {formatClass(mark.student.class)}
                     </p>
                   </div>
                   <div className="text-right">

@@ -5,7 +5,6 @@ export const studentSchema = z.object({
   rollNo: z.string().min(1, 'Roll number is required'),
   dateOfBirth: z.string().regex(/^\d{8}$/, 'Date of birth must be in DDMMYYYY format'),
   class: z.string().min(1, 'Class is required'),
-  section: z.string().min(1, 'Section is required'),
   parentName: z.string().min(2, 'Parent name is required'),
   email: z.string().email('Invalid email address'),
   phone: z.string().regex(/^\+?[1-9]\d{9,14}$/, 'Invalid phone number'),

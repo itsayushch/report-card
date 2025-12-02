@@ -36,7 +36,6 @@ export async function GET(request: NextRequest) {
     const publishStatus = await prisma.reportPublish.findFirst({
       where: {
         class: student.class,
-        section: student.section,
         academicYear: activeYear.year,
         isPublished: true,
       },

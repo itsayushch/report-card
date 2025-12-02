@@ -11,7 +11,6 @@ async function getStats() {
     return {
       totalStudents: 0,
       totalTeachers: 0,
-      totalSubjects: 0,
       activeAcademicYear: 'Not set',
     }
   }
@@ -44,16 +43,6 @@ export default async function AdminDashboard() {
       description: 'Teaching staff'
     },
     {
-      title: 'Subjects',
-      value: stats.totalSubjects,
-      icon: BookOpen,
-      color: 'text-purple-600',
-      bgColor: 'bg-purple-50',
-      borderColor: 'border-purple-200',
-      href: '/admin/subjects',
-      description: 'Courses offered'
-    },
-    {
       title: 'Academic Year',
       value: stats.activeAcademicYear,
       icon: Calendar,
@@ -68,8 +57,8 @@ export default async function AdminDashboard() {
   const quickActions = [
     { title: 'Manage Students', href: '/admin/students', icon: Users, description: 'Add, edit, or view student records' },
     { title: 'Manage Teachers', href: '/admin/teachers', icon: GraduationCap, description: 'Handle staff and assignments' },
-    { title: 'Manage Subjects', href: '/admin/subjects', icon: BookOpen, description: 'Configure courses and grades' },
     { title: 'Academic Years', href: '/admin/academic-years', icon: Calendar, description: 'Set up terms and sessions' },
+    { title: 'Publish Reports', href: '/admin/reports', icon: TrendingUp, description: 'Manage report card publishing' },
   ]
 
   return (
@@ -83,11 +72,11 @@ export default async function AdminDashboard() {
       </div>
 
       {/* Stats Grid */}
-      <div className="grid gap-3 grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-3 grid-cols-2 md:grid-cols-3">
         {statCards.map((card) => {
           const Icon = card.icon
           return (
-            <Card key={card.title} className={`border ${card.borderColor}`}>
+            <Card key={card.title} className={`border ${card.borderColor} ${card.title === 'Academic Year' ? 'hidden md:block' : ''}`}>
               <CardContent className="px-4 py-0">
                 <div className="flex items-center justify-between">
                   <div>

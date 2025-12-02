@@ -37,11 +37,9 @@ export async function GET(request: NextRequest) {
         },
       }),
       ...assignedClasses.map((cls: string) => {
-        const [className, section] = cls.split('-')
         return prisma.student.count({
           where: {
-            class: className,
-            section: section,
+            class: cls,
             status: 'ACTIVE',
             academicYear: activeYear?.year,
           },

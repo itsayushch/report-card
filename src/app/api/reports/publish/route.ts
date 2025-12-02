@@ -11,9 +11,9 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json()
-    const { class: className, section, term, academicYear } = body
+    const { class: className, term, academicYear } = body
 
-    if (!className || !section || !term || !academicYear) {
+    if (!className || !term || !academicYear) {
       return NextResponse.json(
         { error: 'Missing required fields' },
         { status: 400 }
@@ -23,9 +23,8 @@ export async function POST(request: NextRequest) {
     // Check if already published
     const existing = await prisma.reportPublish.findUnique({
       where: {
-        class_section_term_academicYear: {
+        class_term_academicYear: {
           class: className,
-          section,
           term,
           academicYear,
         },
@@ -42,9 +41,8 @@ export async function POST(request: NextRequest) {
     // Create or update publish record
     const publishRecord = await prisma.reportPublish.upsert({
       where: {
-        class_section_term_academicYear: {
+        class_term_academicYear: {
           class: className,
-          section,
           term,
           academicYear,
         },
@@ -56,7 +54,6 @@ export async function POST(request: NextRequest) {
       },
       create: {
         class: className,
-        section,
         term,
         academicYear,
         isPublished: true,
@@ -90,11 +87,10 @@ export async function DELETE(request: NextRequest) {
 
     const { searchParams } = new URL(request.url)
     const className = searchParams.get('class')
-    const section = searchParams.get('section')
     const term = searchParams.get('term')
     const academicYear = searchParams.get('academicYear')
 
-    if (!className || !section || !term || !academicYear) {
+    if (!className || !term || !academicYear) {
       return NextResponse.json(
         { error: 'Missing required parameters' },
         { status: 400 }
@@ -105,7 +101,6 @@ export async function DELETE(request: NextRequest) {
     await prisma.reportPublish.updateMany({
       where: {
         class: className,
-        section,
         term,
         academicYear,
       },
@@ -150,7 +145,6 @@ export async function GET(request: NextRequest) {
       orderBy: [
         { academicYear: 'desc' },
         { class: 'asc' },
-        { section: 'asc' },
       ],
     })
 

@@ -54,10 +54,9 @@ export async function GET(
       }
     }
 
-    // Verify publish status matches student's class and section
+    // Verify publish status matches student's class
     const isPublishedForStudent = publishStatus && 
-      publishStatus.class === student.class && 
-      publishStatus.section === student.section
+      publishStatus.class === student.class
     
 
     if (!isPublishedForStudent && session.user.role === 'STUDENT') {
@@ -100,7 +99,6 @@ export async function GET(
         name: student.name,
         rollNo: student.rollNo,
         class: student.class,
-        section: student.section,
       },
       academicYear,
       term,

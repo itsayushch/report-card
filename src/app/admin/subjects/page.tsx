@@ -55,7 +55,7 @@ export default function SubjectsPage() {
         passingMarks: selectedSubject.passingMarks,
       })
     } else {
-      reset({ name: '', maxMarks: 100, passingMarks: 40 })
+      reset({ name: '', maxMarks: 100, passingMarks: 45 })
     }
   }, [selectedSubject, reset])
 
@@ -240,7 +240,7 @@ export default function SubjectsPage() {
 
               <div className="space-y-2">
                 <Label htmlFor="passingMarks">Passing Marks *</Label>
-                <Input id="passingMarks" type="number" {...register('passingMarks', { valueAsNumber: true })} placeholder="40" />
+                <Input id="passingMarks" type="number" {...register('passingMarks', { valueAsNumber: true })} placeholder="45" />
                 {errors.passingMarks && <p className="text-sm text-red-600">{errors.passingMarks.message}</p>}
               </div>
             </div>

@@ -7,7 +7,6 @@ interface StudentImportData {
   rollNo: string
   dateOfBirth?: string
   class: string
-  section: string
   parentName?: string
   email: string
   phone?: string
@@ -85,11 +84,6 @@ export async function POST(request: NextRequest) {
           continue
         }
 
-        // Parse class and section
-        const classSection = student.class.split('-')
-        const className = classSection[0] || student.class
-        const section = student.section || classSection[1] || 'A'
-
         // Password is dateOfBirth in DDMMYYYY format (plain text, no slashes)
         // dateOfBirth is stored with slashes DD/MM/YYYY
         let password: string
@@ -119,8 +113,7 @@ export async function POST(request: NextRequest) {
             email: student.email,
             password: password,
             dateOfBirth: dateOfBirth,
-            class: className,
-            section: section,
+            class: student.class,
             parentName: student.parentName || 'Parent',
             phone: student.phone || '',
             status: 'ACTIVE',

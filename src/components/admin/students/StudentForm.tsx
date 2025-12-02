@@ -25,6 +25,7 @@ import {
 import { studentSchema, type StudentFormData } from '@/lib/validations'
 import { Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
+import { formatClass } from '@/lib/class-utils'
 
 interface StudentFormProps {
   open: boolean
@@ -34,7 +35,6 @@ interface StudentFormProps {
 }
 
 const classes = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12']
-const sections = ['A', 'B', 'C', 'D']
 
 export function StudentForm({ open, onOpenChange, student, onSuccess }: StudentFormProps) {
   const [isLoading, setIsLoading] = useState(false)
@@ -56,7 +56,6 @@ export function StudentForm({ open, onOpenChange, student, onSuccess }: StudentF
         name: student.name,
         rollNo: student.rollNo,
         class: student.class,
-        section: student.section,
         parentName: student.parentName,
         email: student.email,
         phone: student.phone,
@@ -67,7 +66,6 @@ export function StudentForm({ open, onOpenChange, student, onSuccess }: StudentF
         name: '',
         rollNo: '',
         class: '',
-        section: '',
         parentName: '',
         email: '',
         phone: '',
@@ -77,7 +75,6 @@ export function StudentForm({ open, onOpenChange, student, onSuccess }: StudentF
   }, [student, reset])
 
   const selectedClass = watch('class')
-  const selectedSection = watch('section')
   const selectedStatus = watch('status')
 
   const onSubmit = async (data: StudentFormData) => {
@@ -148,50 +145,26 @@ export function StudentForm({ open, onOpenChange, student, onSuccess }: StudentF
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="class">Class *</Label>
-              <Select
-                value={selectedClass}
-                onValueChange={(value) => setValue('class', value)}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select class" />
-                </SelectTrigger>
-                <SelectContent>
-                  {classes.map((cls) => (
-                    <SelectItem key={cls} value={cls}>
-                      Class {cls}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              {errors.class && (
-                <p className="text-sm text-red-600">{errors.class.message}</p>
-              )}
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="section">Section *</Label>
-              <Select
-                value={selectedSection}
-                onValueChange={(value) => setValue('section', value)}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select section" />
-                </SelectTrigger>
-                <SelectContent>
-                  {sections.map((sec) => (
-                    <SelectItem key={sec} value={sec}>
-                      Section {sec}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              {errors.section && (
-                <p className="text-sm text-red-600">{errors.section.message}</p>
-              )}
-            </div>
+          <div className="space-y-2">
+            <Label htmlFor="class">Class *</Label>
+            <Select
+              value={selectedClass}
+              onValueChange={(value) => setValue('class', value)}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select class" />
+              </SelectTrigger>
+              <SelectContent>
+                {classes.map((cls) => (
+                  <SelectItem key={cls} value={cls}>
+                    Class {formatClass(cls)}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {errors.class && (
+              <p className="text-sm text-red-600">{errors.class.message}</p>
+            )}
           </div>
 
           <div className="space-y-2">

@@ -10,33 +10,29 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Search } from 'lucide-react'
+import { formatClass } from '@/lib/class-utils'
 
 interface StudentFiltersProps {
   search: string
   classFilter: string
-  sectionFilter: string
   statusFilter: string
   onSearchChange: (value: string) => void
   onClassChange: (value: string) => void
-  onSectionChange: (value: string) => void
   onStatusChange: (value: string) => void
 }
 
-const classes = ['', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12']
-const sections = ['', 'A', 'B', 'C', 'D']
+const classes = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12']
 
 export function StudentFilters({
   search,
   classFilter,
-  sectionFilter,
   statusFilter,
   onSearchChange,
   onClassChange,
-  onSectionChange,
   onStatusChange,
 }: StudentFiltersProps) {
   return (
-    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
       <div className="space-y-2">
         <Label htmlFor="search">Search</Label>
         <div className="relative">
@@ -59,26 +55,9 @@ export function StudentFilters({
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All Classes</SelectItem>
-            {classes.slice(1).map((cls) => (
+            {classes.map((cls) => (
               <SelectItem key={cls} value={cls}>
-                Class {cls}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-
-      <div className="space-y-2">
-        <Label htmlFor="section">Section</Label>
-        <Select value={sectionFilter || undefined} onValueChange={onSectionChange}>
-          <SelectTrigger id="section">
-            <SelectValue placeholder="All Sections" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Sections</SelectItem>
-            {sections.slice(1).map((sec) => (
-              <SelectItem key={sec} value={sec}>
-                Section {sec}
+                Class {formatClass(cls)}
               </SelectItem>
             ))}
           </SelectContent>

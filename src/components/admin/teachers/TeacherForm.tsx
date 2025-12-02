@@ -13,6 +13,8 @@ import { teacherSchema, type TeacherFormData } from '@/lib/validations'
 import { Loader2, X } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { toast } from 'sonner'
+import { getSubjectsForClasses } from '@/lib/subjects'
+import { formatClass } from '@/lib/class-utils'
 
 interface TeacherFormProps {
   open: boolean
@@ -21,13 +23,12 @@ interface TeacherFormProps {
   onSuccess: () => void
 }
 
-const availableClasses = ['1-A', '1-B', '2-A', '2-B', '3-A', '3-B', '4-A', '4-B', '5-A', '5-B', '6-A', '6-B', '7-A', '7-B', '8-A', '8-B', '9-A', '9-B', '10-A', '10-B', '11-A', '11-B', '12-A', '12-B']
+const availableClasses = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12']
 
 export function TeacherForm({ open, onOpenChange, teacher, onSuccess }: TeacherFormProps) {
   const [isLoading, setIsLoading] = useState(false)
   const [selectedSubjects, setSelectedSubjects] = useState<string[]>([])
   const [selectedClasses, setSelectedClasses] = useState<string[]>([])
-  const [availableSubjects, setAvailableSubjects] = useState<string[]>([])
   const [subjectInput, setSubjectInput] = useState('')
   const [classInput, setClassInput] = useState('')
   const [originalData, setOriginalData] = useState<TeacherFormData | null>(null)
@@ -39,22 +40,10 @@ export function TeacherForm({ open, onOpenChange, teacher, onSuccess }: TeacherF
 
   const formValues = watch()
 
-  // Fetch available subjects from database
-  useEffect(() => {
-    const fetchSubjects = async () => {
-      try {
-        const response = await fetch('/api/subjects')
-        const data = await response.json()
-        const subjectNames = data.subjects.map((s: any) => s.name)
-        setAvailableSubjects(subjectNames)
-      } catch (error) {
-        console.error('Failed to fetch subjects:', error)
-      }
-    }
-    if (open) {
-      fetchSubjects()
-    }
-  }, [open])
+  // Get available subjects based on selected classes
+  const availableSubjects = selectedClasses.length > 0 
+    ? getSubjectsForClasses(selectedClasses).map(s => s.name)
+    : []
 
   useEffect(() => {
     if (teacher) {
@@ -117,11 +106,9 @@ export function TeacherForm({ open, onOpenChange, teacher, onSuccess }: TeacherF
 
   const addClass = (cls: string) => {
     if (cls && !selectedClasses.includes(cls)) {
+      // Numeric order (1, 2, 3, ...)
       const updated = [...selectedClasses, cls].sort((a, b) => {
-        const numA = parseInt(a.split('-')[0])
-        const numB = parseInt(b.split('-')[0])
-        if (numA !== numB) return numA - numB
-        return a.localeCompare(b)
+        return parseInt(a) - parseInt(b)
       })
       setSelectedClasses(updated)
       setValue('assignedClasses', updated)
@@ -193,13 +180,48 @@ export function TeacherForm({ open, onOpenChange, teacher, onSuccess }: TeacherF
             </div>
           </div>
 
+          {/* Classes selection comes FIRST */}
           <div className="space-y-2">
-            <Label>Subjects</Label>
-            <Select value={subjectInput} onValueChange={(value) => {
-              addSubject(value)
+            <Label>Assigned Classes *</Label>
+            <Select value={classInput} onValueChange={(value) => {
+              addClass(value)
             }}>
               <SelectTrigger>
-                <SelectValue placeholder="Select subject" />
+                <SelectValue placeholder="Select class" />
+              </SelectTrigger>
+              <SelectContent>
+                {availableClasses
+                  .filter(c => !selectedClasses.includes(c))
+                  .map(c => (
+                    <SelectItem key={c} value={c}>Class {formatClass(c)}</SelectItem>
+                  ))}
+              </SelectContent>
+            </Select>
+            <div className="flex flex-wrap gap-2 mt-2">
+              {selectedClasses.map(c => (
+                <Badge key={c} variant="secondary" className="text-sm px-3 py-1.5">
+                  Class {formatClass(c)}
+                  <button type="button" onClick={() => removeClass(c)} className="ml-2">
+                    <X className="h-3.5 w-3.5" />
+                  </button>
+                </Badge>
+              ))}
+            </div>
+            {errors.assignedClasses && <p className="text-sm text-red-600">{errors.assignedClasses.message}</p>}
+          </div>
+
+          {/* Subjects selection comes SECOND (based on selected classes) */}
+          <div className="space-y-2">
+            <Label>Subjects {selectedClasses.length > 0 && '*'}</Label>
+            <Select 
+              value={subjectInput} 
+              onValueChange={(value) => {
+                addSubject(value)
+              }}
+              disabled={selectedClasses.length === 0}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder={selectedClasses.length === 0 ? "Select classes first" : "Select subject"} />
               </SelectTrigger>
               <SelectContent>
                 {availableSubjects
@@ -220,36 +242,7 @@ export function TeacherForm({ open, onOpenChange, teacher, onSuccess }: TeacherF
                 </Badge>
               ))}
             </div>
-            {errors.subjects && <p className="text-sm text-red-600">{errors.subjects.message}</p>}
-          </div>
-
-          <div className="space-y-2">
-            <Label>Assigned Classes *</Label>
-            <Select value={classInput} onValueChange={(value) => {
-              addClass(value)
-            }} disabled={selectedSubjects.length === 0}>
-              <SelectTrigger>
-                <SelectValue placeholder={selectedSubjects.length === 0 ? "Add subjects first" : "Select class"} />
-              </SelectTrigger>
-              <SelectContent>
-                {availableClasses
-                  .filter(c => !selectedClasses.includes(c))
-                  .map(c => (
-                    <SelectItem key={c} value={c}>{c}</SelectItem>
-                  ))}
-              </SelectContent>
-            </Select>
-            <div className="flex flex-wrap gap-2 mt-2">
-              {selectedClasses.map(c => (
-                <Badge key={c} variant="secondary" className="text-sm px-3 py-1.5">
-                  {c}
-                  <button type="button" onClick={() => removeClass(c)} className="ml-2">
-                    <X className="h-3.5 w-3.5" />
-                  </button>
-                </Badge>
-              ))}
-            </div>
-            {errors.assignedClasses && selectedSubjects.length > 0 && <p className="text-sm text-red-600">{errors.assignedClasses.message}</p>}
+            {selectedClasses.length > 0 && errors.subjects && <p className="text-sm text-red-600">{errors.subjects.message}</p>}
           </div>
 
           <DialogFooter>

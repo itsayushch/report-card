@@ -14,6 +14,7 @@ import { Badge } from '@/components/ui/badge'
 import { Edit, Trash2, Mail, Phone } from 'lucide-react'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Checkbox } from '@/components/ui/checkbox'
+import { formatClass } from '@/lib/class-utils'
 
 interface StudentTableProps {
   students: Student[]
@@ -39,7 +40,6 @@ export function StudentTable({ students, onEdit, onDelete, selectedStudents, onS
             <TableHead>Student</TableHead>
             <TableHead>Roll No</TableHead>
             <TableHead>Class</TableHead>
-            <TableHead>Section</TableHead>
             <TableHead>Parent</TableHead>
             <TableHead>Contact</TableHead>
             <TableHead>Status</TableHead>
@@ -76,8 +76,7 @@ export function StudentTable({ students, onEdit, onDelete, selectedStudents, onS
                   </div>
                 </TableCell>
                 <TableCell className="font-mono">{student.rollNo}</TableCell>
-                <TableCell>{student.class}</TableCell>
-                <TableCell>{student.section}</TableCell>
+                <TableCell>{formatClass(student.class)}</TableCell>
                 <TableCell>{student.parentName}</TableCell>
                 <TableCell>
                   <div className="flex flex-col gap-1 text-sm">

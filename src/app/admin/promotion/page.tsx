@@ -22,6 +22,7 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { Badge } from '@/components/ui/badge'
 import { toast } from 'sonner'
 import { Loader2, TrendingUp, TrendingDown, CheckCircle2 } from 'lucide-react'
+import { formatClass } from '@/lib/class-utils'
 import {
   Dialog,
   DialogContent,
@@ -36,7 +37,6 @@ interface Student {
   name: string
   rollNo: string
   class: string
-  section: string
   promotionStatus: string
   hasMarks: boolean
   totalObtained: number
@@ -160,10 +160,7 @@ export default function PromotionPage() {
   }
 
   const classes = [
-    '9-A', '9-B', '9-C',
-    '10-A', '10-B', '10-C',
-    '11-A', '11-B', '11-C',
-    '12-A', '12-B', '12-C',
+    '9', '10', '11', '12'
   ]
 
   return (
@@ -210,7 +207,7 @@ export default function PromotionPage() {
                 <SelectContent>
                   {classes.map((cls) => (
                     <SelectItem key={cls} value={cls}>
-                      {cls}
+                      Class {formatClass(cls)}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -226,7 +223,7 @@ export default function PromotionPage() {
           <CardHeader>
             <div className="flex items-center justify-between">
               <div>
-                <CardTitle>Students - Class {selectedClass}</CardTitle>
+                <CardTitle>Students - Class {formatClass(selectedClass)}</CardTitle>
                 <CardDescription>
                   {selectedStudents.size} of {students.length} selected
                 </CardDescription>

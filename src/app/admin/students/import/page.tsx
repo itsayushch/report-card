@@ -18,7 +18,6 @@ interface StudentImportData {
   name: string
   rollNo: string
   class: string
-  section: string
   parentName?: string
   email?: string
   phone?: string
@@ -302,7 +301,6 @@ export default function StudentImportPage() {
                     <TableHead>Name</TableHead>
                     <TableHead>Roll No</TableHead>
                     <TableHead>Class</TableHead>
-                    <TableHead>Section</TableHead>
                     <TableHead>Parent Name</TableHead>
                     <TableHead>Email</TableHead>
                     <TableHead>Phone</TableHead>
@@ -315,7 +313,6 @@ export default function StudentImportPage() {
                       <TableCell>{student.name}</TableCell>
                       <TableCell>{student.rollNo}</TableCell>
                       <TableCell>{student.class}</TableCell>
-                      <TableCell>{student.section}</TableCell>
                       <TableCell>{student.parentName || '-'}</TableCell>
                       <TableCell>{student.email || '-'}</TableCell>
                       <TableCell>{student.phone || '-'}</TableCell>

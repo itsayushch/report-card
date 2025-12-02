@@ -67,11 +67,11 @@ async function main() {
 
   // Create sample subjects
   const subjects = [
-    { name: 'Mathematics', maxMarks: 100, passingMarks: 40 },
-    { name: 'English', maxMarks: 100, passingMarks: 40 },
-    { name: 'Science', maxMarks: 100, passingMarks: 40 },
-    { name: 'Social Studies', maxMarks: 100, passingMarks: 40 },
-    { name: 'Hindi', maxMarks: 100, passingMarks: 40 },
+    { name: 'Mathematics', maxMarks: 100, passingMarks: 45 },
+    { name: 'English', maxMarks: 100, passingMarks: 45 },
+    { name: 'Science', maxMarks: 100, passingMarks: 45 },
+    { name: 'Social Studies', maxMarks: 100, passingMarks: 45 },
+    { name: 'Hindi', maxMarks: 100, passingMarks: 45 },
   ]
 
   for (const subject of subjects) {
@@ -95,7 +95,7 @@ async function main() {
       password: 'john.smith@sthelens.edu',
       phone: '+1234567891',
       subjects: ['Mathematics', 'Science'],
-      assignedClasses: ['10-A', '10-B'],
+      assignedClasses: ['X', 'IX'],
       isAdmin: false,
       firstLogin: true
     },
@@ -105,7 +105,7 @@ async function main() {
       password: 'sarah.johnson@sthelens.edu',
       phone: '+1234567892',
       subjects: ['English', 'Hindi'],
-      assignedClasses: ['10-A', '9-A'],
+      assignedClasses: ['X', 'IX'],
       isAdmin: false,
       firstLogin: true
     },
@@ -115,7 +115,7 @@ async function main() {
       password: 'michael.brown@sthelens.edu',
       phone: '+1234567893',
       subjects: ['Social Studies'],
-      assignedClasses: ['10-B', '9-B'],
+      assignedClasses: ['X', 'IX'],
       isAdmin: false,
       firstLogin: true
     }
@@ -133,15 +133,14 @@ async function main() {
 
   // Create sample students
   const students = [
-    // Class 10-A
+    // Class X (10)
     {
       name: 'Raj Kumar',
       rollNo: '2024001',
       email: 'raj.kumar@student.sthelens.edu',
       dateOfBirth: '15/01/2010',
       password: '15012010',
-      class: '10',
-      section: 'A',
+      class: 'X',
       parentName: 'Suresh Kumar',
       phone: '+1234560001',
       academicYear: '2025',
@@ -154,8 +153,7 @@ async function main() {
       email: 'priya.sharma@student.sthelens.edu',
       dateOfBirth: '22/03/2010',
       password: '22032010',
-      class: '10',
-      section: 'A',
+      class: 'X',
       parentName: 'Ramesh Sharma',
       phone: '+1234560002',
       academicYear: '2025',
@@ -168,23 +166,20 @@ async function main() {
       email: 'amit.patel@student.sthelens.edu',
       dateOfBirth: '08/07/2010',
       password: '08072010',
-      class: '10',
-      section: 'A',
+      class: 'X',
       parentName: 'Vijay Patel',
       phone: '+1234560003',
       academicYear: '2025',
       status: 'ACTIVE',
       promotionStatus: 'PENDING'
     },
-    // Class 10-B
     {
       name: 'Sneha Reddy',
       rollNo: '2024004',
       email: 'sneha.reddy@student.sthelens.edu',
       dateOfBirth: '12/11/2010',
       password: '12112010',
-      class: '10',
-      section: 'B',
+      class: 'X',
       parentName: 'Krishna Reddy',
       phone: '+1234560004',
       academicYear: '2025',
@@ -197,8 +192,7 @@ async function main() {
       email: 'vikram.singh@student.sthelens.edu',
       dateOfBirth: '25/06/2010',
       password: '25062010',
-      class: '10',
-      section: 'B',
+      class: 'X',
       parentName: 'Ranjit Singh',
       phone: '+1234560005',
       academicYear: '2025',
@@ -211,23 +205,20 @@ async function main() {
       email: 'ananya.gupta@student.sthelens.edu',
       dateOfBirth: '30/09/2010',
       password: '30092010',
-      class: '10',
-      section: 'B',
+      class: 'X',
       parentName: 'Anil Gupta',
       phone: '+1234560006',
       academicYear: '2025',
       status: 'ACTIVE',
       promotionStatus: 'PENDING'
     },
-    // Class 9-A
     {
       name: 'Rahul Verma',
       rollNo: '2024007',
       email: 'rahul.verma@student.sthelens.edu',
       dateOfBirth: '18/04/2011',
       password: '18042011',
-      class: '9',
-      section: 'A',
+      class: 'IX',
       parentName: 'Prakash Verma',
       phone: '+1234560007',
       academicYear: '2025',
@@ -240,23 +231,20 @@ async function main() {
       email: 'kavya.iyer@student.sthelens.edu',
       dateOfBirth: '05/01/2011',
       password: '05012011',
-      class: '9',
-      section: 'A',
+      class: 'IX',
       parentName: 'Sundar Iyer',
       phone: '+1234560008',
       academicYear: '2025',
       status: 'ACTIVE',
       promotionStatus: 'PENDING'
     },
-    // Class 9-B
     {
       name: 'Arjun Rao',
       rollNo: '2024009',
       email: 'arjun.rao@student.sthelens.edu',
       dateOfBirth: '27/08/2011',
       password: '27082011',
-      class: '9',
-      section: 'B',
+      class: 'IX',
       parentName: 'Mohan Rao',
       phone: '+1234560009',
       academicYear: '2025',
@@ -269,8 +257,7 @@ async function main() {
       email: 'divya.nair@student.sthelens.edu',
       dateOfBirth: '14/12/2011',
       password: '14122011',
-      class: '9',
-      section: 'B',
+      class: 'IX',
       parentName: 'Rajesh Nair',
       phone: '+1234560010',
       academicYear: '2025',

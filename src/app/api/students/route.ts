@@ -10,7 +10,6 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url)
     const search = searchParams.get('search') || ''
     const classFilter = searchParams.get('class') || ''
-    const sectionFilter = searchParams.get('section') || ''
     const statusFilter = searchParams.get('status') || ''
     const page = parseInt(searchParams.get('page') || '1')
     const limit = parseInt(searchParams.get('limit') || '10')
@@ -27,19 +26,7 @@ export async function GET(request: NextRequest) {
     }
 
     if (classFilter) {
-      // Handle both "10" and "10-A" formats
-      // If classFilter contains a hyphen, split into class and section
-      if (classFilter.includes('-')) {
-        const [className, section] = classFilter.split('-')
-        where.class = className
-        where.section = section
-      } else {
-        where.class = classFilter
-      }
-    }
-
-    if (sectionFilter) {
-      where.section = sectionFilter
+      where.class = classFilter
     }
 
     if (statusFilter) {
@@ -166,7 +153,6 @@ export async function POST(request: NextRequest) {
           name: student.name,
           rollNo: student.rollNo,
           class: student.class,
-          section: student.section,
           email: student.email,
         },
       },

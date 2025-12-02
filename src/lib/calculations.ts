@@ -6,7 +6,7 @@ export function calculateGrade(marks: number): string {
   if (marks >= 70) return 'B+';
   if (marks >= 60) return 'B';
   if (marks >= 50) return 'C';
-  if (marks >= 35) return 'D';
+  if (marks >= 45) return 'D';
   return 'F';
 }
 

@@ -8,6 +8,7 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import Link from 'next/link'
 import { FileText, TrendingUp, User, GraduationCap, BookOpen, Calendar } from 'lucide-react'
 import { Skeleton } from '@/components/ui/skeleton'
+import { formatClass } from '@/lib/class-utils'
 
 interface DashboardData {
   student: {
@@ -15,7 +16,6 @@ interface DashboardData {
     name: string
     rollNo: string
     class: string
-    section: string
     email: string
     academicYear: string
     promotionStatus: string
@@ -127,7 +127,7 @@ export default function StudentDashboard() {
               <div>
                 <h2 className="text-2xl font-bold text-gray-900">{data.student.name}</h2>
                 <p className="text-gray-600 mt-1">
-                  {data.student.class}-{data.student.section} • Roll No: {data.student.rollNo}
+                  Class {formatClass(data.student.class)} • Roll No: {data.student.rollNo}
                 </p>
               </div>
 

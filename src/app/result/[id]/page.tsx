@@ -2,13 +2,13 @@
 import { Printer } from 'lucide-react';
 import { useEffect, useState, Suspense } from 'react';
 import { useSearchParams, useParams } from 'next/navigation';
+import { formatClass } from '@/lib/class-utils';
 
 interface ReportData {
   student: {
     name: string;
     rollNo: string;
     class: string;
-    section: string;
   };
   academicYear: string;
   term: string;
@@ -249,7 +249,7 @@ function PrintableReportCardContent() {
                   </div>
                   <div className="flex border-r border-blue-800 px-3 py-2">
                     <span className="font-bold text-gray-900 min-w-[120px]">CLASS:</span>
-                    <span className="text-gray-900 font-semibold">{data.student.class}{data.student.section}</span>
+                    <span className="text-gray-900 font-semibold">{formatClass(data.student.class)}</span>
                   </div>
                   <div className="flex px-3 py-2">
                     <span className="font-bold text-gray-900 min-w-[180px]">ACADEMIC YEAR:</span>

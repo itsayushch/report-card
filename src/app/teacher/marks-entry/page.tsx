@@ -26,6 +26,7 @@ import { Loader2, Save, Download, Upload } from 'lucide-react'
 import { Skeleton } from '@/components/ui/skeleton'
 import { calculateGrade, getGradeColor } from '@/lib/calculations'
 import Papa from 'papaparse'
+import { formatClass } from '@/lib/class-utils'
 
 interface AcademicYear {
   id: string
@@ -47,7 +48,6 @@ interface Student {
   name: string
   rollNo: string
   class: string
-  section: string
 }
 
 interface MarkEntry {
@@ -80,6 +80,7 @@ export default function MarksEntryPage() {
   const [teacherData, setTeacherData] = useState<any>(null)
   const [activeYear, setActiveYear] = useState<AcademicYear | null>(null)
   const [initialLoading, setInitialLoading] = useState(true)
+  const [cardTerms, setCardTerms] = useState<Map<string, string>>(new Map())
 
   useEffect(() => {
     fetchInitialData()
@@ -240,9 +241,9 @@ export default function MarksEntryPage() {
     }
   }
 
-  const handleExportMarks = async () => {
+  const handleDownloadMarks = async () => {
     if (!selectedYear || !selectedTerm || !selectedClass || !selectedSubject) {
-      toast.error('Please select all filters to export')
+      toast.error('Please select all filters to download')
       return
     }
 
@@ -264,13 +265,13 @@ export default function MarksEntryPage() {
       link.download = `marks_${selectedClass}_${selectedSubject}_${selectedTerm}_${new Date().toISOString().split('T')[0]}.csv`
       link.click()
 
-      toast.success('Marks exported successfully')
+      toast.success('Marks downloaded successfully')
     } catch (error) {
-      toast.error('Failed to export marks')
+      toast.error('Failed to download marks')
     }
   }
 
-  const handleImportMarks = async (file: File) => {
+  const handleUploadMarks = async (file: File) => {
     if (!selectedYear || !selectedTerm) {
       toast.error('Please select academic year and term first')
       return
@@ -294,17 +295,17 @@ export default function MarksEntryPage() {
           const result = await response.json()
 
           if (!response.ok) {
-            throw new Error(result.error || 'Failed to import marks')
+            throw new Error(result.error || 'Failed to upload marks')
           }
 
-          toast.success(`Imported ${result.success} marks successfully`)
+          toast.success(`Uploaded ${result.success} marks successfully`)
           if (result.failed > 0) {
-            toast.error(`Failed to import ${result.failed} marks`)
+            toast.error(`Failed to upload ${result.failed} marks`)
           }
 
           fetchStudentsAndMarks() // Refresh data
         } catch (error: any) {
-          toast.error(error.message || 'Failed to import marks')
+          toast.error(error.message || 'Failed to upload marks')
         }
       },
       error: (error) => {
@@ -322,6 +323,7 @@ export default function MarksEntryPage() {
     setSelectedTerm(term)
     setSelectedSubject(subjectId)
   }
+  
 
   return (
     <div className="p-6 space-y-6">
@@ -366,8 +368,8 @@ export default function MarksEntryPage() {
       ) : (
         <>
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">Marks Entry</h1>
-            <p className="text-gray-500 mt-2">
+            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Marks Entry</h1>
+            <p className="text-sm sm:text-base text-gray-500 mt-2">
               {activeYear ? `Academic Year: ${activeYear.year}` : 'No active academic year'}
             </p>
           </div>
@@ -375,30 +377,20 @@ export default function MarksEntryPage() {
           {/* Show class selection cards if no class is selected */}
           {!selectedClass && (
             <div className="space-y-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Select Class to Enter Marks</CardTitle>
-                  <CardDescription>
-                    Choose from your assigned classes for {activeYear?.year}
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
+
                   <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                     {assignedClasses.map((className: string) => (
                       <Card key={className} className="hover:shadow-lg transition-shadow cursor-pointer border-2">
-                        <CardHeader className="pb-3">
-                          <CardTitle className="text-xl">{className}</CardTitle>
-                          <CardDescription>Select term and subject</CardDescription>
+                        <CardHeader className="pb-0">
+                          <CardTitle className="text-xl">Class {formatClass(className)}</CardTitle>
                         </CardHeader>
-                        <CardContent className="space-y-3">
+                        <CardContent className="space-y-2">
                           <div className="space-y-2">
                             <label className="text-sm font-medium">Term</label>
                             <Select onValueChange={(term) => {
-                              const tempTerm = term
-                              const select = document.getElementById(`subject-${className}`) as any
-                              if (select) {
-                                select.dataset.term = tempTerm
-                              }
+                              const newTerms = new Map(cardTerms)
+                              newTerms.set(className, term)
+                              setCardTerms(newTerms)
                             }}>
                               <SelectTrigger>
                                 <SelectValue placeholder="Select term" />
@@ -416,18 +408,16 @@ export default function MarksEntryPage() {
                           <div className="space-y-2">
                             <label className="text-sm font-medium">Subject</label>
                             <Select 
+                              disabled={!cardTerms.get(className)}
                               onValueChange={(subjectId) => {
-                                const select = document.getElementById(`subject-${className}`) as any
-                                const term = select?.dataset.term
+                                const term = cardTerms.get(className)
                                 if (term) {
                                   handleClassSelect(className, term, subjectId)
-                                } else {
-                                  toast.error('Please select a term first')
                                 }
                               }}
                             >
-                              <SelectTrigger id={`subject-${className}`}>
-                                <SelectValue placeholder="Select subject" />
+                              <SelectTrigger>
+                                <SelectValue placeholder={cardTerms.get(className) ? "Select subject" : "Select term first"} />
                               </SelectTrigger>
                               <SelectContent>
                                 {subjects.map((subject) => (
@@ -444,33 +434,46 @@ export default function MarksEntryPage() {
                   </div>
                   
                   {assignedClasses.length === 0 && (
-                    <div className="text-center py-8 text-gray-500">
-                      No classes assigned to you yet
-                    </div>
+                    <Card>
+                      <CardContent>
+                        <p className="text-center text-gray-500 py-8">
+                          You are not assigned to any classes. Please contact the administrator.
+                        </p>
+                      </CardContent>
+                    </Card>
                   )}
-                </CardContent>
-              </Card>
             </div>
           )}
 
           {/* Show marks entry table when class is selected */}
           {selectedClass && selectedTerm && selectedSubject && (
         <div className="space-y-4">
-          <Card className="bg-blue-50 border-blue-200">
-            <CardContent className="pt-6">
-              <div className="flex items-center justify-between">
-                <div className="space-y-1">
-                  <div className="flex items-center gap-2">
-                    <Badge variant="outline" className="bg-white">Class {selectedClass}</Badge>
-                    <Badge variant="outline" className="bg-white">{selectedTerm}</Badge>
-                    <Badge variant="outline" className="bg-white">
+          <Card className="border-blue-200 shadow-sm">
+            <CardContent className="py-4">
+              <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+                <div className="space-y-3">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 font-medium">
+                      Class {formatClass(selectedClass)}
+                    </Badge>
+                    <Badge variant="outline" className="bg-purple-50 text-purple-700 border-purple-200 font-medium">
+                      {selectedTerm}
+                    </Badge>
+                    <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 font-medium">
                       {subjects.find(s => s.id === selectedSubject)?.name}
                     </Badge>
                   </div>
                   {selectedSubjectData && (
-                    <p className="text-sm text-blue-900">
-                      Max Marks: {selectedSubjectData.maxMarks} • Passing Marks: {selectedSubjectData.passingMarks}
-                    </p>
+                    <div className="text-sm text-gray-600 space-y-1">
+                      <p className="flex items-center gap-2">
+                        <span className="font-semibold text-gray-700">Maximum Marks:</span>
+                        <span className="text-blue-600 font-medium">{selectedSubjectData.maxMarks}</span>
+                      </p>
+                      <p className="flex items-center gap-2">
+                        <span className="font-semibold text-gray-700">Passing Marks:</span>
+                        <span className="text-green-600 font-medium">{selectedSubjectData.passingMarks}</span>
+                      </p>
+                    </div>
                   )}
                 </div>
                 <Button 
@@ -480,9 +483,9 @@ export default function MarksEntryPage() {
                     setSelectedTerm('')
                     setSelectedSubject('')
                   }}
-                  className="bg-white"
+                  className="w-full sm:w-auto hover:bg-gray-100"
                 >
-                  Change Selection
+                  Change Class/Subject
                 </Button>
               </div>
             </CardContent>
@@ -490,51 +493,53 @@ export default function MarksEntryPage() {
 
           <Card>
             <CardHeader>
-              <div className="flex items-center justify-between">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <div>
-                  <CardTitle>Enter Marks</CardTitle>
-                  <CardDescription>
-                    {students.length} students in Class {selectedClass}
+                  <CardTitle className="text-xl">Student Marks Entry</CardTitle>
+                  <CardDescription className="mt-1">
+                    {students.length} {students.length === 1 ? 'student' : 'students'} enrolled in Class {formatClass(selectedClass)}
                   </CardDescription>
                 </div>
-                <div className="flex gap-2">
-                  <Button onClick={handleExportMarks} variant="outline" size="sm">
-                    <Download className="mr-2 h-4 w-4" />
-                    Export
-                  </Button>
-                  <label htmlFor="import-marks">
-                    <Button variant="outline" size="sm" asChild>
-                      <span>
-                        <Upload className="mr-2 h-4 w-4" />
-                        Import
-                      </span>
+                {students.length > 0 && (
+                  <div className="flex flex-wrap gap-2">
+                    <Button onClick={handleDownloadMarks} variant="outline" size="sm" className="gap-2">
+                      <Download className="h-4 w-4" />
+                      Download CSV
                     </Button>
-                    <input
-                      id="import-marks"
-                      type="file"
-                      accept=".csv"
-                      className="hidden"
-                      onChange={(e) => {
-                        const file = e.target.files?.[0]
-                        if (file) handleImportMarks(file)
-                        e.target.value = ''
-                      }}
-                    />
-                  </label>
-                  <Button onClick={handleSaveMarks} disabled={saving || loading}>
-                    {saving ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Saving...
-                      </>
-                    ) : (
-                      <>
-                        <Save className="mr-2 h-4 w-4" />
-                        Save Marks
-                      </>
-                    )}
-                  </Button>
-                </div>
+                    <label htmlFor="upload-marks">
+                      <Button variant="outline" size="sm" asChild className="gap-2 cursor-pointer">
+                        <span>
+                          <Upload className="h-4 w-4" />
+                          Upload CSV
+                        </span>
+                      </Button>
+                      <input
+                        id="upload-marks"
+                        type="file"
+                        accept=".csv"
+                        className="hidden"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0]
+                          if (file) handleUploadMarks(file)
+                          e.target.value = ''
+                        }}
+                      />
+                    </label>
+                    <Button onClick={handleSaveMarks} disabled={saving || loading} size="sm" className="gap-2">
+                      {saving ? (
+                        <>
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                          Saving...
+                        </>
+                      ) : (
+                        <>
+                          <Save className="h-4 w-4" />
+                          Save All Marks
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                )}
               </div>
             </CardHeader>
             <CardContent>
@@ -568,65 +573,99 @@ export default function MarksEntryPage() {
                   No students found in this class
                 </p>
               ) : (
-                <div className="overflow-x-auto">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead className="w-24">Roll No</TableHead>
-                        <TableHead>Student Name</TableHead>
-                        <TableHead className="w-32">Marks</TableHead>
-                        <TableHead className="w-24">Grade</TableHead>
-                        <TableHead className="min-w-[200px]">Remarks</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {students.map((student) => {
-                        const entry = marksData.get(student.id)
-                        if (!entry) return null
+                <>
+                  {/* Mobile view - Cards */}
+                  <div className="block md:hidden space-y-3">
+                    {students.map((student) => {
+                      const entry = marksData.get(student.id)
+                      if (!entry) return null
 
-                        return (
-                          <TableRow key={student.id}>
-                            <TableCell className="font-medium">
-                              {student.rollNo}
-                            </TableCell>
-                            <TableCell>{student.name}</TableCell>
-                            <TableCell>
-                              <Input
-                                type="number"
-                                min="0"
-                                max={selectedSubjectData?.maxMarks}
-                                value={entry.marks}
-                                onChange={(e) =>
-                                  updateMark(student.id, 'marks', e.target.value)
-                                }
-                                className="w-24"
-                              />
-                            </TableCell>
-                            <TableCell>
-                              <Badge className={getGradeColor(entry.grade)}>
-                                {entry.grade}
-                              </Badge>
-                            </TableCell>
-                            <TableCell>
-                              <Textarea
-                                value={entry.teacherRemarks}
-                                onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) =>
-                                  updateMark(
-                                    student.id,
-                                    'teacherRemarks',
-                                    e.target.value
-                                  )
-                                }
-                                placeholder="Optional remarks"
-                                className="min-h-[60px]"
-                              />
-                            </TableCell>
-                          </TableRow>
-                        )
-                      })}
-                    </TableBody>
-                  </Table>
-                </div>
+                      return (
+                        <Card key={student.id} className="border-2 hover:shadow-md transition-shadow">
+                          <CardContent className="pt-4 pb-4">
+                            <div className="space-y-3">
+                              {/* Student Info */}
+                              <div className="flex items-center justify-between pb-2 border-b">
+                                <div>
+                                  <p className="font-semibold text-base">{student.name}</p>
+                                  <p className="text-sm text-muted-foreground">Roll No: {student.rollNo}</p>
+                                </div>
+                                <Badge className={`${getGradeColor(entry.grade)} text-lg px-3 py-1`}>
+                                  {entry.grade}
+                                </Badge>
+                              </div>
+                              
+                              {/* Marks Input */}
+                              <div className="space-y-2">
+                                <label className="text-sm font-medium text-gray-700">
+                                  Marks <span className="text-muted-foreground">(Max: {selectedSubjectData?.maxMarks})</span>
+                                </label>
+                                <Input
+                                  type="number"
+                                  min="0"
+                                  max={selectedSubjectData?.maxMarks}
+                                  value={entry.marks}
+                                  onChange={(e) =>
+                                    updateMark(student.id, 'marks', e.target.value)
+                                  }
+                                  className="text-lg h-12 text-center font-semibold"
+                                  placeholder="0"
+                                />
+                              </div>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      )
+                    })}
+                  </div>
+
+                  {/* Desktop view - Table */}
+                  <div className="hidden md:block overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead className="w-32">Roll No</TableHead>
+                          <TableHead>Student Name</TableHead>
+                          <TableHead className="w-40 text-center">Marks</TableHead>
+                          <TableHead className="w-32 text-center">Grade</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {students.map((student) => {
+                          const entry = marksData.get(student.id)
+                          if (!entry) return null
+
+                          return (
+                            <TableRow key={student.id} className="hover:bg-muted/50">
+                              <TableCell className="font-medium">
+                                {student.rollNo}
+                              </TableCell>
+                              <TableCell className="font-medium">{student.name}</TableCell>
+                              <TableCell className="text-center">
+                                <Input
+                                  type="number"
+                                  min="0"
+                                  max={selectedSubjectData?.maxMarks}
+                                  value={entry.marks}
+                                  onChange={(e) =>
+                                    updateMark(student.id, 'marks', e.target.value)
+                                  }
+                                  className="w-28 text-center text-base font-semibold mx-auto"
+                                  placeholder="0"
+                                />
+                              </TableCell>
+                              <TableCell className="text-center">
+                                <Badge className={`${getGradeColor(entry.grade)} text-base px-3 py-1`}>
+                                  {entry.grade}
+                                </Badge>
+                              </TableCell>
+                            </TableRow>
+                          )
+                        })}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </>
               )}
             </CardContent>
           </Card>

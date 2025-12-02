@@ -22,22 +22,10 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    // Handle both "10" and "10-A" formats
-    let classWhere: any = {}
-    if (className.includes('-')) {
-      const [classNum, section] = className.split('-')
-      classWhere = {
-        class: classNum,
-        section: section
-      }
-    } else {
-      classWhere = { class: className }
-    }
-
     // Get students in the class
     const students = await prisma.student.findMany({
       where: {
-        ...classWhere,
+        class: className,
         status: 'ACTIVE',
         academicYear,
       },
@@ -87,7 +75,6 @@ export async function GET(request: NextRequest) {
           name: student.name,
           rollNo: student.rollNo,
           class: student.class,
-          section: student.section,
           promotionStatus: student.promotionStatus,
           hasMarks: true,
           totalObtained: summary.totalObtained,

@@ -6,7 +6,6 @@ export interface ReportData {
     name: string;
     rollNo: string;
     class: string;
-    section: string;
   };
   academicYear: string;
   term: string;
@@ -52,7 +51,7 @@ export function generateReportCardPDF(data: ReportData): jsPDF {
   doc.setFontSize(10);
   doc.text(`Name: ${data.student.name}`, 20, 48);
   doc.text(`Roll No: ${data.student.rollNo}`, 20, 56);
-  doc.text(`Class: ${data.student.class}-${data.student.section}`, 20, 64);
+  doc.text(`Class: ${data.student.class}`, 20, 64);
   
   doc.text(`Academic Year: ${data.academicYear}`, 120, 48);
   doc.text(`Term: ${data.term}`, 120, 56);

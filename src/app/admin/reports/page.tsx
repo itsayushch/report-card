@@ -21,6 +21,7 @@ import {
 import { Badge } from '@/components/ui/badge'
 import { toast } from 'sonner'
 import { CheckCircle2, XCircle, Loader2 } from 'lucide-react'
+import { formatClass } from '@/lib/class-utils'
 
 interface AcademicYear {
   id: string
@@ -32,7 +33,6 @@ interface AcademicYear {
 interface PublishRecord {
   id: string
   class: string
-  section: string
   term: string
   academicYear: string
   isPublished: boolean
@@ -99,10 +99,9 @@ export default function ReportPublishPage() {
 
   const handlePublish = async (
     className: string,
-    section: string,
     term: string
   ) => {
-    const key = `${className}-${section}-${term}`
+    const key = `${className}-${term}`
     setPublishing(key)
 
     try {
@@ -111,7 +110,6 @@ export default function ReportPublishPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           class: className,
-          section,
           term,
           academicYear: selectedYear,
         }),
@@ -123,7 +121,7 @@ export default function ReportPublishPage() {
         throw new Error(data.error || 'Failed to publish')
       }
 
-      toast.success(`Reports published for ${className}-${section}, ${term}`)
+      toast.success(`Reports published for ${className}, ${term}`)
       fetchPublishedReports()
     } catch (error: any) {
       toast.error(error.message || 'Failed to publish reports')
@@ -134,15 +132,14 @@ export default function ReportPublishPage() {
 
   const handleUnpublish = async (
     className: string,
-    section: string,
     term: string
   ) => {
-    const key = `${className}-${section}-${term}`
+    const key = `${className}-${term}`
     setPublishing(key)
 
     try {
       const response = await fetch(
-        `/api/reports/publish?class=${className}&section=${section}&term=${term}&academicYear=${selectedYear}`,
+        `/api/reports/publish?class=${className}&term=${term}&academicYear=${selectedYear}`,
         { method: 'DELETE' }
       )
 
@@ -152,7 +149,7 @@ export default function ReportPublishPage() {
         throw new Error(data.error || 'Failed to unpublish')
       }
 
-      toast.success(`Reports unpublished for ${className}-${section}, ${term}`)
+      toast.success(`Reports unpublished for ${className}, ${term}`)
       fetchPublishedReports()
     } catch (error: any) {
       toast.error(error.message || 'Failed to unpublish reports')
@@ -172,14 +169,13 @@ export default function ReportPublishPage() {
     let failCount = 0
 
     for (const classKey of selectedClasses) {
-      const [className, section] = classKey.split('-')
+      const [className, term] = classKey.split('-')
       try {
         const response = await fetch('/api/reports/publish', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             class: className,
-            section,
             term: selectedTerm,
             academicYear: selectedYear,
           }),
@@ -220,10 +216,10 @@ export default function ReportPublishPage() {
     let failCount = 0
 
     for (const classKey of selectedClasses) {
-      const [className, section] = classKey.split('-')
+      const className = classKey
       try {
         const response = await fetch(
-          `/api/reports/publish?class=${className}&section=${section}&term=${selectedTerm}&academicYear=${selectedYear}`,
+          `/api/reports/publish?class=${className}&term=${selectedTerm}&academicYear=${selectedYear}`,
           { method: 'DELETE' }
         )
 
@@ -278,17 +274,13 @@ export default function ReportPublishPage() {
 
   // Get unique classes
   const classes = [
-    '9-A', '9-B', '9-C',
-    '10-A', '10-B', '10-C',
-    '11-A', '11-B', '11-C',
-    '12-A', '12-B', '12-C',
+    '9', '10', '11', '12'
   ]
 
-  const isPublished = (className: string, section: string, term: string) => {
+  const isPublished = (className: string, term: string) => {
     return publishedReports.find(
       (r) =>
         r.class === className &&
-        r.section === section &&
         r.term === term &&
         r.isPublished
     )
@@ -416,23 +408,21 @@ export default function ReportPublishPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {classes.map((classSection) => {
-                    const [className, section] = classSection.split('-')
-                    const fullClass = `${className}-${section}`
-                    const published = isPublished(className, section, selectedTerm)
-                    const key = `${className}-${section}-${selectedTerm}`
+                  {classes.map((className) => {
+                    const published = isPublished(className, selectedTerm)
+                    const key = `${className}-${selectedTerm}`
 
                     return (
-                      <TableRow key={classSection}>
+                      <TableRow key={className}>
                         <TableCell>
                           <input
                             type="checkbox"
-                            checked={selectedClasses.has(classSection)}
-                            onChange={() => toggleClassSelection(classSection)}
+                            checked={selectedClasses.has(className)}
+                            onChange={() => toggleClassSelection(className)}
                             className="h-4 w-4 rounded border-gray-300"
                           />
                         </TableCell>
-                        <TableCell className="font-medium">{fullClass}</TableCell>
+                        <TableCell className="font-medium">Class {formatClass(className)}</TableCell>
                         <TableCell>
                           {published ? (
                             <Badge className="bg-green-100 text-green-700 hover:bg-green-100">
@@ -458,7 +448,7 @@ export default function ReportPublishPage() {
                               variant="outline"
                               size="sm"
                               onClick={() =>
-                                handleUnpublish(className, section, selectedTerm)
+                                handleUnpublish(className, selectedTerm)
                               }
                               disabled={publishing === key}
                             >
@@ -472,7 +462,7 @@ export default function ReportPublishPage() {
                             <Button
                               size="sm"
                               onClick={() =>
-                                handlePublish(className, section, selectedTerm)
+                                handlePublish(className, selectedTerm)
                               }
                               disabled={publishing === key}
                             >
