@@ -21,7 +21,6 @@ async function main() {
       email: DEFAULT_CREDENTIALS.admin.email,
       password: DEFAULT_CREDENTIALS.admin.password,  // Plain text email
       name: 'System Administrator',
-      phone: '+1234567890',
       classSubjectPairs: [],
       isAdmin: true,
       firstLogin: true,  // Require password change on first login
@@ -75,7 +74,6 @@ async function main() {
       name: 'John Smith',
       email: 'john.smith@sthelens.edu',
       password: 'john.smith@sthelens.edu',
-      phone: '+1234567891',
       classSubjectPairs: [
         { subject: 'MATH', classAssigned: '10' },
         { subject: 'MATH', classAssigned: '9' },
@@ -89,7 +87,6 @@ async function main() {
       name: 'Sarah Johnson',
       email: 'sarah.johnson@sthelens.edu',
       password: 'sarah.johnson@sthelens.edu',
-      phone: '+1234567892',
       classSubjectPairs: [
         { subject: 'ENG', classAssigned: '10' },
         { subject: 'ENG', classAssigned: '9' },
@@ -103,7 +100,6 @@ async function main() {
       name: 'Michael Brown',
       email: 'michael.brown@sthelens.edu',
       password: 'michael.brown@sthelens.edu',
-      phone: '+1234567893',
       classSubjectPairs: [
         { subject: 'SOC', classAssigned: '10' },
         { subject: 'SOC', classAssigned: '9' },

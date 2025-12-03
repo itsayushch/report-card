@@ -15,11 +15,10 @@ export const studentSchema = z.object({
 export const teacherSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters'),
   email: z.string().email('Invalid email address'),
-  phone: z.string().regex(/^\+?[1-9]\d{9,14}$/, 'Invalid phone number'),
   classSubjectPairs: z.array(z.object({
     subject: z.string(),
     classAssigned: z.string(),
-  })).min(1, 'At least one class-subject pair is required'),
+  })).optional().default([]),
   isAdmin: z.boolean().optional(),
 })
 

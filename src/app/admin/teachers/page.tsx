@@ -8,9 +8,11 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { TeacherForm } from '@/components/admin/teachers/TeacherForm'
-import { Plus, Edit, Trash2, Mail, Phone, Search } from 'lucide-react'
+import { Plus, Edit, Trash2, Mail, Search, Key } from 'lucide-react'
 import { Skeleton } from '@/components/ui/skeleton'
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog'
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Label } from '@/components/ui/label'
 import { toast } from 'sonner'
 import { getSubjectById } from '@/lib/subjects'
 
@@ -22,6 +24,11 @@ export default function TeachersPage() {
   const [searchTerm, setSearchTerm] = useState('')
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [teacherToDelete, setTeacherToDelete] = useState<string | null>(null)
+  const [resetPasswordDialogOpen, setResetPasswordDialogOpen] = useState(false)
+  const [teacherToResetPassword, setTeacherToResetPassword] = useState<Teacher | null>(null)
+  const [newPassword, setNewPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
+  const [resettingPassword, setResettingPassword] = useState(false)
 
   const fetchTeachers = async () => {
     try {
@@ -45,7 +52,6 @@ export default function TeachersPage() {
     return (
       teacher.name.toLowerCase().includes(search) ||
       teacher.email.toLowerCase().includes(search) ||
-      teacher.phone.toLowerCase().includes(search) ||
       teacher.classSubjectPairs.some((pair) => 
         pair.subject.toLowerCase().includes(search) || 
         pair.classAssigned.toLowerCase().includes(search)
@@ -85,6 +91,57 @@ export default function TeachersPage() {
   const handleAddNew = () => {
     setSelectedTeacher(null)
     setIsFormOpen(true)
+  }
+
+  const handleResetPassword = (teacher: Teacher) => {
+    setTeacherToResetPassword(teacher)
+    setNewPassword('')
+    setConfirmPassword('')
+    setResetPasswordDialogOpen(true)
+  }
+
+  const confirmResetPassword = async () => {
+    if (!teacherToResetPassword) return
+
+    if (!newPassword || !confirmPassword) {
+      toast.error('Please enter both password fields')
+      return
+    }
+
+    if (newPassword.length < 8) {
+      toast.error('Password must be at least 8 characters')
+      return
+    }
+
+    if (newPassword !== confirmPassword) {
+      toast.error('Passwords do not match')
+      return
+    }
+
+    setResettingPassword(true)
+    try {
+      const response = await fetch(`/api/teachers/${teacherToResetPassword.id}/reset-password`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ newPassword }),
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to reset password')
+      }
+
+      toast.success('Password reset successfully')
+      setResetPasswordDialogOpen(false)
+      setTeacherToResetPassword(null)
+      setNewPassword('')
+      setConfirmPassword('')
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to reset password')
+    } finally {
+      setResettingPassword(false)
+    }
   }
 
   return (
@@ -185,15 +242,9 @@ export default function TeachersPage() {
                       <TableRow key={teacher.id}>
                         <TableCell className="font-medium">{teacher.name}</TableCell>
                         <TableCell>
-                          <div className="flex flex-col gap-1 text-sm">
-                            <div className="flex items-center gap-1 text-gray-600">
-                              <Mail className="h-3 w-3" />
-                              <span>{teacher.email}</span>
-                            </div>
-                            <div className="flex items-center gap-1 text-gray-600">
-                              <Phone className="h-3 w-3" />
-                              <span>{teacher.phone}</span>
-                            </div>
+                          <div className="flex items-center gap-1 text-sm text-gray-600">
+                            <Mail className="h-3 w-3" />
+                            <span>{teacher.email}</span>
                           </div>
                         </TableCell>
                         <TableCell>
@@ -207,10 +258,19 @@ export default function TeachersPage() {
                         </TableCell>
                         <TableCell className="text-right">
                           <div className="flex justify-end gap-2">
-                            <Button variant="ghost" size="icon" onClick={() => handleEdit(teacher)}>
+                            <Button 
+                              variant="outline" 
+                              size="sm" 
+                              onClick={() => handleResetPassword(teacher)}
+                              className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                            >
+                              <Key className="h-4 w-4 mr-1" />
+                              Reset Password
+                            </Button>
+                            <Button variant="ghost" size="icon" onClick={() => handleEdit(teacher)} title="Edit">
                               <Edit className="h-4 w-4" />
                             </Button>
-                            <Button variant="ghost" size="icon" onClick={() => handleDelete(teacher.id)}>
+                            <Button variant="ghost" size="icon" onClick={() => handleDelete(teacher.id)} title="Delete">
                               <Trash2 className="h-4 w-4 text-red-600" />
                             </Button>
                           </div>
@@ -249,6 +309,54 @@ export default function TeachersPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <Dialog open={resetPasswordDialogOpen} onOpenChange={setResetPasswordDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Reset Password</DialogTitle>
+            <DialogDescription>
+              Set a new password for <strong>{teacherToResetPassword?.name}</strong>
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="newPassword">New Password</Label>
+              <Input
+                id="newPassword"
+                type="password"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                placeholder="Enter new password"
+                disabled={resettingPassword}
+              />
+              <p className="text-xs text-gray-500">Minimum 8 characters</p>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="confirmPassword">Confirm Password</Label>
+              <Input
+                id="confirmPassword"
+                type="password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                placeholder="Confirm new password"
+                disabled={resettingPassword}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setResetPasswordDialogOpen(false)}
+              disabled={resettingPassword}
+            >
+              Cancel
+            </Button>
+            <Button onClick={confirmResetPassword} disabled={resettingPassword}>
+              {resettingPassword ? 'Resetting...' : 'Reset Password'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

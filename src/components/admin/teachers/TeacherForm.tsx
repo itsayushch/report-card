@@ -62,14 +62,13 @@ export function TeacherForm({ open, onOpenChange, teacher, onSuccess }: TeacherF
       const data = {
         name: teacher.name,
         email: teacher.email,
-        phone: teacher.phone,
         classSubjectPairs: teacher.classSubjectPairs || [],
       }
       reset(data)
       setOriginalData(data)
       setClassSubjectPairs(teacher.classSubjectPairs || [])
     } else {
-      const data = { name: '', email: '', phone: '', classSubjectPairs: [] }
+      const data = { name: '', email: '', classSubjectPairs: [] }
       reset(data)
       setOriginalData(data)
       setClassSubjectPairs([])
@@ -93,7 +92,6 @@ export function TeacherForm({ open, onOpenChange, teacher, onSuccess }: TeacherF
     const changed = 
       formValues.name !== originalData.name ||
       formValues.email !== originalData.email ||
-      formValues.phone !== originalData.phone ||
       !pairsEqual(classSubjectPairs, originalData.classSubjectPairs)
 
     setHasChanges(changed)
@@ -173,23 +171,15 @@ export function TeacherForm({ open, onOpenChange, teacher, onSuccess }: TeacherF
             {errors.name && <p className="text-sm text-red-600">{errors.name.message}</p>}
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="email">Email *</Label>
-              <Input id="email" type="email" {...register('email')} placeholder="teacher@sthelens.edu" />
-              {errors.email && <p className="text-sm text-red-600">{errors.email.message}</p>}
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="phone">Phone *</Label>
-              <Input id="phone" {...register('phone')} placeholder="+1234567890" />
-              {errors.phone && <p className="text-sm text-red-600">{errors.phone.message}</p>}
-            </div>
+          <div className="space-y-2">
+            <Label htmlFor="email">Email *</Label>
+            <Input id="email" type="email" {...register('email')} placeholder="teacher@sthelens.edu" />
+            {errors.email && <p className="text-sm text-red-600">{errors.email.message}</p>}
           </div>
 
           {/* Class-Subject Pairs */}
           <div className="space-y-2">
-            <Label>Assign Class-Subject *</Label>
+            <Label>Assign Class-Subject (Optional)</Label>
             <div className="grid grid-cols-2 gap-2">
               <Select value={selectedClass} onValueChange={setSelectedClass}>
                 <SelectTrigger>
@@ -237,8 +227,10 @@ export function TeacherForm({ open, onOpenChange, teacher, onSuccess }: TeacherF
                   </button>
                 </Badge>
               ))}
+              {classSubjectPairs.length === 0 && (
+                <p className="text-sm text-gray-500">No class-subject pairs assigned yet</p>
+              )}
             </div>
-            {errors.classSubjectPairs && <p className="text-sm text-red-600">{errors.classSubjectPairs.message}</p>}
           </div>
 
           <DialogFooter>

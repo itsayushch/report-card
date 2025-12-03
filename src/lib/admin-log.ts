@@ -8,13 +8,15 @@ interface AdminLogParams {
   entityId?: string
   description: string
   metadata?: any
+  ipAddress?: string
+  userAgent?: string
 }
 
-export async function createAdminLog(params: AdminLogParams) {
+export async function logAdminAction(params: AdminLogParams) {
   try {
     const headersList = await headers()
-    const ipAddress = headersList.get('x-forwarded-for') || headersList.get('x-real-ip') || 'unknown'
-    const userAgent = headersList.get('user-agent') || 'unknown'
+    const ipAddress = params.ipAddress || headersList.get('x-forwarded-for') || headersList.get('x-real-ip') || 'unknown'
+    const userAgent = params.userAgent || headersList.get('user-agent') || 'unknown'
 
     await prisma.adminLog.create({
       data: {
@@ -34,6 +36,10 @@ export async function createAdminLog(params: AdminLogParams) {
   }
 }
 
+export async function createAdminLog(params: AdminLogParams) {
+  return logAdminAction(params)
+}
+
 // Common admin actions
 export const AdminActions = {
   // Student actions
@@ -49,6 +55,7 @@ export const AdminActions = {
   DELETE_TEACHER: 'DELETE_TEACHER',
   GRANT_ADMIN: 'GRANT_ADMIN',
   REVOKE_ADMIN: 'REVOKE_ADMIN',
+  RESET_PASSWORD: 'RESET_PASSWORD',
   
   // Subject actions
   CREATE_SUBJECT: 'CREATE_SUBJECT',

@@ -1,66 +1,84 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
-import { z } from 'zod'
+import { sendPasswordResetEmail } from '@/lib/email'
+import crypto from 'crypto'
 
-const resetPasswordSchema = z.object({
-  currentPassword: z.string().min(1, 'Current password is required'),
-  newPassword: z.string().min(6, 'New password must be at least 6 characters'),
-})
-
+// Send password reset email
 export async function POST(request: NextRequest) {
   try {
-    const session = await auth()
-
-    if (!session || session.user.role !== 'TEACHER') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
     const body = await request.json()
-    const { currentPassword, newPassword } = resetPasswordSchema.parse(body)
+    const { email } = body
 
-    // Get teacher
-    const teacher = await prisma.teacher.findUnique({
-      where: { email: session.user.email! },
-    })
-
-    if (!teacher) {
-      return NextResponse.json({ error: 'Teacher not found' }, { status: 404 })
-    }
-
-    // Verify current password (plain text comparison)
-    if (teacher.password !== currentPassword) {
+    if (!email) {
       return NextResponse.json(
-        { error: 'Current password is incorrect' },
+        { error: 'Email is required' },
         { status: 400 }
       )
     }
 
-    // Update password (plain text)
-    await prisma.teacher.update({
-      where: { id: teacher.id },
-      data: {
-        password: newPassword,
-        firstLogin: false,  // Mark as password changed
-      },
+    // Check if teacher or student exists
+    const teacher = await prisma.teacher.findUnique({
+      where: { email },
     })
+
+    const student = await prisma.student.findUnique({
+      where: { email },
+    })
+
+    if (!teacher && !student) {
+      // Don't reveal if email exists or not for security
+      return NextResponse.json({
+        message: 'If the email exists, a password reset email has been sent',
+      })
+    }
+
+    // Generate a random temporary password (8 characters: letters + numbers)
+    const tempPassword = crypto.randomBytes(4).toString('hex').toUpperCase()
+
+    const user = teacher || student
+    const userName = user!.name
+
+    // Update the password in database
+    if (teacher) {
+      await prisma.teacher.update({
+        where: { email },
+        data: {
+          password: tempPassword,
+          firstLogin: true, // Force password change on next login
+        },
+      })
+    } else if (student) {
+      await prisma.student.update({
+        where: { email },
+        data: {
+          password: tempPassword,
+        },
+      })
+    }
+
+    // Send email via SendGrid
+    const emailResult = await sendPasswordResetEmail(email, tempPassword, userName)
+
+    if (!emailResult.success) {
+      console.error('Failed to send email:', emailResult.error)
+      // In development, return the temp password if email fails
+      if (process.env.NODE_ENV === 'development') {
+        return NextResponse.json({
+          message: 'Email service unavailable. Use this temporary password:',
+          tempPassword,
+        })
+      }
+    }
 
     return NextResponse.json({
-      success: true,
-      message: 'Password updated successfully',
+      message: 'Password reset email has been sent successfully',
+      // Only return temp password in development when email fails
+      tempPassword: process.env.NODE_ENV === 'development' && !emailResult.success ? tempPassword : undefined,
     })
-  } catch (error: any) {
+  } catch (error) {
     console.error('Reset password error:', error)
-
-    if (error.name === 'ZodError') {
-      return NextResponse.json(
-        { error: 'Validation failed', details: error.errors },
-        { status: 400 }
-      )
-    }
-
     return NextResponse.json(
-      { error: 'Failed to reset password' },
+      { error: 'Failed to process password reset' },
       { status: 500 }
     )
   }
