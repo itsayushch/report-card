@@ -214,21 +214,33 @@ export default function TeachersPage() {
               </div>
             </div>
           ) : (
-            <div className="border rounded-lg overflow-hidden">
+            <div className="border rounded-lg overflow-hidden shadow-sm">
               <Table>
                 <TableHeader>
-                  <TableRow>
-                    <TableHead>Name</TableHead>
-                    <TableHead>Contact</TableHead>
-                    <TableHead>Class-Subject Pairs</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
+                  <TableRow className="bg-gray-50 hover:bg-gray-50">
+                    <TableHead className="font-semibold">Name</TableHead>
+                    <TableHead className="font-semibold">Contact</TableHead>
+                    <TableHead className="font-semibold">Class-Subject Pairs</TableHead>
+                    <TableHead className="text-right font-semibold">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {filteredTeachers.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={4} className="text-center py-8 text-gray-500">
-                        {searchTerm ? 'No teachers found matching your search' : 'No teachers found'}
+                      <TableCell colSpan={4} className="text-center py-12">
+                        <div className="flex flex-col items-center gap-2">
+                          <div className="rounded-full bg-gray-100 p-3">
+                            <Search className="h-6 w-6 text-gray-400" />
+                          </div>
+                          <p className="text-gray-500 font-medium">
+                            {searchTerm ? 'No teachers found matching your search' : 'No teachers found'}
+                          </p>
+                          {searchTerm && (
+                            <p className="text-sm text-gray-400">
+                              Try adjusting your search terms
+                            </p>
+                          )}
+                        </div>
                       </TableCell>
                     </TableRow>
                   ) : (
@@ -239,39 +251,66 @@ export default function TeachersPage() {
                         .sort((a, b) => parseInt(a) - parseInt(b))
                       
                       return (
-                      <TableRow key={teacher.id}>
-                        <TableCell className="font-medium">{teacher.name}</TableCell>
+                      <TableRow key={teacher.id} className="hover:bg-gray-50">
                         <TableCell>
-                          <div className="flex items-center gap-1 text-sm text-gray-600">
-                            <Mail className="h-3 w-3" />
-                            <span>{teacher.email}</span>
+                          <div className="flex flex-col gap-1">
+                            <span className="font-medium text-gray-900">{teacher.name}</span>
+                            {teacher.isAdmin && (
+                              <Badge variant="secondary" className="w-fit text-xs">
+                                Admin
+                              </Badge>
+                            )}
                           </div>
                         </TableCell>
                         <TableCell>
-                          <div className="flex flex-wrap gap-1">
-                            {teacher.classSubjectPairs.map((pair, idx) => (
-                              <Badge key={idx} variant="outline" className="text-xs">
-                                Class {pair.classAssigned} - {getSubjectById(pair.classAssigned, pair.subject)?.name || pair.subject}
-                              </Badge>
-                            ))}
+                          <div className="flex items-center gap-2 text-sm text-gray-600">
+                            <Mail className="h-4 w-4 text-gray-400" />
+                            <span className="truncate">{teacher.email}</span>
                           </div>
+                        </TableCell>
+                        <TableCell>
+                          {teacher.classSubjectPairs.length === 0 ? (
+                            <span className="text-sm text-gray-400 italic">No assignments</span>
+                          ) : (
+                            <div className="flex flex-wrap gap-1.5">
+                              {teacher.classSubjectPairs.map((pair, idx) => (
+                                <Badge key={idx} variant="outline" className="text-xs font-normal">
+                                  <span className="font-medium">Class {pair.classAssigned}</span>
+                                  <span className="mx-1">·</span>
+                                  <span>{getSubjectById(pair.classAssigned, pair.subject)?.name || pair.subject}</span>
+                                </Badge>
+                              ))}
+                            </div>
+                          )}
                         </TableCell>
                         <TableCell className="text-right">
-                          <div className="flex justify-end gap-2">
+                          <div className="flex justify-end gap-1.5">
                             <Button 
                               variant="outline" 
                               size="sm" 
                               onClick={() => handleResetPassword(teacher)}
-                              className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                              className="text-blue-600 border-blue-200 hover:text-blue-700 hover:bg-blue-50 hover:border-blue-300"
                             >
-                              <Key className="h-4 w-4 mr-1" />
+                              <Key className="h-3.5 w-3.5 mr-1.5" />
                               Reset Password
                             </Button>
-                            <Button variant="ghost" size="icon" onClick={() => handleEdit(teacher)} title="Edit">
-                              <Edit className="h-4 w-4" />
+                            <Button 
+                              variant="outline" 
+                              size="sm" 
+                              onClick={() => handleEdit(teacher)} 
+                              className="hover:bg-gray-100"
+                              title="Edit"
+                            >
+                              <Edit className="h-3.5 w-3.5" />
                             </Button>
-                            <Button variant="ghost" size="icon" onClick={() => handleDelete(teacher.id)} title="Delete">
-                              <Trash2 className="h-4 w-4 text-red-600" />
+                            <Button 
+                              variant="outline" 
+                              size="sm" 
+                              onClick={() => handleDelete(teacher.id)} 
+                              className="text-red-600 border-red-200 hover:bg-red-50 hover:border-red-300"
+                              title="Delete"
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
                             </Button>
                           </div>
                         </TableCell>
