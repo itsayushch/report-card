@@ -25,6 +25,7 @@ export const teacherSchema = z.object({
 
 export const subjectSchema = z.object({
   name: z.string().min(2, 'Subject name is required'),
+  code: z.string().min(2, 'Subject code is required').regex(/^[A-Z0-9-]+$/, 'Code must be uppercase letters, numbers, and hyphens only'),
   maxMarks: z.number().int().positive('Max marks must be positive'),
   passingMarks: z.number().int().positive('Passing marks must be positive'),
   academicYear: z.string().optional(),

@@ -21,6 +21,7 @@ model Student {
   academicYear    String
   promotionStatus PromotionStatus  @default(PENDING)
   academicRecords AcademicRecord[]
+  marks           Mark[]
   createdAt       DateTime         @default(now())
   updatedAt       DateTime         @updatedAt
 
@@ -83,14 +84,38 @@ type ClassSubjectPair {
 model Subject {
   id           String   @id @default(auto()) @map("_id") @db.ObjectId
   name         String
+  code         String   @unique
   maxMarks     Int
   passingMarks Int
   academicYear String
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
+  marks        Mark[]
 
   @@unique([name, academicYear])
   @@map("subjects")
+}
+
+model Mark {
+  id           String   @id @default(auto()) @map("_id") @db.ObjectId
+  studentId    String   @db.ObjectId
+  student      Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  subjectId    String   @db.ObjectId
+  subject      Subject  @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  marks        Float
+  grade        String
+  term         String
+  academicYear String
+  teacherRemarks String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@unique([studentId, subjectId, term, academicYear])
+  @@index([studentId])
+  @@index([subjectId])
+  @@index([term])
+  @@index([academicYear])
+  @@map("marks")
 }
 
 model AcademicYear {

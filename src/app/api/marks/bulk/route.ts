@@ -79,7 +79,6 @@ export async function POST(request: NextRequest) {
             marks: markValue,
             grade,
             teacherRemarks,
-            enteredById: teacher.id,
           },
           create: {
             studentId,
@@ -89,7 +88,6 @@ export async function POST(request: NextRequest) {
             term,
             academicYear,
             teacherRemarks,
-            enteredById: teacher.id,
           },
         })
       })

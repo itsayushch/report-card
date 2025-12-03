@@ -49,11 +49,11 @@ async function main() {
 
   // Create sample subjects
   const subjects = [
-    { name: 'Mathematics', maxMarks: 100, passingMarks: 45 },
-    { name: 'English', maxMarks: 100, passingMarks: 45 },
-    { name: 'Science', maxMarks: 100, passingMarks: 45 },
-    { name: 'Social Studies', maxMarks: 100, passingMarks: 45 },
-    { name: 'Hindi', maxMarks: 100, passingMarks: 45 },
+    { name: 'Mathematics', code: 'MATH', maxMarks: 100, passingMarks: 45 },
+    { name: 'English', code: 'ENG', maxMarks: 100, passingMarks: 45 },
+    { name: 'Science', code: 'SCI', maxMarks: 100, passingMarks: 45 },
+    { name: 'Social Studies', code: 'SOC', maxMarks: 100, passingMarks: 45 },
+    { name: 'Hindi', code: 'HIN', maxMarks: 100, passingMarks: 45 },
   ]
 
   for (const subject of subjects) {
@@ -76,8 +76,12 @@ async function main() {
       email: 'john.smith@sthelens.edu',
       password: 'john.smith@sthelens.edu',
       phone: '+1234567891',
-      subjects: ['Mathematics', 'Science'],
-      assignedClasses: ['X', 'IX'],
+      classSubjectPairs: [
+        { subject: 'MATH', classAssigned: '10' },
+        { subject: 'MATH', classAssigned: '9' },
+        { subject: 'SCI', classAssigned: '10' },
+        { subject: 'SCI', classAssigned: '9' },
+      ],
       isAdmin: false,
       firstLogin: true
     },
@@ -86,8 +90,12 @@ async function main() {
       email: 'sarah.johnson@sthelens.edu',
       password: 'sarah.johnson@sthelens.edu',
       phone: '+1234567892',
-      subjects: ['English', 'Hindi'],
-      assignedClasses: ['X', 'IX'],
+      classSubjectPairs: [
+        { subject: 'ENG', classAssigned: '10' },
+        { subject: 'ENG', classAssigned: '9' },
+        { subject: 'HIN', classAssigned: '10' },
+        { subject: 'HIN', classAssigned: '9' },
+      ],
       isAdmin: false,
       firstLogin: true
     },
@@ -96,8 +104,10 @@ async function main() {
       email: 'michael.brown@sthelens.edu',
       password: 'michael.brown@sthelens.edu',
       phone: '+1234567893',
-      subjects: ['Social Studies'],
-      assignedClasses: ['X', 'IX'],
+      classSubjectPairs: [
+        { subject: 'SOC', classAssigned: '10' },
+        { subject: 'SOC', classAssigned: '9' },
+      ],
       isAdmin: false,
       firstLogin: true
     }
