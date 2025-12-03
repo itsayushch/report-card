@@ -65,7 +65,6 @@ export function StudentForm({ open, onOpenChange, student, onSuccess }: StudentF
         parentName: student.parentName,
         email: student.email,
         phone: student.phone,
-        status: student.status,
       })
       // Parse dateOfBirth from DD/MM/YYYY to Date object
       if (student.dateOfBirth && student.dateOfBirth.includes('/')) {
@@ -81,14 +80,12 @@ export function StudentForm({ open, onOpenChange, student, onSuccess }: StudentF
         parentName: '',
         email: '',
         phone: '',
-        status: 'ACTIVE',
       })
       setDate(undefined)
     }
   }, [student, reset])
 
   const selectedClass = watch('class')
-  const selectedStatus = watch('status')
 
   const onSubmit = async (data: StudentFormData) => {
     try {
@@ -260,24 +257,6 @@ export function StudentForm({ open, onOpenChange, student, onSuccess }: StudentF
               )}
             </div>
           </div>
-
-          {student && (
-            <div className="space-y-2">
-              <Label htmlFor="status">Status</Label>
-              <Select
-                value={selectedStatus}
-                onValueChange={(value) => setValue('status', value as 'ACTIVE' | 'INACTIVE')}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="ACTIVE">Active</SelectItem>
-                  <SelectItem value="INACTIVE">Inactive</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          )}
 
           <DialogFooter>
             <Button

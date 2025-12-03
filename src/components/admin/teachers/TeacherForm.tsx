@@ -9,8 +9,9 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Checkbox } from '@/components/ui/checkbox'
 import { teacherSchema, type TeacherFormData } from '@/lib/validations'
-import { Loader2, X } from 'lucide-react'
+import { Loader2, X, Shield } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { toast } from 'sonner'
 import { getSubjectsForClasses } from '@/lib/subjects'
@@ -44,9 +45,16 @@ export function TeacherForm({ open, onOpenChange, teacher, onSuccess }: TeacherF
   const [selectedSubject, setSelectedSubject] = useState('')
   const [originalData, setOriginalData] = useState<TeacherFormData | null>(null)
   const [hasChanges, setHasChanges] = useState(false)
+  const [isAdmin, setIsAdmin] = useState(false)
 
-  const { register, handleSubmit, reset, setValue, watch, formState: { errors } } = useForm<TeacherFormData>({
+  const { register, handleSubmit, reset, setValue, watch, formState: { errors } } = useForm({
     resolver: zodResolver(teacherSchema),
+    defaultValues: {
+      name: '',
+      email: '',
+      classSubjectPairs: [],
+      isAdmin: false,
+    },
   })
 
   const formValues = watch()
@@ -63,15 +71,18 @@ export function TeacherForm({ open, onOpenChange, teacher, onSuccess }: TeacherF
         name: teacher.name,
         email: teacher.email,
         classSubjectPairs: teacher.classSubjectPairs || [],
+        isAdmin: teacher.isAdmin || false,
       }
       reset(data)
       setOriginalData(data)
       setClassSubjectPairs(teacher.classSubjectPairs || [])
+      setIsAdmin(teacher.isAdmin || false)
     } else {
-      const data = { name: '', email: '', classSubjectPairs: [] }
+      const data = { name: '', email: '', classSubjectPairs: [], isAdmin: false }
       reset(data)
       setOriginalData(data)
       setClassSubjectPairs([])
+      setIsAdmin(false)
     }
     setHasChanges(false)
     setSelectedClass('')
@@ -82,34 +93,30 @@ export function TeacherForm({ open, onOpenChange, teacher, onSuccess }: TeacherF
   useEffect(() => {
     if (!originalData) return
 
-    const pairsEqual = (a: ClassSubjectPair[], b: ClassSubjectPair[]) => {
-      if (a.length !== b.length) return false
-      const sortedA = [...a].sort((x, y) => `${x.classAssigned}-${x.subject}`.localeCompare(`${y.classAssigned}-${y.subject}`))
-      const sortedB = [...b].sort((x, y) => `${x.classAssigned}-${x.subject}`.localeCompare(`${y.classAssigned}-${y.subject}`))
-      return sortedA.every((val, idx) => val.classAssigned === sortedB[idx].classAssigned && val.subject === sortedB[idx].subject)
+    const currentData = {
+      ...formValues,
+      classSubjectPairs,
+      isAdmin,
     }
 
-    const changed = 
-      formValues.name !== originalData.name ||
-      formValues.email !== originalData.email ||
-      !pairsEqual(classSubjectPairs, originalData.classSubjectPairs)
-
-    setHasChanges(changed)
-  }, [formValues, classSubjectPairs, originalData])
+    const hasFormChanges = JSON.stringify(currentData) !== JSON.stringify(originalData)
+    setHasChanges(hasFormChanges)
+  }, [formValues, classSubjectPairs, isAdmin, originalData])
 
   const addPair = () => {
     if (selectedClass && selectedSubject) {
-      const exists = classSubjectPairs.some(
-        p => p.classAssigned === selectedClass && p.subject === selectedSubject
+      const subjectName = getSubjectNameById(selectedSubject, selectedClass)
+      const isDuplicate = classSubjectPairs.some(
+        p => p.classAssigned === selectedClass && p.subject === subjectName
       )
-      
-      if (!exists) {
-        const newPair = { subject: selectedSubject, classAssigned: selectedClass }
-        const updated = [...classSubjectPairs, newPair].sort((a, b) => {
-          const classCompare = parseInt(a.classAssigned) - parseInt(b.classAssigned)
-          if (classCompare !== 0) return classCompare
-          return a.subject.localeCompare(b.subject)
-        })
+
+      if (isDuplicate) {
+        toast.error('This subject is already assigned to this class')
+      } else {
+        const updated = [...classSubjectPairs, {
+          subject: subjectName,
+          classAssigned: selectedClass
+        }]
         setClassSubjectPairs(updated)
         setValue('classSubjectPairs', updated)
         
@@ -136,7 +143,7 @@ export function TeacherForm({ open, onOpenChange, teacher, onSuccess }: TeacherF
       const response = await fetch(url, {
         method,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data),
+        body: JSON.stringify({ ...data, isAdmin }),
       })
 
       if (!response.ok) {
@@ -177,69 +184,129 @@ export function TeacherForm({ open, onOpenChange, teacher, onSuccess }: TeacherF
             {errors.email && <p className="text-sm text-red-600">{errors.email.message}</p>}
           </div>
 
-          {/* Class-Subject Pairs */}
-          <div className="space-y-2">
-            <Label>Assign Class-Subject (Optional)</Label>
-            <div className="grid grid-cols-2 gap-2">
-              <Select value={selectedClass} onValueChange={setSelectedClass}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select class" />
-                </SelectTrigger>
-                <SelectContent>
-                  {availableClasses.map(c => (
-                    <SelectItem key={c} value={c}>Class {formatClass(c)}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              
-              <Select 
-                value={selectedSubject} 
-                onValueChange={setSelectedSubject}
-                disabled={!selectedClass}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder={selectedClass ? "Select subject" : "Select class first"} />
-                </SelectTrigger>
-                <SelectContent>
-                  {availableSubjects.map(s => (
-                    <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+          {/* Admin Privileges */}
+          {(!teacher || !teacher.isSuperAdmin) && (
+            <div className="flex items-center space-x-3 p-3 border rounded-lg bg-gray-50">
+              <Checkbox 
+                id="isAdmin" 
+                checked={isAdmin}
+                onCheckedChange={(checked) => setIsAdmin(checked as boolean)}
+              />
+              <Label htmlFor="isAdmin" className="text-sm font-medium cursor-pointer flex items-center gap-1.5">
+                <Shield className="h-4 w-4 text-blue-600" />
+                Grant Admin Privileges
+              </Label>
             </div>
+          )}
+
+          {teacher?.isSuperAdmin && (
+            <div className="flex items-center gap-2 p-3 border rounded-lg bg-amber-50 border-amber-200">
+              <Shield className="h-4 w-4 text-amber-600" />
+              <span className="text-sm font-medium text-amber-900">Super Administrator</span>
+              <Badge className="bg-amber-500 hover:bg-amber-600 ml-auto">Protected</Badge>
+            </div>
+          )}
+
+          {/* Class & Subject Assignment */}
+          <div className="space-y-2">
+            <Label>Class & Subject Assignments</Label>
             
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <Select value={selectedClass} onValueChange={setSelectedClass}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select Class" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {availableClasses.map(cls => (
+                      <SelectItem key={cls} value={cls}>
+                        {formatClass(cls)}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
+                <Select 
+                  value={selectedSubject} 
+                  onValueChange={setSelectedSubject}
+                  disabled={!selectedClass}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select Subject" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {availableSubjects.map(subject => (
+                      <SelectItem key={subject.id} value={subject.id}>
+                        {subject.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
             <Button
               type="button"
               variant="outline"
               onClick={addPair}
               disabled={!selectedClass || !selectedSubject}
-              className="w-full mt-2"
+              className="w-full"
             >
-              Add Class-Subject Pair
+              Add Subject
             </Button>
-            
-            <div className="flex flex-wrap gap-2 mt-2">
-              {classSubjectPairs.map((pair, idx) => (
-                <Badge key={idx} variant="secondary" className="text-sm px-3 py-1.5">
-                  Class {formatClass(pair.classAssigned)} - {getSubjectNameById(pair.subject, pair.classAssigned)}
-                  <button type="button" onClick={() => removePair(pair)} className="ml-2">
-                    <X className="h-3.5 w-3.5" />
-                  </button>
-                </Badge>
-              ))}
-              {classSubjectPairs.length === 0 && (
-                <p className="text-sm text-gray-500">No class-subject pairs assigned yet</p>
-              )}
-            </div>
+
+            {/* Current Assignments */}
+            {classSubjectPairs.length > 0 && (
+              <div className="border rounded-md p-3 space-y-2 bg-gray-50">
+                <p className="text-sm font-medium text-gray-700">Current Assignments:</p>
+                <div className="space-y-1">
+                  {classSubjectPairs.map((pair, index) => (
+                    <div
+                      key={index}
+                      className="flex items-center justify-between p-2 bg-white rounded border"
+                    >
+                      <span className="text-sm">
+                        <span className="font-medium">Class {formatClass(pair.classAssigned)}</span>
+                        {' - '}
+                        <span className="text-gray-600">{pair.subject}</span>
+                      </span>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => removePair(pair)}
+                        className="h-7 w-7 p-0"
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {classSubjectPairs.length === 0 && (
+              <p className="text-sm text-gray-500 text-center py-2">
+                No classes assigned yet.
+              </p>
+            )}
           </div>
 
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isLoading}>
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               Cancel
             </Button>
-            <Button type="submit" disabled={isLoading || (!!teacher && !hasChanges)}>
-              {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              {teacher ? 'Update' : 'Create'} Teacher
+            <Button type="submit" disabled={isLoading || !hasChanges}>
+              {isLoading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  {teacher ? 'Updating...' : 'Creating...'}
+                </>
+              ) : (
+                <>{teacher ? 'Update Teacher' : 'Create Teacher'}</>
+              )}
             </Button>
           </DialogFooter>
         </form>

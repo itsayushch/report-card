@@ -24,7 +24,7 @@ declare module 'next-auth' {
   }
 }
 
-export const { handlers, signIn, signOut, auth } = NextAuth({
+export const authOptions = {
   providers: [
     CredentialsProvider({
       name: 'Credentials',
@@ -34,8 +34,8 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         role: { label: 'Role', type: 'text' },
       },
       async authorize(credentials) {
-        if (!credentials?.email || !credentials?.password || !credentials?.role) {
-          throw new Error('Please provide email, password, and role')
+        if (!credentials?.email || !credentials?.role) {
+          throw new Error('Please provide required credentials')
         }
 
         const role = credentials.role as UserRole
@@ -53,8 +53,9 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             throw new Error('Student account is inactive')
           }
 
-          // Password is dateOfBirth in DDMMYYYY format
-          if (credentials.password !== student.password) {
+          // For students, password is the dateOfBirth in DDMMYYYY format (passed in credentials.password)
+          // If password is provided, verify it matches
+          if (credentials.password && credentials.password !== student.password) {
             return null
           }
 
@@ -65,6 +66,10 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             role: 'STUDENT' as UserRole,
           }
         } else if (role === 'TEACHER' || role === 'ADMIN') {
+          if (!credentials.password) {
+            throw new Error('Password is required')
+          }
+
           const teacher = await prisma.teacher.findUnique({
             where: { email: credentials.email as string },
           })
@@ -98,7 +103,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     }),
   ],
   callbacks: {
-    async jwt({ token, user }) {
+    async jwt({ token, user }: {token: any, user?: any}) {
       if (user) {
         token.id = user.id
         token.role = user.role
@@ -107,7 +112,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       }
       return token
     },
-    async session({ session, token }) {
+    async session({ session, token }: {session: any, token: any}) {
       if (session.user) {
         session.user.id = token.id as string
         session.user.role = token.role as UserRole
@@ -121,8 +126,9 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     signIn: '/login',
   },
   session: {
-    strategy: 'jwt',
+    strategy: 'jwt' as const,
   },
   secret: process.env.NEXTAUTH_SECRET,
-})
+}
 
+export const { handlers, signIn, signOut, auth } = NextAuth(authOptions)

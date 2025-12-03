@@ -23,6 +23,7 @@ async function main() {
       name: 'System Administrator',
       classSubjectPairs: [],
       isAdmin: true,
+      isSuperAdmin: true,  // Mark as super administrator
       firstLogin: true,  // Require password change on first login
     }
   })

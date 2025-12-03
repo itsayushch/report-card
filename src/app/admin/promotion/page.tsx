@@ -280,7 +280,7 @@ export default function PromotionPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {students.map((student) => (
+                  {students?.map((student) => (
                     <TableRow key={student.id}>
                       <TableCell>
                         <Checkbox

@@ -29,10 +29,10 @@ export default function StudentsPage() {
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null)
   const [selectedStudents, setSelectedStudents] = useState<string[]>([])
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+  const [permanentDeleteDialogOpen, setPermanentDeleteDialogOpen] = useState(false)
+  const [bulkRestoreDialogOpen, setBulkRestoreDialogOpen] = useState(false)
   const [studentToDelete, setStudentToDelete] = useState<string | null>(null)
-  const [bulkInactiveDialogOpen, setBulkInactiveDialogOpen] = useState(false)
-  const [bulkActiveDialogOpen, setBulkActiveDialogOpen] = useState(false)
-  const [bulkDeleteDialogOpen, setBulkDeleteDialogOpen] = useState(false)
+  const [studentToPermanentDelete, setStudentToPermanentDelete] = useState<string | null>(null)
   const [pagination, setPagination] = useState<PaginationData>({
     total: 0,
     page: 1,
@@ -110,86 +110,63 @@ export default function StudentsPage() {
     setSelectedStudent(null)
   }
 
-  const handleBulkMarkInactive = () => {
-    if (selectedStudents.length === 0) {
-      toast.error('Please select students to mark as inactive')
-      return
-    }
-    setBulkInactiveDialogOpen(true)
-  }
-
-  const confirmBulkInactive = async () => {
+  const handleRestore = async (id: string) => {
     try {
-      const response = await fetch('/api/students/bulk-status', {
+      const response = await fetch(`/api/students/${id}/restore`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          studentIds: selectedStudents,
-          status: 'INACTIVE',
-        }),
       })
 
       if (response.ok) {
-        toast.success(`${selectedStudents.length} student(s) marked as inactive`)
-        setSelectedStudents([])
+        toast.success('Student restored successfully')
         fetchStudents()
       } else {
-        const error = await response.json()
-        toast.error(error.error || 'Failed to update students')
+        toast.error('Failed to restore student')
       }
     } catch (error) {
-      toast.error('Failed to update students')
-    } finally {
-      setBulkInactiveDialogOpen(false)
+      toast.error('Failed to restore student')
     }
   }
 
-  const handleBulkMarkActive = () => {
-    if (selectedStudents.length === 0) {
-      toast.error('Please select students to mark as active')
-      return
-    }
-    setBulkActiveDialogOpen(true)
+  const handlePermanentDelete = (id: string) => {
+    setStudentToPermanentDelete(id)
+    setPermanentDeleteDialogOpen(true)
   }
 
-  const confirmBulkActive = async () => {
+  const confirmPermanentDelete = async () => {
+    if (!studentToPermanentDelete) return
+
     try {
-      const response = await fetch('/api/students/bulk-status', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          studentIds: selectedStudents,
-          status: 'ACTIVE',
-        }),
-      })
-
-      if (response.ok) {
-        toast.success(`${selectedStudents.length} student(s) marked as active`)
-        setSelectedStudents([])
-        fetchStudents()
-      } else {
-        const error = await response.json()
-        toast.error(error.error || 'Failed to update students')
-      }
-    } catch (error) {
-      toast.error('Failed to update students')
-    } finally {
-      setBulkActiveDialogOpen(false)
-    }
-  }
-
-  const handleBulkDelete = () => {
-    if (selectedStudents.length === 0) {
-      toast.error('Please select students to delete')
-      return
-    }
-    setBulkDeleteDialogOpen(true)
-  }
-
-  const confirmBulkDelete = async () => {
-    try {
-      const response = await fetch('/api/students/bulk-delete', {
+      const response = await fetch(`/api/students/${studentToPermanentDelete}/permanent`, {
         method: 'DELETE',
+      })
+
+      if (response.ok) {
+        toast.success('Student permanently deleted')
+        fetchStudents()
+      } else {
+        const error = await response.json()
+        toast.error(error.error || 'Failed to permanently delete student')
+      }
+    } catch (error) {
+      toast.error('Failed to permanently delete student')
+    } finally {
+      setPermanentDeleteDialogOpen(false)
+      setStudentToPermanentDelete(null)
+    }
+  }
+
+  const handleBulkRestore = () => {
+    if (selectedStudents.length === 0) {
+      toast.error('Please select students to restore')
+      return
+    }
+    setBulkRestoreDialogOpen(true)
+  }
+
+  const confirmBulkRestore = async () => {
+    try {
+      const response = await fetch('/api/students/bulk-restore', {
+        method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           studentIds: selectedStudents,
@@ -197,17 +174,17 @@ export default function StudentsPage() {
       })
 
       if (response.ok) {
-        toast.success(`${selectedStudents.length} student(s) deleted successfully`)
+        toast.success(`${selectedStudents.length} student(s) restored successfully`)
         setSelectedStudents([])
         fetchStudents()
       } else {
         const error = await response.json()
-        toast.error(error.error || 'Failed to delete students')
+        toast.error(error.error || 'Failed to restore students')
       }
     } catch (error) {
-      toast.error('Failed to delete students')
+      toast.error('Failed to restore students')
     } finally {
-      setBulkDeleteDialogOpen(false)
+      setBulkRestoreDialogOpen(false)
     }
   }
 
@@ -288,43 +265,21 @@ export default function StudentsPage() {
                 Showing {students.length} of {pagination.total} students
               </CardDescription>
             </div>
-            {selectedStudents.length > 0 && (
-              <div className="flex flex-wrap gap-2">
-                {(() => {
-                  const selectedStudentObjects = students.filter(s => selectedStudents.includes(s.id))
-                  const activeCount = selectedStudentObjects.filter(s => s.status === 'ACTIVE').length
-                  const inactiveCount = selectedStudentObjects.filter(s => s.status === 'INACTIVE').length
-                  
-                  // Show Mark as Active if more inactive, or if equal count, or if all are inactive
-                  const showMarkAsActive = inactiveCount >= activeCount
-                  
-                  return showMarkAsActive ? (
-                    <Button 
-                      onClick={handleBulkMarkActive} 
-                      variant="outline"
-                      size="sm"
-                    >
-                      Mark {selectedStudents.length} as Active
-                    </Button>
-                  ) : (
-                    <Button 
-                      onClick={handleBulkMarkInactive} 
-                      variant="outline"
-                      size="sm"
-                    >
-                      Mark {selectedStudents.length} as Inactive
-                    </Button>
-                  )
-                })()}
+            {selectedStudents.length > 0 && (() => {
+              const selectedStudentObjects = students.filter(s => selectedStudents.includes(s.id))
+              const inactiveCount = selectedStudentObjects.filter(s => s.status === 'INACTIVE').length
+              
+              return inactiveCount > 0 ? (
                 <Button 
-                  onClick={handleBulkDelete} 
-                  variant="destructive"
+                  onClick={handleBulkRestore} 
+                  variant="outline"
                   size="sm"
+                  className="text-green-600 border-green-200 hover:text-green-700 hover:bg-green-50 hover:border-green-300"
                 >
-                  Delete {selectedStudents.length}
+                  Restore {inactiveCount} Student{inactiveCount > 1 ? 's' : ''}
                 </Button>
-              </div>
-            )}
+              ) : null
+            })()}
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -393,6 +348,8 @@ export default function StudentsPage() {
                 students={students}
                 onEdit={handleEdit}
                 onDelete={handleDelete}
+                onRestore={handleRestore}
+                onPermanentDelete={handlePermanentDelete}
                 selectedStudents={selectedStudents}
                 onSelectStudent={handleSelectStudent}
                 onSelectAll={handleSelectAll}
@@ -441,64 +398,47 @@ export default function StudentsPage() {
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Student?</AlertDialogTitle>
             <AlertDialogDescription>
-              This will permanently delete this student. This action cannot be undone.
+              This will mark the student as inactive. You can restore them later if needed.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction onClick={confirmDelete} className="bg-red-600 hover:bg-red-700">
-              Delete
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
-      <AlertDialog open={bulkInactiveDialogOpen} onOpenChange={setBulkInactiveDialogOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Mark Students as Inactive?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Are you sure you want to mark {selectedStudents.length} student(s) as inactive?
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmBulkInactive}>
               Mark Inactive
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
 
-      <AlertDialog open={bulkActiveDialogOpen} onOpenChange={setBulkActiveDialogOpen}>
+      <AlertDialog open={bulkRestoreDialogOpen} onOpenChange={setBulkRestoreDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Mark Students as Active?</AlertDialogTitle>
+            <AlertDialogTitle>Restore Students?</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to mark {selectedStudents.length} student(s) as active?
+              Are you sure you want to restore {selectedStudents.filter(id => students.find(s => s.id === id)?.status === 'INACTIVE').length} inactive student(s) to active status?
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmBulkActive}>
-              Mark Active
+            <AlertDialogAction onClick={confirmBulkRestore} className="bg-green-600 hover:bg-green-700">
+              Restore Students
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
 
-      <AlertDialog open={bulkDeleteDialogOpen} onOpenChange={setBulkDeleteDialogOpen}>
+      <AlertDialog open={permanentDeleteDialogOpen} onOpenChange={setPermanentDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete Multiple Students?</AlertDialogTitle>
+            <AlertDialogTitle>Permanently Delete Student?</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete {selectedStudents.length} student(s)? This action cannot be undone.
+              This will permanently delete this student from the database. This action cannot be undone and all associated data will be lost.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmBulkDelete} className="bg-red-600 hover:bg-red-700">
-              Delete All
+            <AlertDialogAction onClick={confirmPermanentDelete} className="bg-red-600 hover:bg-red-700">
+              Permanently Delete
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

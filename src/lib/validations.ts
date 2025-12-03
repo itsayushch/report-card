@@ -19,7 +19,7 @@ export const teacherSchema = z.object({
     subject: z.string(),
     classAssigned: z.string(),
   })).optional().default([]),
-  isAdmin: z.boolean().optional(),
+  isAdmin: z.boolean().optional().default(false),
 })
 
 export const subjectSchema = z.object({
@@ -42,18 +42,27 @@ export const academicYearSchema = z.object({
 
 export const loginSchema = z.object({
   email: z.string().min(1, 'This field is required'),
-  password: z.string().min(1, 'Password is required'),
+  password: z.string().optional().or(z.literal('')),
   role: z.enum(['ADMIN', 'TEACHER', 'STUDENT']),
 }).superRefine((data, ctx) => {
-  // For ADMIN and TEACHER, validate email format
-  if ((data.role === 'ADMIN' || data.role === 'TEACHER') && !z.string().email().safeParse(data.email).success) {
-    ctx.addIssue({
-      code: z.ZodIssueCode.custom,
-      message: 'Invalid email address',
-      path: ['email'],
-    })
+  // For ADMIN and TEACHER, validate email format and require password
+  if (data.role === 'ADMIN' || data.role === 'TEACHER') {
+    if (!z.string().email().safeParse(data.email).success) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'Invalid email address',
+        path: ['email'],
+      })
+    }
+    if (!data.password || data.password.trim().length === 0) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'Password is required',
+        path: ['password'],
+      })
+    }
   }
-  // For STUDENT, roll number can be any string (no email validation)
+  // For STUDENT, roll number can be any string (no email validation, no password needed)
 })
 
 export type StudentFormData = z.infer<typeof studentSchema>

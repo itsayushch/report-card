@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar'
 import { Input } from '@/components/ui/input'
 import { TeacherForm } from '@/components/admin/teachers/TeacherForm'
 import { Plus, Edit, Trash2, Mail, Search, Key } from 'lucide-react'
@@ -15,6 +16,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Label } from '@/components/ui/label'
 import { toast } from 'sonner'
 import { getSubjectById } from '@/lib/subjects'
+import { formatClass } from '@/lib/class-utils'
 
 export default function TeachersPage() {
   const [teachers, setTeachers] = useState<Teacher[]>([])
@@ -57,6 +59,17 @@ export default function TeachersPage() {
         pair.classAssigned.toLowerCase().includes(search)
       )
     )
+  }).sort((a, b) => {
+    // Super Admin first
+    if (a.isSuperAdmin && !b.isSuperAdmin) return -1
+    if (!a.isSuperAdmin && b.isSuperAdmin) return 1
+    
+    // Then Admin
+    if (a.isAdmin && !b.isAdmin) return -1
+    if (!a.isAdmin && b.isAdmin) return 1
+    
+    // Then alphabetically by name
+    return a.name.localeCompare(b.name)
   })
 
   const handleEdit = (teacher: Teacher) => {
@@ -253,13 +266,28 @@ export default function TeachersPage() {
                       return (
                       <TableRow key={teacher.id} className="hover:bg-gray-50">
                         <TableCell>
-                          <div className="flex flex-col gap-1">
-                            <span className="font-medium text-gray-900">{teacher.name}</span>
-                            {teacher.isAdmin && (
-                              <Badge variant="secondary" className="w-fit text-xs">
-                                Admin
-                              </Badge>
-                            )}
+                          <div className="flex items-center gap-3">
+                            <Avatar className="h-10 w-10">
+                              <AvatarImage src={teacher.profilePicture || undefined} alt={teacher.name} />
+                              <AvatarFallback className="bg-blue-100 text-blue-600">
+                                {teacher.name.charAt(0).toUpperCase()}
+                              </AvatarFallback>
+                            </Avatar>
+                            <div className="flex flex-col gap-1">
+                              <span className="font-medium text-gray-900">{teacher.name}</span>
+                              <div className="flex gap-1">
+                                {teacher.isSuperAdmin && (
+                                  <Badge className="w-fit text-xs bg-amber-500 hover:bg-amber-600">
+                                    Super Admin
+                                  </Badge>
+                                )}
+                                {teacher.isAdmin && !teacher.isSuperAdmin && (
+                                  <Badge variant="secondary" className="w-fit text-xs">
+                                    Admin
+                                  </Badge>
+                                )}
+                              </div>
+                            </div>
                           </div>
                         </TableCell>
                         <TableCell>
@@ -270,12 +298,12 @@ export default function TeachersPage() {
                         </TableCell>
                         <TableCell>
                           {teacher.classSubjectPairs.length === 0 ? (
-                            <span className="text-sm text-gray-400 italic">No assignments</span>
+                            <span className="text-sm text-gray-400 italic">No classes assigned</span>
                           ) : (
                             <div className="flex flex-wrap gap-1.5">
                               {teacher.classSubjectPairs.map((pair, idx) => (
                                 <Badge key={idx} variant="outline" className="text-xs font-normal">
-                                  <span className="font-medium">Class {pair.classAssigned}</span>
+                                  <span className="font-medium">Class {formatClass(pair.classAssigned)}</span>
                                   <span className="mx-1">·</span>
                                   <span>{getSubjectById(pair.classAssigned, pair.subject)?.name || pair.subject}</span>
                                 </Badge>
@@ -290,6 +318,8 @@ export default function TeachersPage() {
                               size="sm" 
                               onClick={() => handleResetPassword(teacher)}
                               className="text-blue-600 border-blue-200 hover:text-blue-700 hover:bg-blue-50 hover:border-blue-300"
+                              title={teacher.isSuperAdmin ? "Cannot reset super admin password" : "Reset Password"}
+                              disabled={teacher.isSuperAdmin}
                             >
                               <Key className="h-3.5 w-3.5 mr-1.5" />
                               Reset Password
@@ -299,7 +329,8 @@ export default function TeachersPage() {
                               size="sm" 
                               onClick={() => handleEdit(teacher)} 
                               className="hover:bg-gray-100"
-                              title="Edit"
+                              title={teacher.isSuperAdmin ? "Cannot edit super admin" : "Edit"}
+                              disabled={teacher.isSuperAdmin}
                             >
                               <Edit className="h-3.5 w-3.5" />
                             </Button>
@@ -308,7 +339,8 @@ export default function TeachersPage() {
                               size="sm" 
                               onClick={() => handleDelete(teacher.id)} 
                               className="text-red-600 border-red-200 hover:bg-red-50 hover:border-red-300"
-                              title="Delete"
+                              title={teacher.isSuperAdmin ? "Cannot delete super admin" : "Delete"}
+                              disabled={teacher.isSuperAdmin}
                             >
                               <Trash2 className="h-3.5 w-3.5" />
                             </Button>

@@ -13,6 +13,7 @@ import {
   FileCheck,
   TrendingUp,
   LogOut,
+  Shield,
 } from 'lucide-react'
 
 const menuItems = [
@@ -45,6 +46,11 @@ const menuItems = [
     title: 'Promotions',
     href: '/admin/promotion',
     icon: TrendingUp,
+  },
+  {
+    title: 'Audit Logs',
+    href: '/admin/audit-logs',
+    icon: Shield,
   },
 ]
 

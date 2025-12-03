@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { studentSchema } from '@/lib/validations'
+import { logAdminAction, AdminActions } from '@/lib/admin-log'
+import { auth } from '@/lib/auth'
 
 interface RouteParams {
   params: Promise<{ id: string }>
@@ -62,15 +64,49 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
   }
 }
 
-// DELETE student (soft delete)
+// DELETE student (soft delete - mark as inactive)
 export async function DELETE(request: NextRequest, { params }: RouteParams) {
   try {
     const { id } = await params
+    
+    // Get session for audit logging
+    const session = await auth()
+    
+    // Get student info before marking inactive
+    const studentBefore = await prisma.student.findUnique({
+      where: { id },
+      select: { name: true, rollNo: true, class: true }
+    })
 
+    if (!studentBefore) {
+      return NextResponse.json(
+        { error: 'Student not found' },
+        { status: 404 }
+      )
+    }
+
+    // Mark student as inactive instead of deleting
     const student = await prisma.student.update({
       where: { id },
       data: { status: 'INACTIVE' },
     })
+
+    // Log the action if admin is logged in
+    if (session?.user?.id) {
+      await logAdminAction({
+        adminId: session.user.id,
+        action: AdminActions.DELETE_STUDENT,
+        entityType: 'Student',
+        entityId: id,
+        description: `Marked student as inactive: ${studentBefore.name} (Roll No: ${studentBefore.rollNo}, Class: ${studentBefore.class})`,
+        metadata: {
+          studentName: studentBefore.name,
+          rollNo: studentBefore.rollNo,
+          class: studentBefore.class,
+          action: 'marked_inactive'
+        }
+      })
+    }
 
     return NextResponse.json(student)
   } catch (error) {
