@@ -18,11 +18,6 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       ...validatedData,
       startDate: new Date(validatedData.startDate),
       endDate: new Date(validatedData.endDate),
-      terms: validatedData.terms.map(term => ({
-        ...term,
-        startDate: new Date(term.startDate),
-        endDate: new Date(term.endDate),
-      })),
     }
 
     // If setting as active, deactivate others

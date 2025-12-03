@@ -24,9 +24,9 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Teacher not found' }, { status: 404 })
     }
 
-    // Get assigned classes and subjects
-    const assignedClasses = teacher.assignedClasses
-    const assignedSubjectNames = teacher.subjects
+    // Get assigned classes and subjects from classSubjectPairs
+    const assignedClasses = Array.from(new Set(teacher.classSubjectPairs.map(p => p.classAssigned))).sort((a, b) => parseInt(a) - parseInt(b))
+    const assignedSubjectNames = Array.from(new Set(teacher.classSubjectPairs.map(p => p.subject)))
 
     // Get subject details and student counts in parallel
     const [subjects, ...studentCountResults] = await Promise.all([
@@ -57,34 +57,51 @@ export async function GET(request: NextRequest) {
       0
     )
 
-    // Get recent marks entries
-    const recentMarks = await prisma.mark.findMany({
+    // Get recent marks entries from student academic records
+    const recentStudentsWithMarks = await prisma.student.findMany({
       where: {
-        enteredById: teacher.id,
+        academicRecords: {
+          some: {
+            enteredBy: teacher.id,
+          },
+        },
       },
       select: {
-        id: true,
-        marks: true,
-        term: true,
-        createdAt: true,
-        student: {
-          select: {
-            name: true,
-            rollNo: true,
-            class: true,
-          },
-        },
-        subject: {
-          select: {
-            name: true,
-          },
-        },
+        name: true,
+        rollNo: true,
+        class: true,
+        academicRecords: true,
+        updatedAt: true,
       },
       orderBy: {
-        createdAt: 'desc',
+        updatedAt: 'desc',
       },
-      take: 5,
+      take: 10,
     })
+
+    // Transform to match expected format and flatten
+    const recentMarks = recentStudentsWithMarks
+      .flatMap(student =>
+        student.academicRecords
+          .filter(record => record.enteredBy === teacher.id)
+          .flatMap(record =>
+            record.subjects.map(subject => ({
+              id: `${student.rollNo}-${record.term}-${subject.subjectCode}`,
+              marks: subject.marks,
+              term: record.term,
+              createdAt: record.enteredAt,
+              student: {
+                name: student.name,
+                rollNo: student.rollNo,
+                class: student.class,
+              },
+              subject: {
+                name: subject.subjectCode,
+              },
+            }))
+          )
+      )
+      .slice(0, 5)
 
     return NextResponse.json({
       teacher: {
@@ -93,6 +110,7 @@ export async function GET(request: NextRequest) {
         email: teacher.email,
         assignedClasses,
         subjects,
+        classSubjectPairs: teacher.classSubjectPairs,
       },
       stats: {
         totalStudents,

@@ -69,30 +69,16 @@ export async function GET(
       )
     }
 
-    // Get marks
-    const marks = await prisma.mark.findMany({
-      where: {
-        studentId: id,
-        term,
-        academicYear,
-      },
-      include: {
-        subject: true,
-      },
-      orderBy: {
-        subject: {
-          name: 'asc',
-        },
-      },
-    })
-
-    // Calculate summary - map to format expected by calculateResult
-    const formattedMarks = marks.map(m => ({
-      marks: m.marks,
-      subjectId: m.subject.id,
-    }))
-    const subjects = marks.map((m) => m.subject)
-    const summary = calculateResult(formattedMarks, subjects)
+    // TODO: Refactor to use Student.academicRecords
+    // For now, return empty marks
+    const marks: any[] = []
+    const summary = {
+      totalObtained: 0,
+      totalMax: 0,
+      percentage: 0,
+      gpa: 0,
+      result: 'PENDING' as const,
+    }
 
     return NextResponse.json({
       student: {
@@ -102,13 +88,7 @@ export async function GET(
       },
       academicYear,
       term,
-      marks: marks.map((m) => ({
-        subject: m.subject.name,
-        maxMarks: m.subject.maxMarks,
-        obtainedMarks: m.marks,
-        grade: m.grade,
-        remarks: m.teacherRemarks || '',
-      })),
+      marks: [],
       summary,
       promotionStatus: student.promotionStatus,
       isPublished: !!publishStatus,

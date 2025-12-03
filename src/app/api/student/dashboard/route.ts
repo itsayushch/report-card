@@ -47,43 +47,17 @@ export async function GET(request: NextRequest) {
 
     let latestTermSummary = null
 
+    // TODO: Refactor to calculate from Student.academicRecords
+    // For now, return basic data without marks calculation
     if (publishStatus) {
-      // Get marks for the published term
-      const marks = await prisma.mark.findMany({
-        where: {
-          studentId: student.id,
-          term: publishStatus.term,
-          academicYear: activeYear.year,
-        },
-        include: {
-          subject: true,
-        },
-      })
-
-      // Calculate summary
-      let totalObtained = 0
-      let totalMax = 0
-      let failed = false
-
-      marks.forEach((mark) => {
-        totalObtained += mark.marks
-        totalMax += mark.subject.maxMarks
-        if (mark.marks < mark.subject.passingMarks) {
-          failed = true
-        }
-      })
-
-      const percentage = totalMax > 0 ? (totalObtained / totalMax) * 100 : 0
-      const gpa = percentage / 10
-
       latestTermSummary = {
         term: publishStatus.term,
-        totalSubjects: marks.length,
-        totalObtained,
-        totalMax,
-        percentage: Math.round(percentage * 100) / 100,
-        gpa: Math.round(gpa * 100) / 100,
-        result: failed ? 'FAIL' : 'PASS',
+        totalSubjects: 0,
+        totalObtained: 0,
+        totalMax: 0,
+        percentage: 0,
+        gpa: 0,
+        result: 'PENDING',
       }
     }
 

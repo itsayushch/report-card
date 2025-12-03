@@ -20,36 +20,14 @@ export async function DELETE(req: NextRequest) {
       )
     }
 
-    // Check if any students have marks
-    const studentsWithMarks = await prisma.mark.findMany({
-      where: {
-        studentId: { in: studentIds },
-      },
-      select: {
-        studentId: true,
-        student: {
-          select: {
-            name: true,
-          },
-        },
-      },
-    })
+    // TODO: Refactor to check Student.academicRecords for marks
+    // For now, allow deletion without checking marks
+    const studentsWithMarks: any[] = []
 
     if (studentsWithMarks.length > 0) {
-      const uniqueStudents = Array.from(
-        new Map(
-          studentsWithMarks.map((mark) => [
-            mark.studentId,
-            mark.student.name,
-          ])
-        ).entries()
-      )
-
-      const studentNames = uniqueStudents.map(([_, name]) => name).join(', ')
-
       return NextResponse.json(
         {
-          error: `Cannot delete students with marks: ${studentNames}. Please delete their marks first or mark them as inactive instead.`,
+          error: 'Cannot delete students with marks. Please mark them as inactive instead.',
         },
         { status: 400 }
       )

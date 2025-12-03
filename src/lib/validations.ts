@@ -3,7 +3,7 @@ import { z } from 'zod'
 export const studentSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters'),
   rollNo: z.string().min(1, 'Roll number is required'),
-  dateOfBirth: z.string().regex(/^\d{8}$/, 'Date of birth must be in DDMMYYYY format'),
+  dateOfBirth: z.string().regex(/^\d{2}\/\d{2}\/\d{4}$/, 'Date of birth must be in DD/MM/YYYY format'),
   class: z.string().min(1, 'Class is required'),
   parentName: z.string().min(2, 'Parent name is required'),
   email: z.string().email('Invalid email address'),
@@ -16,18 +16,11 @@ export const teacherSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters'),
   email: z.string().email('Invalid email address'),
   phone: z.string().regex(/^\+?[1-9]\d{9,14}$/, 'Invalid phone number'),
-  subjects: z.array(z.string()),
-  assignedClasses: z.array(z.string()),
+  classSubjectPairs: z.array(z.object({
+    subject: z.string(),
+    classAssigned: z.string(),
+  })).min(1, 'At least one class-subject pair is required'),
   isAdmin: z.boolean().optional(),
-}).refine((data) => {
-  // If subjects are present, at least one class must be assigned
-  if (data.subjects.length > 0) {
-    return data.assignedClasses.length > 0
-  }
-  return true
-}, {
-  message: 'At least one class is required',
-  path: ['assignedClasses'],
 })
 
 export const subjectSchema = z.object({
@@ -45,11 +38,6 @@ export const academicYearSchema = z.object({
   startDate: z.string().or(z.date()),
   endDate: z.string().or(z.date()),
   isActive: z.boolean().optional(),
-  terms: z.array(z.object({
-    name: z.string().min(1, 'Term name is required'),
-    startDate: z.string().or(z.date()),
-    endDate: z.string().or(z.date()),
-  })).min(1, 'At least one term is required'),
 })
 
 export const loginSchema = z.object({

@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { AcademicYear } from '@prisma/client'
-import { useForm, useFieldArray } from 'react-hook-form'
+import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog'
@@ -13,7 +13,7 @@ import { academicYearSchema, type AcademicYearFormData } from '@/lib/validations
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
-import { Plus, Edit, Trash2, Loader2, CheckCircle2, X } from 'lucide-react'
+import { Plus, Edit, Trash2, Loader2, CheckCircle2 } from 'lucide-react'
 import { Skeleton } from '@/components/ui/skeleton'
 import { toast } from 'sonner'
 
@@ -26,16 +26,8 @@ export default function AcademicYearsPage() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [yearToDelete, setYearToDelete] = useState<string | null>(null)
 
-  const { register, handleSubmit, reset, control, formState: { errors } } = useForm<AcademicYearFormData>({
+  const { register, handleSubmit, reset, formState: { errors } } = useForm<AcademicYearFormData>({
     resolver: zodResolver(academicYearSchema),
-    defaultValues: {
-      terms: [{ name: 'Term 1', startDate: '', endDate: '' }],
-    },
-  })
-
-  const { fields, append, remove } = useFieldArray({
-    control,
-    name: 'terms',
   })
 
   const fetchAcademicYears = async () => {
@@ -62,11 +54,6 @@ export default function AcademicYearsPage() {
         startDate: new Date(selectedYear.startDate).toISOString().split('T')[0],
         endDate: new Date(selectedYear.endDate).toISOString().split('T')[0],
         isActive: selectedYear.isActive,
-        terms: selectedYear.terms.map(t => ({
-          name: t.name,
-          startDate: new Date(t.startDate).toISOString().split('T')[0],
-          endDate: new Date(t.endDate).toISOString().split('T')[0],
-        })),
       })
     } else {
       reset({
@@ -74,7 +61,6 @@ export default function AcademicYearsPage() {
         startDate: '',
         endDate: '',
         isActive: false,
-        terms: [{ name: 'Term 1', startDate: '', endDate: '' }],
       })
     }
   }, [selectedYear, reset])
@@ -160,7 +146,7 @@ export default function AcademicYearsPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold">Academic Years</h1>
-          <p className="text-gray-600 mt-1">Manage academic years and terms</p>
+          <p className="text-gray-600 mt-1">Manage academic years and sessions</p>
         </div>
         <Button onClick={handleAddNew} className="bg-indigo-600 hover:bg-indigo-700">
           <Plus className="mr-2 h-4 w-4" />
@@ -171,7 +157,7 @@ export default function AcademicYearsPage() {
       <Card>
         <CardHeader>
           <CardTitle>All Academic Years ({academicYears.length})</CardTitle>
-          <CardDescription>Manage academic years, terms, and set active year</CardDescription>
+          <CardDescription>Manage academic years and set active year</CardDescription>
         </CardHeader>
         <CardContent>
           {isLoading ? (
@@ -216,7 +202,6 @@ export default function AcademicYearsPage() {
                     <TableHead>Year</TableHead>
                     <TableHead>Start Date</TableHead>
                     <TableHead>End Date</TableHead>
-                    <TableHead>Terms</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
@@ -224,7 +209,7 @@ export default function AcademicYearsPage() {
                 <TableBody>
                   {academicYears.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={6} className="text-center py-8 text-gray-500">
+                      <TableCell colSpan={5} className="text-center py-8 text-gray-500">
                         No academic years found
                       </TableCell>
                     </TableRow>
@@ -234,15 +219,6 @@ export default function AcademicYearsPage() {
                         <TableCell className="font-medium">{year.year}</TableCell>
                         <TableCell>{new Date(year.startDate).toLocaleDateString()}</TableCell>
                         <TableCell>{new Date(year.endDate).toLocaleDateString()}</TableCell>
-                        <TableCell>
-                          <div className="flex flex-wrap gap-1">
-                            {year.terms.map((term, idx) => (
-                              <Badge key={idx} variant="outline" className="text-xs">
-                                {term.name}
-                              </Badge>
-                            ))}
-                          </div>
-                        </TableCell>
                         <TableCell>
                           {year.isActive ? (
                             <Badge className="bg-green-600">Active</Badge>
@@ -305,57 +281,6 @@ export default function AcademicYearsPage() {
                 <Input id="endDate" type="date" {...register('endDate')} />
                 {errors.endDate && <p className="text-sm text-red-600">{errors.endDate.message}</p>}
               </div>
-            </div>
-
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <Label>Terms *</Label>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => append({ name: '', startDate: '', endDate: '' })}
-                >
-                  <Plus className="h-4 w-4 mr-1" />
-                  Add Term
-                </Button>
-              </div>
-
-              <div className="space-y-3">
-                {fields.map((field, index) => (
-                  <div key={field.id} className="border p-4 rounded-lg space-y-3">
-                    <div className="flex items-center justify-between">
-                      <Label className="text-sm font-medium">Term {index + 1}</Label>
-                      {fields.length > 1 && (
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => remove(index)}
-                        >
-                          <X className="h-4 w-4" />
-                        </Button>
-                      )}
-                    </div>
-
-                    <div className="grid grid-cols-3 gap-3">
-                      <div className="space-y-1">
-                        <Label className="text-xs">Term Name</Label>
-                        <Input {...register(`terms.${index}.name`)} placeholder="Term 1" />
-                      </div>
-                      <div className="space-y-1">
-                        <Label className="text-xs">Start Date</Label>
-                        <Input type="date" {...register(`terms.${index}.startDate`)} />
-                      </div>
-                      <div className="space-y-1">
-                        <Label className="text-xs">End Date</Label>
-                        <Input type="date" {...register(`terms.${index}.endDate`)} />
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-              {errors.terms && <p className="text-sm text-red-600">{errors.terms.message}</p>}
             </div>
 
             <DialogFooter>

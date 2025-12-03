@@ -27,12 +27,12 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { calculateGrade, getGradeColor } from '@/lib/calculations'
 import Papa from 'papaparse'
 import { formatClass } from '@/lib/class-utils'
+import { getTermsForClass } from '@/lib/terms'
 
 interface AcademicYear {
   id: string
   year: string
   isActive: boolean
-  terms: { name: string }[]
 }
 
 interface Subject {
@@ -81,6 +81,7 @@ export default function MarksEntryPage() {
   const [activeYear, setActiveYear] = useState<AcademicYear | null>(null)
   const [initialLoading, setInitialLoading] = useState(true)
   const [cardTerms, setCardTerms] = useState<Map<string, string>>(new Map())
+  const [classSubjectMap, setClassSubjectMap] = useState<Array<{ class: string; subjects: Subject[] }>>([])
 
   useEffect(() => {
     fetchInitialData()
@@ -104,7 +105,7 @@ export default function MarksEntryPage() {
         const teacherResponse = await results[1].value.json()
 
         console.log('Teacher dashboard response:', teacherResponse)
-        console.log('Subjects from teacher:', teacherResponse.teacher.subjects)
+        console.log('Class-subject pairs from teacher:', teacherResponse.teacher.classSubjectPairs)
 
         // API returns {academicYears: []} so extract the array
         const years = yearsData.academicYears || []
@@ -112,8 +113,33 @@ export default function MarksEntryPage() {
         setAcademicYears(years)
         setTeacherData(teacherResponse)
         
-        // Access subjects from the teacher object in the response
-        setSubjects(teacherResponse.teacher.subjects || [])
+        // Extract all subjects
+        const allSubjects = teacherResponse.teacher.subjects || []
+        setSubjects(allSubjects)
+
+        // Build class-subject map
+        const classSubjectPairs = teacherResponse.teacher.classSubjectPairs || []
+        const assignedClasses: string[] = Array.from(new Set(classSubjectPairs.map((p: any) => p.classAssigned as string)))
+        
+        const classMap = assignedClasses.map((cls) => {
+          // Get subject codes for this class
+          const subjectCodesForClass = classSubjectPairs
+            .filter((p: any) => p.classAssigned === cls)
+            .map((p: any) => p.subject)
+          
+          // Find matching subject objects
+          const subjectsForClass = allSubjects.filter((subject: Subject) => 
+            subjectCodesForClass.includes(subject.code)
+          )
+          
+          return {
+            class: cls as string,
+            subjects: subjectsForClass as Subject[]
+          }
+        })
+        
+        console.log('Class-subject map:', classMap)
+        setClassSubjectMap(classMap)
 
         const active = years.find((y: AcademicYear) => y.isActive)
         if (active) {
@@ -313,10 +339,14 @@ export default function MarksEntryPage() {
       },
     })
   }
+
   const selectedYearData = academicYears.find((y) => y.year === selectedYear)
   const selectedSubjectData = subjects.find((s) => s.id === selectedSubject)
-  const terms = activeYear?.terms || []
-  const assignedClasses = teacherData?.teacher?.assignedClasses || []
+
+  // Get terms for the selected class (or use first assigned class for display)
+  const termsForClass = selectedClass 
+    ? getTermsForClass(selectedClass)
+    : (classSubjectMap.length > 0 ? getTermsForClass(classSubjectMap[0].class) : [])
 
   const handleClassSelect = (className: string, term: string, subjectId: string) => {
     setSelectedClass(className)
@@ -375,28 +405,31 @@ export default function MarksEntryPage() {
           </div>
 
           {/* Show class selection cards if no class is selected */}
+          {/* Show class selection cards if no class is selected */}
           {!selectedClass && (
             <div className="space-y-6">
 
                   <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                    {assignedClasses.map((className: string) => (
-                      <Card key={className} className="hover:shadow-lg transition-shadow cursor-pointer border-2">
+                    {classSubjectMap.map((classData) => {
+                      const classTerms = getTermsForClass(classData.class)
+                      return (
+                      <Card key={classData.class} className="hover:shadow-lg transition-shadow cursor-pointer border-2">
                         <CardHeader className="pb-0">
-                          <CardTitle className="text-xl">Class {formatClass(className)}</CardTitle>
+                          <CardTitle className="text-xl">Class {formatClass(classData.class)}</CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-2">
                           <div className="space-y-2">
                             <label className="text-sm font-medium">Term</label>
                             <Select onValueChange={(term) => {
                               const newTerms = new Map(cardTerms)
-                              newTerms.set(className, term)
+                              newTerms.set(classData.class, term)
                               setCardTerms(newTerms)
                             }}>
                               <SelectTrigger>
                                 <SelectValue placeholder="Select term" />
                               </SelectTrigger>
                               <SelectContent>
-                                {terms.map((term) => (
+                                {classTerms.map((term) => (
                                   <SelectItem key={term.name} value={term.name}>
                                     {term.name}
                                   </SelectItem>
@@ -408,19 +441,20 @@ export default function MarksEntryPage() {
                           <div className="space-y-2">
                             <label className="text-sm font-medium">Subject</label>
                             <Select 
-                              disabled={!cardTerms.get(className)}
+                              disabled={!cardTerms.get(classData.class)}
                               onValueChange={(subjectId) => {
-                                const term = cardTerms.get(className)
+                                const term = cardTerms.get(classData.class)
                                 if (term) {
-                                  handleClassSelect(className, term, subjectId)
+                                  handleClassSelect(classData.class, term, subjectId)
                                 }
                               }}
                             >
                               <SelectTrigger>
-                                <SelectValue placeholder={cardTerms.get(className) ? "Select subject" : "Select term first"} />
+                                <SelectValue placeholder={cardTerms.get(classData.class) ? "Select subject" : "Select term first"} />
                               </SelectTrigger>
                               <SelectContent>
-                                {subjects.map((subject) => (
+                                {classData.subjects.length === 0 && <div className="px-2 py-1 text-sm text-gray-500">No subjects assigned</div>}
+                                {classData.subjects.map((subject) => (
                                   <SelectItem key={subject.id} value={subject.id}>
                                     {subject.name}
                                   </SelectItem>
@@ -430,10 +464,10 @@ export default function MarksEntryPage() {
                           </div>
                         </CardContent>
                       </Card>
-                    ))}
+                    )})}
                   </div>
                   
-                  {assignedClasses.length === 0 && (
+                  {classSubjectMap.length === 0 && (
                     <Card>
                       <CardContent>
                         <p className="text-center text-gray-500 py-8">
@@ -444,7 +478,6 @@ export default function MarksEntryPage() {
                   )}
             </div>
           )}
-
           {/* Show marks entry table when class is selected */}
           {selectedClass && selectedTerm && selectedSubject && (
         <div className="space-y-4">

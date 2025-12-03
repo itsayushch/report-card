@@ -25,12 +25,23 @@ interface TeacherFormProps {
 
 const availableClasses = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12']
 
+type ClassSubjectPair = {
+  subject: string
+  classAssigned: string
+}
+
+// Helper to get subject name from ID
+function getSubjectNameById(subjectId: string, classNum: string): string {
+  const subjects = getSubjectsForClasses([classNum])
+  const subject = subjects.find(s => s.id === subjectId)
+  return subject ? subject.name : subjectId
+}
+
 export function TeacherForm({ open, onOpenChange, teacher, onSuccess }: TeacherFormProps) {
   const [isLoading, setIsLoading] = useState(false)
-  const [selectedSubjects, setSelectedSubjects] = useState<string[]>([])
-  const [selectedClasses, setSelectedClasses] = useState<string[]>([])
-  const [subjectInput, setSubjectInput] = useState('')
-  const [classInput, setClassInput] = useState('')
+  const [classSubjectPairs, setClassSubjectPairs] = useState<ClassSubjectPair[]>([])
+  const [selectedClass, setSelectedClass] = useState('')
+  const [selectedSubject, setSelectedSubject] = useState('')
   const [originalData, setOriginalData] = useState<TeacherFormData | null>(null)
   const [hasChanges, setHasChanges] = useState(false)
 
@@ -40,86 +51,82 @@ export function TeacherForm({ open, onOpenChange, teacher, onSuccess }: TeacherF
 
   const formValues = watch()
 
-  // Get available subjects based on selected classes
-  const availableSubjects = selectedClasses.length > 0 
-    ? getSubjectsForClasses(selectedClasses).map(s => s.name)
+  // Get available subjects for currently selected class
+  const availableSubjects = selectedClass
+    ? getSubjectsForClasses([selectedClass])
     : []
 
   useEffect(() => {
     if (teacher) {
+      // Use classSubjectPairs directly from teacher data
       const data = {
         name: teacher.name,
         email: teacher.email,
         phone: teacher.phone,
-        subjects: teacher.subjects,
-        assignedClasses: teacher.assignedClasses,
+        classSubjectPairs: teacher.classSubjectPairs || [],
       }
       reset(data)
       setOriginalData(data)
-      setSelectedSubjects(teacher.subjects)
-      setSelectedClasses(teacher.assignedClasses)
+      setClassSubjectPairs(teacher.classSubjectPairs || [])
     } else {
-      const data = { name: '', email: '', phone: '', subjects: [], assignedClasses: [] }
+      const data = { name: '', email: '', phone: '', classSubjectPairs: [] }
       reset(data)
       setOriginalData(data)
-      setSelectedSubjects([])
-      setSelectedClasses([])
+      setClassSubjectPairs([])
     }
     setHasChanges(false)
+    setSelectedClass('')
+    setSelectedSubject('')
   }, [teacher, reset])
 
   // Check for changes
   useEffect(() => {
     if (!originalData) return
 
-    const arraysEqual = (a: string[], b: string[]) => {
+    const pairsEqual = (a: ClassSubjectPair[], b: ClassSubjectPair[]) => {
       if (a.length !== b.length) return false
-      const sortedA = [...a].sort()
-      const sortedB = [...b].sort()
-      return sortedA.every((val, idx) => val === sortedB[idx])
+      const sortedA = [...a].sort((x, y) => `${x.classAssigned}-${x.subject}`.localeCompare(`${y.classAssigned}-${y.subject}`))
+      const sortedB = [...b].sort((x, y) => `${x.classAssigned}-${x.subject}`.localeCompare(`${y.classAssigned}-${y.subject}`))
+      return sortedA.every((val, idx) => val.classAssigned === sortedB[idx].classAssigned && val.subject === sortedB[idx].subject)
     }
 
     const changed = 
       formValues.name !== originalData.name ||
       formValues.email !== originalData.email ||
       formValues.phone !== originalData.phone ||
-      !arraysEqual(selectedSubjects, originalData.subjects) ||
-      !arraysEqual(selectedClasses, originalData.assignedClasses)
+      !pairsEqual(classSubjectPairs, originalData.classSubjectPairs)
 
     setHasChanges(changed)
-  }, [formValues, selectedSubjects, selectedClasses, originalData])
+  }, [formValues, classSubjectPairs, originalData])
 
-  const addSubject = (subject: string) => {
-    if (subject && !selectedSubjects.includes(subject)) {
-      const updated = [...selectedSubjects, subject].sort((a, b) => a.localeCompare(b))
-      setSelectedSubjects(updated)
-      setValue('subjects', updated)
-      setSubjectInput('')
+  const addPair = () => {
+    if (selectedClass && selectedSubject) {
+      const exists = classSubjectPairs.some(
+        p => p.classAssigned === selectedClass && p.subject === selectedSubject
+      )
+      
+      if (!exists) {
+        const newPair = { subject: selectedSubject, classAssigned: selectedClass }
+        const updated = [...classSubjectPairs, newPair].sort((a, b) => {
+          const classCompare = parseInt(a.classAssigned) - parseInt(b.classAssigned)
+          if (classCompare !== 0) return classCompare
+          return a.subject.localeCompare(b.subject)
+        })
+        setClassSubjectPairs(updated)
+        setValue('classSubjectPairs', updated)
+        
+        setSelectedClass('')
+        setSelectedSubject('')
+      }
     }
   }
 
-  const removeSubject = (subject: string) => {
-    const updated = selectedSubjects.filter(s => s !== subject)
-    setSelectedSubjects(updated)
-    setValue('subjects', updated)
-  }
-
-  const addClass = (cls: string) => {
-    if (cls && !selectedClasses.includes(cls)) {
-      // Numeric order (1, 2, 3, ...)
-      const updated = [...selectedClasses, cls].sort((a, b) => {
-        return parseInt(a) - parseInt(b)
-      })
-      setSelectedClasses(updated)
-      setValue('assignedClasses', updated)
-      setClassInput('')
-    }
-  }
-
-  const removeClass = (cls: string) => {
-    const updated = selectedClasses.filter(c => c !== cls)
-    setSelectedClasses(updated)
-    setValue('assignedClasses', updated)
+  const removePair = (pair: ClassSubjectPair) => {
+    const updated = classSubjectPairs.filter(
+      p => !(p.classAssigned === pair.classAssigned && p.subject === pair.subject)
+    )
+    setClassSubjectPairs(updated)
+    setValue('classSubjectPairs', updated)
   }
 
   const onSubmit = async (data: TeacherFormData) => {
@@ -180,69 +187,58 @@ export function TeacherForm({ open, onOpenChange, teacher, onSuccess }: TeacherF
             </div>
           </div>
 
-          {/* Classes selection comes FIRST */}
+          {/* Class-Subject Pairs */}
           <div className="space-y-2">
-            <Label>Assigned Classes *</Label>
-            <Select value={classInput} onValueChange={(value) => {
-              addClass(value)
-            }}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select class" />
-              </SelectTrigger>
-              <SelectContent>
-                {availableClasses
-                  .filter(c => !selectedClasses.includes(c))
-                  .map(c => (
+            <Label>Assign Class-Subject *</Label>
+            <div className="grid grid-cols-2 gap-2">
+              <Select value={selectedClass} onValueChange={setSelectedClass}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select class" />
+                </SelectTrigger>
+                <SelectContent>
+                  {availableClasses.map(c => (
                     <SelectItem key={c} value={c}>Class {formatClass(c)}</SelectItem>
                   ))}
-              </SelectContent>
-            </Select>
-            <div className="flex flex-wrap gap-2 mt-2">
-              {selectedClasses.map(c => (
-                <Badge key={c} variant="secondary" className="text-sm px-3 py-1.5">
-                  Class {formatClass(c)}
-                  <button type="button" onClick={() => removeClass(c)} className="ml-2">
-                    <X className="h-3.5 w-3.5" />
-                  </button>
-                </Badge>
-              ))}
-            </div>
-            {errors.assignedClasses && <p className="text-sm text-red-600">{errors.assignedClasses.message}</p>}
-          </div>
-
-          {/* Subjects selection comes SECOND (based on selected classes) */}
-          <div className="space-y-2">
-            <Label>Subjects {selectedClasses.length > 0 && '*'}</Label>
-            <Select 
-              value={subjectInput} 
-              onValueChange={(value) => {
-                addSubject(value)
-              }}
-              disabled={selectedClasses.length === 0}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder={selectedClasses.length === 0 ? "Select classes first" : "Select subject"} />
-              </SelectTrigger>
-              <SelectContent>
-                {availableSubjects
-                  .filter(s => !selectedSubjects.includes(s))
-                  .sort((a, b) => a.localeCompare(b))
-                  .map(s => (
-                    <SelectItem key={s} value={s}>{s}</SelectItem>
+                </SelectContent>
+              </Select>
+              
+              <Select 
+                value={selectedSubject} 
+                onValueChange={setSelectedSubject}
+                disabled={!selectedClass}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder={selectedClass ? "Select subject" : "Select class first"} />
+                </SelectTrigger>
+                <SelectContent>
+                  {availableSubjects.map(s => (
+                    <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
                   ))}
-              </SelectContent>
-            </Select>
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <Button
+              type="button"
+              variant="outline"
+              onClick={addPair}
+              disabled={!selectedClass || !selectedSubject}
+              className="w-full mt-2"
+            >
+              Add Class-Subject Pair
+            </Button>
+            
             <div className="flex flex-wrap gap-2 mt-2">
-              {selectedSubjects.map(s => (
-                <Badge key={s} variant="secondary" className="text-sm px-3 py-1.5">
-                  {s}
-                  <button type="button" onClick={() => removeSubject(s)} className="ml-2">
+              {classSubjectPairs.map((pair, idx) => (
+                <Badge key={idx} variant="secondary" className="text-sm px-3 py-1.5">
+                  Class {formatClass(pair.classAssigned)} - {getSubjectNameById(pair.subject, pair.classAssigned)}
+                  <button type="button" onClick={() => removePair(pair)} className="ml-2">
                     <X className="h-3.5 w-3.5" />
                   </button>
                 </Badge>
               ))}
             </div>
-            {selectedClasses.length > 0 && errors.subjects && <p className="text-sm text-red-600">{errors.subjects.message}</p>}
+            {errors.classSubjectPairs && <p className="text-sm text-red-600">{errors.classSubjectPairs.message}</p>}
           </div>
 
           <DialogFooter>

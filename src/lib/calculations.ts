@@ -64,17 +64,16 @@ export function calculateResult(
 }
 
 export function getNextClass(currentClass: string): string {
-  const match = currentClass.match(/^(\d+)-([A-Z])$/);
-  if (!match) return currentClass;
+  const currentGrade = parseInt(currentClass);
+  if (isNaN(currentGrade)) return currentClass;
 
-  const [, grade, section] = match;
-  const nextGrade = parseInt(grade) + 1;
+  const nextGrade = currentGrade + 1;
 
   if (nextGrade > 12) {
     return 'GRADUATED';
   }
 
-  return `${nextGrade}-${section}`;
+  return nextGrade.toString();
 }
 
 export function getGradeColor(grade: string): string {

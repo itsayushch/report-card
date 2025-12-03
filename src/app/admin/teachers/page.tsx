@@ -12,6 +12,7 @@ import { Plus, Edit, Trash2, Mail, Phone, Search } from 'lucide-react'
 import { Skeleton } from '@/components/ui/skeleton'
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog'
 import { toast } from 'sonner'
+import { getSubjectById } from '@/lib/subjects'
 
 export default function TeachersPage() {
   const [teachers, setTeachers] = useState<Teacher[]>([])
@@ -45,8 +46,10 @@ export default function TeachersPage() {
       teacher.name.toLowerCase().includes(search) ||
       teacher.email.toLowerCase().includes(search) ||
       teacher.phone.toLowerCase().includes(search) ||
-      teacher.subjects.some((s) => s.toLowerCase().includes(search)) ||
-      teacher.assignedClasses.some((c) => c.toLowerCase().includes(search))
+      teacher.classSubjectPairs.some((pair) => 
+        pair.subject.toLowerCase().includes(search) || 
+        pair.classAssigned.toLowerCase().includes(search)
+      )
     )
   })
 
@@ -160,20 +163,25 @@ export default function TeachersPage() {
                   <TableRow>
                     <TableHead>Name</TableHead>
                     <TableHead>Contact</TableHead>
-                    <TableHead>Subjects</TableHead>
-                    <TableHead>Assigned Classes</TableHead>
+                    <TableHead>Class-Subject Pairs</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {filteredTeachers.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={5} className="text-center py-8 text-gray-500">
+                      <TableCell colSpan={4} className="text-center py-8 text-gray-500">
                         {searchTerm ? 'No teachers found matching your search' : 'No teachers found'}
                       </TableCell>
                     </TableRow>
                   ) : (
-                    filteredTeachers.map((teacher) => (
+                    filteredTeachers.map((teacher) => {
+                      // Get unique subjects and classes from pairs
+                      const uniqueSubjects = Array.from(new Set(teacher.classSubjectPairs.map(p => p.subject)))
+                      const uniqueClasses = Array.from(new Set(teacher.classSubjectPairs.map(p => p.classAssigned)))
+                        .sort((a, b) => parseInt(a) - parseInt(b))
+                      
+                      return (
                       <TableRow key={teacher.id}>
                         <TableCell className="font-medium">{teacher.name}</TableCell>
                         <TableCell>
@@ -190,18 +198,9 @@ export default function TeachersPage() {
                         </TableCell>
                         <TableCell>
                           <div className="flex flex-wrap gap-1">
-                            {teacher.subjects.map((subject) => (
-                              <Badge key={subject} variant="outline" className="text-xs">
-                                {subject}
-                              </Badge>
-                            ))}
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex flex-wrap gap-1">
-                            {teacher.assignedClasses.map((cls) => (
-                              <Badge key={cls} variant="secondary" className="text-xs">
-                                {cls}
+                            {teacher.classSubjectPairs.map((pair, idx) => (
+                              <Badge key={idx} variant="outline" className="text-xs">
+                                Class {pair.classAssigned} - {getSubjectById(pair.classAssigned, pair.subject)?.name || pair.subject}
                               </Badge>
                             ))}
                           </div>
@@ -217,7 +216,8 @@ export default function TeachersPage() {
                           </div>
                         </TableCell>
                       </TableRow>
-                    ))
+                      )
+                    })
                   )}
                 </TableBody>
               </Table>

@@ -29,7 +29,6 @@ interface ReportData {
     name: string
     rollNo: string
     class: string
-    section: string
   }
   academicYear: string
   term: string

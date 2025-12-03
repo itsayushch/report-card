@@ -22,8 +22,7 @@ async function main() {
       password: DEFAULT_CREDENTIALS.admin.password,  // Plain text email
       name: 'System Administrator',
       phone: '+1234567890',
-      subjects: [],
-      assignedClasses: [],
+      classSubjectPairs: [],
       isAdmin: true,
       firstLogin: true,  // Require password change on first login
     }
@@ -43,23 +42,6 @@ async function main() {
       startDate: new Date('2024-06-01'),
       endDate: new Date('2025-05-31'),
       isActive: true,
-      terms: [
-        {
-          name: 'Term 1',
-          startDate: new Date('2024-06-01'),
-          endDate: new Date('2024-09-30')
-        },
-        {
-          name: 'Term 2',
-          startDate: new Date('2024-10-01'),
-          endDate: new Date('2024-12-31')
-        },
-        {
-          name: 'Final',
-          startDate: new Date('2025-01-01'),
-          endDate: new Date('2025-05-31')
-        }
-      ]
     }
   })
 
@@ -307,44 +289,8 @@ async function main() {
     { studentRollNo: '2024003', subjectName: 'Hindi', term: 'Term 1', marks: 65 },
   ]
 
-  for (const mark of sampleMarks) {
-    const student = await prisma.student.findUnique({
-      where: { rollNo: mark.studentRollNo }
-    })
-    const subject = subjectRecords.find(s => s.name === mark.subjectName)
-    
-    if (student && subject) {
-      // Find a teacher who teaches this subject
-      const teacher = teacherRecords.find(t => 
-        t.subjects.includes(mark.subjectName)
-      )
-      
-      if (teacher) {
-        await prisma.mark.upsert({
-          where: {
-            studentId_subjectId_term_academicYear: {
-              studentId: student.id,
-              subjectId: subject.id,
-              term: mark.term,
-              academicYear: '2025'
-            }
-          },
-          update: {},
-          create: {
-            studentId: student.id,
-            subjectId: subject.id,
-            term: mark.term,
-            marks: mark.marks,
-            grade: mark.marks >= 90 ? 'A+' : mark.marks >= 80 ? 'A' : mark.marks >= 70 ? 'B' : mark.marks >= 60 ? 'C' : mark.marks >= 40 ? 'D' : 'F',
-            academicYear: '2025',
-            enteredById: teacher.id
-          }
-        })
-      }
-    }
-  }
-
-  console.log('Created sample marks')
+  // TODO: Marks are now embedded in Student.academicRecords - seed data removed
+  console.log('✓ Skipping marks seeding - now using embedded academicRecords in Student model')
 
   console.log('\n=== Seed completed successfully! ===')
   console.log('\nDefault Credentials (PLAIN TEXT - NO HASHING):')

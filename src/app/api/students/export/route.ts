@@ -12,16 +12,12 @@ export async function GET(request: NextRequest) {
 
     const { searchParams } = new URL(request.url)
     const classParam = searchParams.get('class')
-    const section = searchParams.get('section')
     const status = searchParams.get('status')
 
     const where: any = {}
 
     if (classParam) {
       where.class = classParam
-    }
-    if (section) {
-      where.section = section
     }
     if (status) {
       where.status = status

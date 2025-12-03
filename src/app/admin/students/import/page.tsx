@@ -18,6 +18,7 @@ interface StudentImportData {
   name: string
   rollNo: string
   class: string
+  dateOfBirth: string
   parentName?: string
   email?: string
   phone?: string
@@ -80,7 +81,7 @@ export default function StudentImportPage() {
         name: 'John Doe',
         rollNo: '2024001',
         class: '9',
-        section: 'A',
+        dateOfBirth: '15/08/2010',
         parentName: 'Jane Doe',
         email: 'john.doe@example.com',
         phone: '+1234567890',
@@ -90,7 +91,7 @@ export default function StudentImportPage() {
         name: 'Alice Smith',
         rollNo: '2024002',
         class: '10',
-        section: 'B',
+        dateOfBirth: '22/03/2009',
         parentName: 'Bob Smith',
         email: 'alice.smith@example.com',
         phone: '+1234567891',
@@ -259,7 +260,7 @@ export default function StudentImportPage() {
                 <li>name - Student full name</li>
                 <li>rollNo - Unique roll number</li>
                 <li>class - Class number (e.g., 9, 10, 11, 12)</li>
-                <li>section - Section letter (e.g., A, B, C)</li>
+                <li>dateOfBirth - Date of birth in DD/MM/YYYY format</li>
               </ul>
             </div>
 
@@ -276,8 +277,7 @@ export default function StudentImportPage() {
             <Alert>
               <AlertCircle className="h-4 w-4" />
               <AlertDescription className="text-sm">
-                Default password for all imported students will be their roll
-                number. Students should change it on first login.
+                Default password for all imported students will be their Date of Birth in DDMMYYYY format.
               </AlertDescription>
             </Alert>
           </CardContent>
@@ -301,6 +301,7 @@ export default function StudentImportPage() {
                     <TableHead>Name</TableHead>
                     <TableHead>Roll No</TableHead>
                     <TableHead>Class</TableHead>
+                    <TableHead>Date of Birth</TableHead>
                     <TableHead>Parent Name</TableHead>
                     <TableHead>Email</TableHead>
                     <TableHead>Phone</TableHead>
@@ -313,6 +314,7 @@ export default function StudentImportPage() {
                       <TableCell>{student.name}</TableCell>
                       <TableCell>{student.rollNo}</TableCell>
                       <TableCell>{student.class}</TableCell>
+                      <TableCell>{student.dateOfBirth || '-'}</TableCell>
                       <TableCell>{student.parentName || '-'}</TableCell>
                       <TableCell>{student.email || '-'}</TableCell>
                       <TableCell>{student.phone || '-'}</TableCell>

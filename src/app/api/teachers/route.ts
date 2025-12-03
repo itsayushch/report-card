@@ -67,8 +67,7 @@ export async function POST(request: NextRequest) {
         teacherData: {
           name: teacher.name,
           email: teacher.email,
-          subjects: teacher.subjects,
-          assignedClasses: teacher.assignedClasses,
+          classSubjectPairs: teacher.classSubjectPairs,
           isAdmin: teacher.isAdmin,
         },
       },

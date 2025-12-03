@@ -8,27 +8,41 @@ datasource db {
 }
 
 model Student {
-  id              String          @id @default(auto()) @map("_id") @db.ObjectId
+  id              String           @id @default(auto()) @map("_id") @db.ObjectId
   name            String
-  rollNo          String          @unique
-  email           String          @unique
-  password        String          // Date of birth in DDMMYYYY format
-  dateOfBirth     String          // Date of birth in DDMMYYYY format (used as password)
+  rollNo          String           @unique
+  email           String           @unique
+  password        String           // Date of birth in DDMMYYYY format
+  dateOfBirth     String           // Date of birth in DD/MM/YYYY format (used as password)
   class           String
   parentName      String
   phone           String
-  status          Status          @default(ACTIVE)
+  status          Status           @default(ACTIVE)
   academicYear    String
-  promotionStatus PromotionStatus @default(PENDING)
-  createdAt       DateTime        @default(now())
-  updatedAt       DateTime        @updatedAt
-
-  // Relations
-  marks Mark[]
+  promotionStatus PromotionStatus  @default(PENDING)
+  academicRecords AcademicRecord[]
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
 
   @@index([class])
   @@index([academicYear])
   @@map("students")
+}
+
+type AcademicRecord {
+  year       String
+  class      String
+  term       String
+  subjects   SubjectMark[]
+  enteredBy  String
+  enteredAt  DateTime
+  status     String // "draft" or "published"
+}
+
+type SubjectMark {
+  subjectCode String
+  marks       Float
+  maxMarks    Int
 }
 
 enum Status {
@@ -43,24 +57,27 @@ enum PromotionStatus {
 }
 
 model Teacher {
-  id              String   @id @default(auto()) @map("_id") @db.ObjectId
-  name            String
-  email           String   @unique
-  password        String   // Email ID (same as email, to be reset on first login)
-  phone           String
-  subjects        String[]
-  assignedClasses String[]
-  isAdmin         Boolean  @default(false)
-  firstLogin      Boolean  @default(true)  // Track if password needs to be reset
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  id                 String                  @id @default(auto()) @map("_id") @db.ObjectId
+  name               String
+  email              String                  @unique
+  password           String                  // Email ID (same as email, to be reset on first login)
+  phone              String
+  classSubjectPairs  ClassSubjectPair[]
+  isAdmin            Boolean                 @default(false)
+  firstLogin         Boolean                 @default(true) // Track if password needs to be reset
+  createdAt          DateTime                @default(now())
+  updatedAt          DateTime                @updatedAt
 
   // Relations
-  marks      Mark[]
-  adminLogs  AdminLog[]
+  adminLogs       AdminLog[]
   reportPublishes ReportPublish[]
 
   @@map("teachers")
+}
+
+type ClassSubjectPair {
+  subject       String
+  classAssigned String
 }
 
 model Subject {
@@ -72,9 +89,6 @@ model Subject {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
-  // Relations
-  marks Mark[]
-
   @@unique([name, academicYear])
   @@map("subjects")
 }
@@ -85,40 +99,10 @@ model AcademicYear {
   startDate DateTime
   endDate   DateTime
   isActive  Boolean  @default(false)
-  terms     Term[]
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@map("academic_years")
-}
-
-type Term {
-  name      String
-  startDate DateTime
-  endDate   DateTime
-}
-
-model Mark {
-  id             String   @id @default(auto()) @map("_id") @db.ObjectId
-  studentId      String   @db.ObjectId
-  subjectId      String   @db.ObjectId
-  marks          Float
-  grade          String
-  term           String
-  academicYear   String
-  teacherRemarks String?
-  enteredById    String   @db.ObjectId
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
-
-  // Relations
-  student   Student @relation(fields: [studentId], references: [id])
-  subject   Subject @relation(fields: [subjectId], references: [id])
-  enteredBy Teacher @relation(fields: [enteredById], references: [id])
-
-  @@unique([studentId, subjectId, term, academicYear])
-  @@index([academicYear, term])
-  @@map("marks")
 }
 
 model ReportPublish {

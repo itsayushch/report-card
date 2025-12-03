@@ -58,7 +58,7 @@ export default function TeacherDashboardPage() {
       
       const data = await response.json()
       setStats(data.stats)
-      setSubjects(data.teacher.subjects)
+      setSubjects(data.teacher.subjects || [])
       setRecentMarks(data.recentMarks)
       setActiveYear(data.activeYear?.year || '')
     } catch (error) {

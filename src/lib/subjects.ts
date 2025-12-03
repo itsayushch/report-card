@@ -58,7 +58,7 @@ const subjectsList3 = [
   { id: 'PE-3', name: "P.E.", dataType: "string" }
 ];
 
-export const subjectsByClass: { [key: string]: Array<{ name: string; dataType: string }> } = {
+export const subjectsByClass: { [key: string]: Array<{ id: string; name: string; dataType: string }> } = {
     '1': subjectsList1,
     '2': subjectsList1,
     '3': subjectsList1,
@@ -72,8 +72,8 @@ export const subjectsByClass: { [key: string]: Array<{ name: string; dataType: s
 };
 
 // Helper function to get subjects for multiple classes (removes duplicates)
-export function getSubjectsForClasses(classes: string[]): Array<{ name: string; dataType: string }> {
-  const subjectsMap = new Map<string, { name: string; dataType: string }>();
+export function getSubjectsForClasses(classes: string[]): Array<{ id: string; name: string; dataType: string }> {
+  const subjectsMap = new Map<string, { id: string; name: string; dataType: string }>();
   
   classes.forEach(cls => {
     const subjects = subjectsByClass[cls] || [];
@@ -97,6 +97,10 @@ export function getAllSubjectNames(): string[] {
   return Array.from(allSubjects);
 } 
 
+export function getSubjectById(classValue: string, subjectId: string): { id: string; name: string; dataType: string } | null {
+  const subjects = subjectsByClass[classValue] || [];
+  return subjects.find(subj => subj.id === subjectId) || null;
+}
 
 
 

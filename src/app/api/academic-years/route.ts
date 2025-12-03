@@ -30,11 +30,6 @@ export async function POST(request: NextRequest) {
       ...validatedData,
       startDate: new Date(validatedData.startDate),
       endDate: new Date(validatedData.endDate),
-      terms: validatedData.terms.map(term => ({
-        ...term,
-        startDate: new Date(term.startDate),
-        endDate: new Date(term.endDate),
-      })),
     }
 
     // Check if year already exists
