@@ -62,6 +62,7 @@ export async function deleteTeacherProfilePicture(url: string) {
       .from('Profile Pictures')
       .remove([`teachers/${filePath.split('/').pop()}`])
 
+      
     if (error) {
       console.error('Failed to delete profile picture:', error)
     }
