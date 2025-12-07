@@ -1,16 +1,26 @@
 import { createClient } from '@supabase/supabase-js'
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+// Use server-side environment variables (not exposed to client)
+const supabaseUrl = process.env.SUPABASE_URL
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
 
-if (!supabaseUrl || !supabaseAnonKey) {
-  throw new Error('Missing Supabase environment variables')
-}
-
-export const supabase = createClient(supabaseUrl, supabaseAnonKey)
+// Create a server-side client with service role key for admin operations
+// This should only be used in API routes, never on the client
+export const supabase = supabaseUrl && supabaseServiceKey 
+  ? createClient(supabaseUrl, supabaseServiceKey, {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false
+      }
+    })
+  : null
 
 // Helper function to upload teacher profile picture
 export async function uploadTeacherProfilePicture(file: File, teacherId: string) {
+  if (!supabase) {
+    throw new Error('Supabase is not configured. Please set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY environment variables.')
+  }
+  
   const fileExt = file.name.split('.').pop()
   const fileName = `${teacherId}-${Date.now()}.${fileExt}`
   const filePath = `teachers/${fileName}`
@@ -36,6 +46,11 @@ export async function uploadTeacherProfilePicture(file: File, teacherId: string)
 
 // Helper function to delete teacher profile picture
 export async function deleteTeacherProfilePicture(url: string) {
+  if (!supabase) {
+    console.warn('Supabase is not configured, skipping profile picture deletion')
+    return
+  }
+  
   try {
     // Extract file path from URL
     const urlParts = url.split('/Profile%20Pictures/')
