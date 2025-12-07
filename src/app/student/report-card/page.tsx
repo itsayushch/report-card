@@ -33,28 +33,41 @@ interface ReportData {
     class: string
   }
   academicYear: string
-  term: string
-  marks: Array<{
-    subject: string
-    maxMarks: number
-    obtainedMarks: number
-    grade: string
-    remarks: string
-  }>
-  summary: {
-    totalObtained: number
-    totalMax: number
-    percentage: number
-    gpa: number
-    result: string
+  termReports: {
+    [key: string]: {
+      subjects: Array<{
+        subjectCode: string
+        marks: number
+        maxMarks: number
+        grade: string
+      }>
+      totalObtained: number
+      totalMax: number
+      percentage: number
+      isPublished: boolean
+    }
   }
+  overallPercentage: number
+  overallGrade: string
+  result: string
   promotionStatus: string
-  isPublished: boolean
+  publishedTerms: string[]
 }
 
 interface TermReport {
   term: string
-  data: ReportData | null
+  termData: {
+    subjects: Array<{
+      subjectCode: string
+      marks: number
+      maxMarks: number
+      grade: string
+    }>
+    totalObtained: number
+    totalMax: number
+    percentage: number
+    isPublished: boolean
+  } | null
   isPublished: boolean
   loading: boolean
 }
@@ -124,7 +137,7 @@ export default function ReportCardPage() {
     // Initialize term reports
     const initialReports: TermReport[] = terms.map((term: string) => ({
       term,
-      data: null,
+      termData: null,
       isPublished: false,
       loading: true,
     }))
@@ -134,13 +147,13 @@ export default function ReportCardPage() {
     const reportPromises = terms.map(async (term: string, index: number) => {
       try {
         const response = await fetch(
-          `/api/reports/student/${studentId}?term=${term}&academicYear=${selectedYear}`
+          `/api/reports/student/${studentId}?academicYear=${selectedYear}`
         )
 
         if (response.status === 403) {
           return {
             term,
-            data: null,
+            termData: null,
             isPublished: false,
             loading: false,
           }
@@ -149,24 +162,26 @@ export default function ReportCardPage() {
         if (!response.ok) {
           return {
             term,
-            data: null,
+            termData: null,
             isPublished: false,
             loading: false,
           }
         }
 
         const data = await response.json()
+        const termData = data.termReports?.[term] || null
+        
         return {
           term,
-          data,
-          isPublished: data.isPublished,
+          termData,
+          isPublished: termData?.isPublished || false,
           loading: false,
         }
       } catch (error) {
         console.error(`Error fetching report for ${term}:`, error)
         return {
           term,
-          data: null,
+          termData: null,
           isPublished: false,
           loading: false,
         }
@@ -181,7 +196,7 @@ export default function ReportCardPage() {
         const termName = selectedYear ? academicYears.find(y => y.year === selectedYear)?.terms[index]?.name || '' : ''
         return {
           term: termName,
-          data: null,
+          termData: null,
           isPublished: false,
           loading: false,
         }
@@ -191,12 +206,9 @@ export default function ReportCardPage() {
     setLoading(false)
   }
 
-  const handleDownloadPDF = (reportData: ReportData) => {
-    if (!reportData) return
-
-    const pdf = generateReportCardPDF(reportData)
-    pdf.save(`report-card-${reportData.student.regNo}-${reportData.term}.pdf`)
-    toast.success('Report card downloaded successfully!')
+  const handleDownloadPDF = (term: string) => {
+    // PDF download functionality - to be implemented
+    toast.info('PDF download will be available soon!')
   }
   
   const handleViewFullReport = (term: string) => {
@@ -353,22 +365,22 @@ export default function ReportCardPage() {
                         <div className="flex items-center justify-center py-12">
                           <Loader2 className="h-6 w-6 animate-spin text-gray-400" />
                         </div>
-                      ) : termReport.isPublished && termReport.data ? (
+                      ) : termReport.isPublished && termReport.termData ? (
                         <div className="space-y-3">
                           {/* Compact Score Display */}
                           <div className="flex items-center justify-between py-3 px-3 bg-gradient-to-r from-indigo-50 to-purple-50 rounded-lg border border-indigo-100">
                             <div>
                               <p className="text-xs font-medium text-indigo-700 mb-0.5">Score</p>
                               <p className="text-2xl font-bold text-indigo-900">
-                                {termReport.data.summary.percentage}<span className="text-sm">%</span>
+                                {termReport.termData.percentage.toFixed(1)}<span className="text-sm">%</span>
                               </p>
                             </div>
                             <div className="text-right">
                               <p className="text-xs font-medium text-gray-600 mb-0.5">Marks</p>
                               <p className="text-sm font-bold text-gray-900">
-                                {termReport.data.summary.totalObtained}
+                                {termReport.termData.totalObtained}
                                 <span className="text-gray-400 font-normal text-xs mx-0.5">/</span>
-                                <span className="text-gray-600">{termReport.data.summary.totalMax}</span>
+                                <span className="text-gray-600">{termReport.termData.totalMax}</span>
                               </p>
                             </div>
                           </div>
@@ -376,7 +388,7 @@ export default function ReportCardPage() {
 
                           {/* Subjects Count */}
                           <p className="text-xs text-center text-gray-500 py-1">
-                            {termReport.data.marks.length} subjects
+                            {termReport.termData.subjects.length} subjects
                           </p>
 
                           {/* View Button */}

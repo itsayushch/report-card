@@ -28,17 +28,9 @@ export async function GET(
     }
 
     // Get student data with academic records
-    const [student, publishStatuses] = await Promise.all([
-      prisma.student.findUnique({
-        where: { id },
-      }),
-      prisma.reportPublish.findMany({
-        where: {
-          academicYear,
-          isPublished: true,
-        },
-      }),
-    ])
+    const student = await prisma.student.findUnique({
+      where: { id },
+    })
 
     if (!student) {
       return NextResponse.json({ error: 'Student not found' }, { status: 404 })
@@ -53,21 +45,17 @@ export async function GET(
       }
     }
 
-    // Verify publish status matches student's class
-    const isPublishedForStudent = publishStatuses.some(
-      status => status.class === student.class
-    )
-    
+    // Get publish statuses for each term for the student's class
+    const publishStatuses = await prisma.reportPublish.findMany({
+      where: {
+        academicYear,
+        class: student.class,
+        isPublished: true,
+      },
+    })
 
-    if (!isPublishedForStudent && session.user.role === 'STUDENT') {
-      return NextResponse.json(
-        {
-          error: 'Report card not published yet',
-          isPublished: false,
-        },
-        { status: 403 }
-      )
-    }
+    // Create a map of published terms
+    const publishedTerms = new Set(publishStatuses.map(status => status.term))
 
     // Process academic records for the specified year
     const yearRecords = student.academicRecords?.filter(
@@ -93,7 +81,9 @@ export async function GET(
 
     terms.forEach(term => {
       const termRecord = yearRecords.find((r: any) => r.term === term);
-      if (termRecord && termRecord.subjects && termRecord.subjects.length > 0) {
+      const isTermPublished = publishedTerms.has(term);
+      
+      if (termRecord && termRecord.subjects && termRecord.subjects.length > 0 && isTermPublished) {
         const subjects = termRecord.subjects.map((s: any) => ({
           subjectCode: s.subjectCode,
           marks: s.marks,
@@ -110,16 +100,26 @@ export async function GET(
           totalObtained,
           totalMax,
           percentage,
+          isPublished: true,
+        };
+      } else if (termRecord && termRecord.subjects && termRecord.subjects.length > 0) {
+        // Term has data but is not published
+        termReports[term] = {
+          subjects: [],
+          totalObtained: 0,
+          totalMax: 0,
+          percentage: 0,
+          isPublished: false,
         };
       }
     });
 
-    // Calculate overall statistics
+    // Calculate overall statistics (only from published terms)
     let overallObtained = 0;
     let overallMax = 0;
 
     Object.values(termReports).forEach((termData: any) => {
-      if (termData) {
+      if (termData && termData.isPublished) {
         overallObtained += termData.totalObtained;
         overallMax += termData.totalMax;
       }
@@ -141,7 +141,7 @@ export async function GET(
       overallGrade,
       result,
       promotionStatus: student.promotionStatus,
-      isPublished: isPublishedForStudent,
+      publishedTerms: Array.from(publishedTerms),
     })
   } catch (error) {
     console.error('Get student report error:', error)
