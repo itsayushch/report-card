@@ -12,6 +12,7 @@ import { Separator } from '@/components/ui/separator'
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
 import { ImageCropper } from '@/components/ui/image-cropper'
+import { getSubjectById } from '@/lib/subjects'
 
 interface TeacherProfile {
   id: string
@@ -315,8 +316,15 @@ export default function TeacherProfilePage() {
                 <div className="shrink-0">
                   <div className="relative">
                     <Avatar className="h-32 w-32 border-4 border-white shadow-xl">
-                      <AvatarImage src={previewImage || undefined} alt={profile.name} />
-                      <AvatarFallback className="bg-linear-to-br from-blue-500 to-purple-600 text-white text-4xl">
+                      <AvatarImage 
+                        src={previewImage || profile.profilePicture || undefined} 
+                        alt={profile.name}
+                        onError={(e) => {
+                          console.error('Failed to load profile picture:', previewImage || profile.profilePicture)
+                          e.currentTarget.style.display = 'none'
+                        }}
+                      />
+                      <AvatarFallback className="bg-gradient-to-br from-blue-500 to-purple-600 text-white text-4xl">
                         {profile.name.charAt(0).toUpperCase()}
                       </AvatarFallback>
                     </Avatar>
@@ -409,7 +417,7 @@ export default function TeacherProfilePage() {
                       <div className="flex flex-wrap gap-2 justify-center md:justify-start">
                         {profile.classSubjectPairs.map((pair, index) => (
                           <Badge key={index} variant="outline" className="bg-blue-50 border-blue-200 text-blue-700">
-                            Class {pair.classAssigned} - {pair.subject}
+                            Class {pair.classAssigned} - {getSubjectById(pair.classAssigned, pair.subject)?.name || pair.subject}
                           </Badge>
                         ))}
                       </div>

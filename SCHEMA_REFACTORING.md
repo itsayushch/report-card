@@ -23,7 +23,7 @@
 model Student {
   id              String
   name            String
-  rollNo          String @unique
+  regNo          String @unique
   email           String @unique  // Now unique
   password        String          // NEW: embedded auth
   class           String
@@ -204,7 +204,7 @@ await prisma.user.deleteMany()
 
 ### Student Import
 - Auto-generates passwords (roll number)
-- Checks for duplicate email/rollNo
+- Checks for duplicate email/regNo
 - Logs bulk import action
 
 ## Updated Components
@@ -234,7 +234,7 @@ await prisma.user.deleteMany()
 POST /api/students
 {
   "name": "John Doe",
-  "rollNo": "2024001",
+  "regNo": "2024001",
   "email": "john@example.com",
   "class": "10",
   "section": "A",
@@ -274,14 +274,14 @@ GET /api/admin/logs
 - [ ] Admin can login with teacher credentials (isAdmin=true)
 - [ ] Teacher can login with teacher credentials (isAdmin=false)
 - [ ] Student can login with student credentials
-- [ ] Admin can create students (password = rollNo)
+- [ ] Admin can create students (password = regNo)
 - [ ] Admin can create teachers (password = teacher123)
 - [ ] Admin can promote teachers to admin (isAdmin=true)
 - [ ] Admin actions are logged in AdminLog
 - [ ] Students can view reports (if published)
 - [ ] Teachers can enter marks
 - [ ] CSV import creates students with correct passwords
-- [ ] Duplicate email/rollNo validation works
+- [ ] Duplicate email/regNo validation works
 - [ ] Admin logs capture IP address and user agent
 
 ## Breaking Changes

@@ -2,13 +2,8 @@ import { z } from 'zod'
 
 export const studentSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters'),
-  rollNo: z.string().min(1, 'Roll number is required'),
-  dateOfBirth: z.string().regex(/^\d{2}\/\d{2}\/\d{4}$/, 'Date of birth must be in DD/MM/YYYY format'),
+  regNo: z.string().min(1, 'Registration number is required'),
   class: z.string().min(1, 'Class is required'),
-  parentName: z.string().min(2, 'Parent name is required'),
-  email: z.string().email('Invalid email address'),
-  phone: z.string().regex(/^\+?[1-9]\d{9,14}$/, 'Invalid phone number'),
-  status: z.enum(['ACTIVE', 'INACTIVE']).optional(),
   academicYear: z.string().optional(),
 })
 

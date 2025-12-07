@@ -16,14 +16,14 @@ import { signOut } from 'next-auth/react'
 interface StudentHeaderProps {
   userName?: string
   userEmail?: string
-  rollNo?: string
+  regNo?: string
   onMenuClick: () => void
 }
 
 export function StudentHeader({
   userName = 'Student',
   userEmail = '',
-  rollNo = '',
+  regNo = '',
   onMenuClick,
 }: StudentHeaderProps) {
   const initials = userName
@@ -76,8 +76,8 @@ export function StudentHeader({
                 <div className="flex flex-col space-y-1 flex-1 min-w-0">
                   <p className="text-sm font-semibold leading-none">{userName}</p>
                   <p className="text-xs leading-none text-muted-foreground truncate">{userEmail}</p>
-                  {rollNo && (
-                    <p className="text-xs leading-none text-muted-foreground">Roll No: <span className="font-medium">{rollNo}</span></p>
+                  {regNo && (
+                    <p className="text-xs leading-none text-muted-foreground">Reg. Number: <span className="font-medium">{regNo}</span></p>
                   )}
                   <span className="inline-flex items-center rounded-full bg-blue-50 px-2 py-0.5 text-xs font-medium text-blue-700 w-fit mt-1">
                     Student

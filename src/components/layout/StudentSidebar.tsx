@@ -23,16 +23,16 @@ const menuItems = [
     href: '/student/report-card',
     icon: FileText,
   },
-  {
-    title: 'Performance',
-    href: '/student/performance',
-    icon: TrendingUp,
-  },
-  {
-    title: 'My Profile',
-    href: '/student/profile',
-    icon: User,
-  },
+  // {
+  //   title: 'Performance',
+  //   href: '/student/performance',
+  //   icon: TrendingUp,
+  // },
+  // {
+  //   title: 'My Profile',
+  //   href: '/student/profile',
+  //   icon: User,
+  // },
 ]
 
 export function StudentSidebar() {

@@ -96,3 +96,7 @@ export function getGradeColor(grade: string): string {
       return 'text-gray-700 bg-gray-50';
   }
 }
+
+export function calculatePercentage(totalObtained: number, totalMax: number): number {
+  return Math.round((totalObtained / totalMax) * 10000) / 100;
+}

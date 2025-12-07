@@ -22,6 +22,7 @@ import { Badge } from '@/components/ui/badge'
 import { toast } from 'sonner'
 import { CheckCircle2, XCircle, Loader2 } from 'lucide-react'
 import { formatClass } from '@/lib/class-utils'
+import { getTermsForClass } from '@/lib/semesters'
 
 interface AcademicYear {
   id: string
@@ -270,12 +271,14 @@ export default function ReportPublishPage() {
   }
 
   const selectedYearData = academicYears.find((y) => y.year === selectedYear)
-  const terms = selectedYearData?.terms || []
-
+  
   // Get unique classes
   const classes = [
-    '9', '10', '11', '12'
+    '1', '2', '3', '4', '5', '6', '7', '8', '9', '10'
   ]
+  
+  // Get all available terms from semesters.ts (use class 9 as reference for higher classes)
+  const allTerms = getTermsForClass('9').map(t => t.name)
 
   const isPublished = (className: string, term: string) => {
     return publishedReports.find(
@@ -333,9 +336,9 @@ export default function ReportPublishPage() {
                   <SelectValue placeholder="Select term" />
                 </SelectTrigger>
                 <SelectContent>
-                  {terms.map((term) => (
-                    <SelectItem key={term.name} value={term.name}>
-                      {term.name}
+                  {allTerms.map((term) => (
+                    <SelectItem key={term} value={term}>
+                      {term}
                     </SelectItem>
                   ))}
                 </SelectContent>

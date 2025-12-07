@@ -15,27 +15,25 @@ export async function GET(
     }
 
     const { searchParams } = new URL(request.url)
-    const term = searchParams.get('term')
     const academicYear = searchParams.get('academicYear')
     
     // Await params in Next.js 15
     const { id } = await params
 
-    if (!term || !academicYear) {
+    if (!academicYear) {
       return NextResponse.json(
-        { error: 'Term and academic year are required' },
+        { error: 'Academic year is required' },
         { status: 400 }
       )
     }
 
-    // Get student data and publish status in parallel
-    const [student, publishStatus] = await Promise.all([
+    // Get student data with academic records
+    const [student, publishStatuses] = await Promise.all([
       prisma.student.findUnique({
         where: { id },
       }),
-      prisma.reportPublish.findFirst({
+      prisma.reportPublish.findMany({
         where: {
-          term,
           academicYear,
           isPublished: true,
         },
@@ -49,14 +47,16 @@ export async function GET(
 
     // Check if student is accessing their own data (if role is STUDENT)
     if (session.user.role === 'STUDENT') {
-      if (session.user.email !== student.email) {
+      // Students log in with regNo, so check against that
+      if (session.user.id !== student.id) {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
       }
     }
 
     // Verify publish status matches student's class
-    const isPublishedForStudent = publishStatus && 
-      publishStatus.class === student.class
+    const isPublishedForStudent = publishStatuses.some(
+      status => status.class === student.class
+    )
     
 
     if (!isPublishedForStudent && session.user.role === 'STUDENT') {
@@ -69,29 +69,79 @@ export async function GET(
       )
     }
 
-    // TODO: Refactor to use Student.academicRecords
-    // For now, return empty marks
-    const marks: any[] = []
-    const summary = {
-      totalObtained: 0,
-      totalMax: 0,
-      percentage: 0,
-      gpa: 0,
-      result: 'PENDING' as const,
-    }
+    // Process academic records for the specified year
+    const yearRecords = student.academicRecords?.filter(
+      (record: any) => record.year === academicYear && record.class === student.class
+    ) || []
+
+    // Helper to calculate grade based on percentage
+    const calculateGrade = (percentage: number): string => {
+      if (percentage >= 91) return 'A+';
+      if (percentage >= 81) return 'A';
+      if (percentage >= 71) return 'B+';
+      if (percentage >= 61) return 'B';
+      if (percentage >= 51) return 'C+';
+      if (percentage >= 41) return 'C';
+      if (percentage >= 33) return 'D';
+      if (percentage >= 21) return 'E';
+      return 'F';
+    };
+
+    // Build term reports
+    const termReports: any = {};
+    const terms = ['1st Unit Test', 'Mid Term', '2nd Unit Test', 'Final Term'];
+
+    terms.forEach(term => {
+      const termRecord = yearRecords.find((r: any) => r.term === term);
+      if (termRecord && termRecord.subjects && termRecord.subjects.length > 0) {
+        const subjects = termRecord.subjects.map((s: any) => ({
+          subjectCode: s.subjectCode,
+          marks: s.marks,
+          maxMarks: s.maxMarks,
+          grade: calculateGrade((s.marks / s.maxMarks) * 100),
+        }));
+
+        const totalObtained = termRecord.subjects.reduce((sum: number, s: any) => sum + s.marks, 0);
+        const totalMax = termRecord.subjects.reduce((sum: number, s: any) => sum + s.maxMarks, 0);
+        const percentage = totalMax > 0 ? (totalObtained / totalMax) * 100 : 0;
+
+        termReports[term] = {
+          subjects,
+          totalObtained,
+          totalMax,
+          percentage,
+        };
+      }
+    });
+
+    // Calculate overall statistics
+    let overallObtained = 0;
+    let overallMax = 0;
+
+    Object.values(termReports).forEach((termData: any) => {
+      if (termData) {
+        overallObtained += termData.totalObtained;
+        overallMax += termData.totalMax;
+      }
+    });
+
+    const overallPercentage = overallMax > 0 ? (overallObtained / overallMax) * 100 : 0;
+    const overallGrade = calculateGrade(overallPercentage);
+    const result = overallPercentage >= 33 ? 'PASS' : 'FAIL';
 
     return NextResponse.json({
       student: {
         name: student.name,
-        rollNo: student.rollNo,
+        regNo: student.regNo,
         class: student.class,
       },
       academicYear,
-      term,
-      marks: [],
-      summary,
+      termReports,
+      overallPercentage,
+      overallGrade,
+      result,
       promotionStatus: student.promotionStatus,
-      isPublished: !!publishStatus,
+      isPublished: isPublishedForStudent,
     })
   } catch (error) {
     console.error('Get student report error:', error)

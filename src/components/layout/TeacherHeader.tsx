@@ -2,7 +2,7 @@
 
 import { Menu, LogOut, User, Mail } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { Avatar, AvatarFallback } from '@/components/ui/avatar'
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -16,12 +16,14 @@ import { signOut } from 'next-auth/react'
 interface TeacherHeaderProps {
   userName?: string
   userEmail?: string
+  profilePicture?: string | null
   onMenuClick: () => void
 }
 
 export function TeacherHeader({
   userName = 'Teacher',
   userEmail = '',
+  profilePicture = null,
   onMenuClick,
 }: TeacherHeaderProps) {
   const initials = userName
@@ -57,6 +59,7 @@ export function TeacherHeader({
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" className="relative h-10 w-10 rounded-full p-0 hover:bg-gray-100">
               <Avatar className="h-8 w-8">
+                {profilePicture && <AvatarImage src={profilePicture} alt={userName} />}
                 <AvatarFallback className="bg-indigo-600 text-white text-sm">
                   {initials}
                 </AvatarFallback>
@@ -67,6 +70,7 @@ export function TeacherHeader({
             <DropdownMenuLabel className="font-normal pb-3">
               <div className="flex items-start gap-3">
                 <Avatar className="h-10 w-10">
+                  {profilePicture && <AvatarImage src={profilePicture} alt={userName} />}
                   <AvatarFallback className="bg-indigo-600 text-white">
                     {initials}
                   </AvatarFallback>

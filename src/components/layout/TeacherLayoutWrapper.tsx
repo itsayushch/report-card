@@ -9,12 +9,14 @@ interface TeacherLayoutWrapperProps {
   children: React.ReactNode
   userName?: string
   userEmail?: string
+  profilePicture?: string | null
 }
 
 export function TeacherLayoutWrapper({
   children,
   userName,
   userEmail,
+  profilePicture,
 }: TeacherLayoutWrapperProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
 
@@ -37,6 +39,7 @@ export function TeacherLayoutWrapper({
         <TeacherHeader
           userName={userName}
           userEmail={userEmail}
+          profilePicture={profilePicture}
           onMenuClick={() => setSidebarOpen(true)}
         />
         <main className="flex-1 overflow-y-auto bg-gray-50">{children}</main>

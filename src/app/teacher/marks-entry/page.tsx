@@ -28,6 +28,7 @@ import { calculateGrade, getGradeColor } from '@/lib/calculations'
 import Papa from 'papaparse'
 import { formatClass } from '@/lib/class-utils'
 import { getTermsForClass } from '@/lib/terms'
+import { getSubjectById } from '@/lib/subjects'
 
 interface AcademicYear {
   id: string
@@ -46,14 +47,14 @@ interface Subject {
 interface Student {
   id: string
   name: string
-  rollNo: string
+  regNo: string
   class: string
 }
 
 interface MarkEntry {
   studentId: string
   subjectId: string
-  marks: number
+  marks: number | string
   grade: string
   teacherRemarks: string
 }
@@ -113,33 +114,53 @@ export default function MarksEntryPage() {
         setAcademicYears(years)
         setTeacherData(teacherResponse)
         
-        // Extract all subjects
-        const allSubjects = teacherResponse.teacher.subjects || []
-        setSubjects(allSubjects)
-
-        // Build class-subject map
+        // Build class-subject map from classSubjectPairs using subject IDs
         const classSubjectPairs = teacherResponse.teacher.classSubjectPairs || []
-        const assignedClasses: string[] = Array.from(new Set(classSubjectPairs.map((p: any) => p.classAssigned as string)))
         
-        const classMap = assignedClasses.map((cls) => {
-          // Get subject codes for this class
-          const subjectCodesForClass = classSubjectPairs
-            .filter((p: any) => p.classAssigned === cls)
-            .map((p: any) => p.subject)
+        console.log('Class-subject pairs from teacher:', classSubjectPairs)
+        
+        // Group by class and get subject details
+        const classMap = new Map<string, Subject[]>()
+        
+        classSubjectPairs.forEach((pair: any) => {
+          const subjectDetail = getSubjectById(pair.classAssigned, pair.subject)
           
-          // Find matching subject objects
-          const subjectsForClass = allSubjects.filter((subject: Subject) => 
-            subjectCodesForClass.includes(subject.code)
-          )
-          
-          return {
-            class: cls as string,
-            subjects: subjectsForClass as Subject[]
+          if (subjectDetail) {
+            const subject: Subject = {
+              id: subjectDetail.id,
+              name: subjectDetail.name,
+              code: subjectDetail.id, // Use ID as code
+              maxMarks: 0, // Will be set based on term
+              passingMarks: 0, // Will be set based on term
+            }
+            
+            if (!classMap.has(pair.classAssigned)) {
+              classMap.set(pair.classAssigned, [])
+            }
+            
+            classMap.get(pair.classAssigned)!.push(subject)
           }
         })
         
-        console.log('Class-subject map:', classMap)
-        setClassSubjectMap(classMap)
+        // Convert map to array format
+        const classMapArray = Array.from(classMap.entries())
+          .map(([cls, subjects]) => ({
+            class: cls,
+            subjects: subjects
+          }))
+          .sort((a, b) => parseInt(a.class) - parseInt(b.class))
+        
+        console.log('Class-subject map:', classMapArray)
+        setClassSubjectMap(classMapArray)
+        setSubjects(classMapArray.flatMap(cm => cm.subjects))
+        
+        // Set default term to Unit Test 1
+        if (!selectedTerm && classMapArray.length > 0) {
+          const firstClassTerms = getTermsForClass(classMapArray[0].class)
+          if (firstClassTerms.length > 0) {
+            setSelectedTerm(firstClassTerms[0].name)
+          }
+        }
 
         const active = years.find((y: AcademicYear) => y.isActive)
         if (active) {
@@ -188,8 +209,8 @@ export default function MarksEntryPage() {
         newMarksMap.set(student.id, {
           studentId: student.id,
           subjectId: selectedSubject,
-          marks: existingMark?.marks || 0,
-          grade: existingMark?.grade || 'F',
+          marks: existingMark?.marks ?? '',
+          grade: existingMark?.grade || '',
           teacherRemarks: existingMark?.teacherRemarks || '',
         })
       })
@@ -208,16 +229,24 @@ export default function MarksEntryPage() {
     
     if (entry) {
       if (field === 'marks') {
-        const marks = parseFloat(value) || 0
-        const subject = subjects.find((s) => s.id === selectedSubject)
+        const marks = value === '' ? '' : parseFloat(value)
         
-        if (subject && marks > subject.maxMarks) {
-          toast.error(`Marks cannot exceed ${subject.maxMarks}`)
-          return
+        if (marks !== '' && !isNaN(marks)) {
+          // Get max marks from the term configuration
+          const currentTerm = termsForClass.find(t => t.name === selectedTerm)
+          const maxMarks = currentTerm?.maxMarks || 100
+          
+          if (marks > maxMarks) {
+            toast.error(`Marks cannot exceed ${maxMarks}`)
+            return
+          }
+          
+          entry.marks = marks
+          entry.grade = calculateGrade(marks)
+        } else {
+          entry.marks = ''
+          entry.grade = ''
         }
-        
-        entry.marks = marks
-        entry.grade = calculateGrade(marks)
       } else {
         entry[field] = value
       }
@@ -342,11 +371,21 @@ export default function MarksEntryPage() {
 
   const selectedYearData = academicYears.find((y) => y.year === selectedYear)
   const selectedSubjectData = subjects.find((s) => s.id === selectedSubject)
+  
+  // Get the current subject details including dataType
+  const currentSubjectDetail = selectedClass && selectedSubject 
+    ? getSubjectById(selectedClass, selectedSubject)
+    : null
+  const isNumericSubject = currentSubjectDetail?.dataType === 'number'
 
   // Get terms for the selected class (or use first assigned class for display)
   const termsForClass = selectedClass 
     ? getTermsForClass(selectedClass)
     : (classSubjectMap.length > 0 ? getTermsForClass(classSubjectMap[0].class) : [])
+  
+  // Get current term max marks
+  const currentTerm = termsForClass.find(t => t.name === selectedTerm)
+  const maxMarks = currentTerm?.maxMarks || 100
 
   const handleClassSelect = (className: string, term: string, subjectId: string) => {
     setSelectedClass(className)
@@ -360,123 +399,124 @@ export default function MarksEntryPage() {
       {initialLoading ? (
         <>
           {/* Loading Header */}
-          <div className="space-y-2">
-            <Skeleton className="h-9 w-48" />
-            <Skeleton className="h-5 w-64" />
+          <div className="mb-8 space-y-2">
+            <Skeleton className="h-8 w-40" />
+            <Skeleton className="h-4 w-56" />
           </div>
 
-          {/* Loading Class Cards */}
-          <Card>
-            <CardHeader>
-              <Skeleton className="h-6 w-56" />
-              <Skeleton className="h-4 w-80 mt-2" />
-            </CardHeader>
-            <CardContent>
-              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                {[...Array(6)].map((_, i) => (
-                  <Card key={i} className="border-2">
-                    <CardHeader className="pb-3">
-                      <Skeleton className="h-6 w-20" />
-                      <Skeleton className="h-4 w-40 mt-2" />
-                    </CardHeader>
-                    <CardContent className="space-y-3">
-                      <div className="space-y-2">
-                        <Skeleton className="h-4 w-12" />
-                        <Skeleton className="h-10 w-full" />
-                      </div>
-                      <div className="space-y-2">
-                        <Skeleton className="h-4 w-16" />
-                        <Skeleton className="h-10 w-full" />
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
+          {/* Loading Tabs */}
+          <div className="space-y-6">
+            <div className="flex gap-2 pb-2">
+              {[...Array(4)].map((_, i) => (
+                <Skeleton key={i} className="h-9 w-24 rounded-md" />
+              ))}
+            </div>
+
+            {/* Loading Cards */}
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              {[...Array(6)].map((_, i) => (
+                <Card key={i} className="border border-gray-200">
+                  <CardHeader className="space-y-1 pb-3">
+                    <Skeleton className="h-5 w-20" />
+                    <Skeleton className="h-4 w-32" />
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    <Skeleton className="h-3 w-28" />
+                    <Skeleton className="h-9 w-full" />
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </div>
         </>
       ) : (
         <>
-          <div>
-            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Marks Entry</h1>
-            <p className="text-sm sm:text-base text-gray-500 mt-2">
+          <div className="mb-8">
+            <h1 className="text-3xl font-semibold text-gray-900">Marks Entry</h1>
+            <p className="text-sm text-gray-500 mt-1.5">
               {activeYear ? `Academic Year: ${activeYear.year}` : 'No active academic year'}
             </p>
           </div>
 
           {/* Show class selection cards if no class is selected */}
-          {/* Show class selection cards if no class is selected */}
-          {!selectedClass && (
+          {!selectedClass && classSubjectMap.length > 0 && (
             <div className="space-y-6">
+              {/* Term selector as button group */}
+              <div className="flex gap-2 overflow-x-auto pb-2">
+                {termsForClass.map((term) => (
+                  <Button
+                    key={term.name}
+                    variant={selectedTerm === term.name ? "default" : "outline"}
+                    onClick={() => setSelectedTerm(term.name)}
+                    className={selectedTerm === term.name 
+                      ? "bg-blue-600 hover:bg-blue-700 text-white" 
+                      : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"}
+                  >
+                    {term.name}
+                  </Button>
+                ))}
+              </div>
 
-                  <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                    {classSubjectMap.map((classData) => {
-                      const classTerms = getTermsForClass(classData.class)
-                      return (
-                      <Card key={classData.class} className="hover:shadow-lg transition-shadow cursor-pointer border-2">
-                        <CardHeader className="pb-0">
-                          <CardTitle className="text-xl">Class {formatClass(classData.class)}</CardTitle>
+              {/* Cards for selected term */}
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                {classSubjectMap.flatMap((classData) => 
+                  classData.subjects.map((subject) => {
+                    const term = termsForClass.find(t => t.name === selectedTerm)
+                    if (!term) return null
+                    
+                    return (
+                      <Card 
+                        key={`${classData.class}-${subject.id}`}
+                        className="group relative overflow-hidden border border-gray-200/80 bg-white hover:border-blue-200 hover:shadow-lg transition-all duration-300 cursor-pointer"
+                        onClick={() => handleClassSelect(classData.class, selectedTerm, subject.id)}
+                      >
+                        {/* Subtle gradient accent */}
+                        <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-blue-500 to-indigo-500 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                        
+                        <CardHeader className="pb-4">
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="flex-1 min-w-0">
+                              <CardTitle className="text-base font-semibold text-gray-900 group-hover:text-blue-600 transition-colors">
+                                Class {formatClass(classData.class)}
+                              </CardTitle>
+                              <p className="text-sm text-gray-600 mt-1 truncate">{subject.name}</p>
+                            </div>
+                            <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-blue-50 group-hover:bg-blue-100 flex items-center justify-center transition-colors">
+                              <span className="text-sm font-semibold text-blue-600">{formatClass(classData.class)}</span>
+                            </div>
+                          </div>
                         </CardHeader>
-                        <CardContent className="space-y-2">
-                          <div className="space-y-2">
-                            <label className="text-sm font-medium">Term</label>
-                            <Select onValueChange={(term) => {
-                              const newTerms = new Map(cardTerms)
-                              newTerms.set(classData.class, term)
-                              setCardTerms(newTerms)
-                            }}>
-                              <SelectTrigger>
-                                <SelectValue placeholder="Select term" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {classTerms.map((term) => (
-                                  <SelectItem key={term.name} value={term.name}>
-                                    {term.name}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
+                        
+                        <CardContent className="space-y-4">
+                          <div className="flex items-center justify-center py-3 px-3 bg-gray-50 rounded-lg">
+                            <div className="flex flex-col items-center">
+                              <span className="text-xs text-gray-500 font-medium">Maximum Marks</span>
+                              <span className="text-lg font-semibold text-gray-900">{term.maxMarks}</span>
+                            </div>
                           </div>
                           
-                          <div className="space-y-2">
-                            <label className="text-sm font-medium">Subject</label>
-                            <Select 
-                              disabled={!cardTerms.get(classData.class)}
-                              onValueChange={(subjectId) => {
-                                const term = cardTerms.get(classData.class)
-                                if (term) {
-                                  handleClassSelect(classData.class, term, subjectId)
-                                }
-                              }}
-                            >
-                              <SelectTrigger>
-                                <SelectValue placeholder={cardTerms.get(classData.class) ? "Select subject" : "Select term first"} />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {classData.subjects.length === 0 && <div className="px-2 py-1 text-sm text-gray-500">No subjects assigned</div>}
-                                {classData.subjects.map((subject) => (
-                                  <SelectItem key={subject.id} value={subject.id}>
-                                    {subject.name}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                          </div>
+                          <Button 
+                            className="w-full bg-blue-600 hover:bg-blue-700 text-white shadow-sm font-medium"
+                          >
+                            Enter Marks →
+                          </Button>
                         </CardContent>
                       </Card>
-                    )})}
-                  </div>
-                  
-                  {classSubjectMap.length === 0 && (
-                    <Card>
-                      <CardContent>
-                        <p className="text-center text-gray-500 py-8">
-                          You are not assigned to any classes. Please contact the administrator.
-                        </p>
-                      </CardContent>
-                    </Card>
-                  )}
+                    )
+                  })
+                )}
+              </div>
             </div>
+          )}
+                  
+          {classSubjectMap.length === 0 && (
+            <Card>
+              <CardContent className="py-8">
+                <p className="text-center text-gray-500">
+                  You are not assigned to any classes. Please contact the administrator.
+                </p>
+              </CardContent>
+            </Card>
           )}
           {/* Show marks entry table when class is selected */}
           {selectedClass && selectedTerm && selectedSubject && (
@@ -496,15 +536,11 @@ export default function MarksEntryPage() {
                       {subjects.find(s => s.id === selectedSubject)?.name}
                     </Badge>
                   </div>
-                  {selectedSubjectData && (
-                    <div className="text-sm text-gray-600 space-y-1">
+                  {isNumericSubject && (
+                    <div className="text-sm text-gray-600">
                       <p className="flex items-center gap-2">
                         <span className="font-semibold text-gray-700">Maximum Marks:</span>
-                        <span className="text-blue-600 font-medium">{selectedSubjectData.maxMarks}</span>
-                      </p>
-                      <p className="flex items-center gap-2">
-                        <span className="font-semibold text-gray-700">Passing Marks:</span>
-                        <span className="text-green-600 font-medium">{selectedSubjectData.passingMarks}</span>
+                        <span className="text-blue-600 font-medium">{maxMarks}</span>
                       </p>
                     </div>
                   )}
@@ -609,7 +645,7 @@ export default function MarksEntryPage() {
                 <>
                   {/* Mobile view - Cards */}
                   <div className="block md:hidden space-y-3">
-                    {students.map((student) => {
+                    {students.sort((a, b) => a.name.localeCompare(b.name)).map((student) => {
                       const entry = marksData.get(student.id)
                       if (!entry) return null
 
@@ -618,32 +654,40 @@ export default function MarksEntryPage() {
                           <CardContent className="pt-4 pb-4">
                             <div className="space-y-3">
                               {/* Student Info */}
-                              <div className="flex items-center justify-between pb-2 border-b">
-                                <div>
-                                  <p className="font-semibold text-base">{student.name}</p>
-                                  <p className="text-sm text-muted-foreground">Roll No: {student.rollNo}</p>
-                                </div>
-                                <Badge className={`${getGradeColor(entry.grade)} text-lg px-3 py-1`}>
-                                  {entry.grade}
-                                </Badge>
+                              <div className="pb-2 border-b">
+                                <p className="font-semibold text-base">{student.name}</p>
+                                <p className="text-sm text-muted-foreground">Reg. Number: {student.regNo}</p>
                               </div>
                               
                               {/* Marks Input */}
                               <div className="space-y-2">
                                 <label className="text-sm font-medium text-gray-700">
-                                  Marks <span className="text-muted-foreground">(Max: {selectedSubjectData?.maxMarks})</span>
+                                  {isNumericSubject ? `Marks (Max: ${maxMarks})` : 'Grade'}
                                 </label>
-                                <Input
-                                  type="number"
-                                  min="0"
-                                  max={selectedSubjectData?.maxMarks}
-                                  value={entry.marks}
-                                  onChange={(e) =>
-                                    updateMark(student.id, 'marks', e.target.value)
-                                  }
-                                  className="text-lg h-12 text-center font-semibold"
-                                  placeholder="0"
-                                />
+                                {isNumericSubject ? (
+                                  <Input
+                                    type="number"
+                                    min="0"
+                                    max={maxMarks}
+                                    value={entry.marks}
+                                    onChange={(e) =>
+                                      updateMark(student.id, 'marks', e.target.value)
+                                    }
+                                    className="text-lg h-12 text-center font-semibold"
+                                    placeholder="0"
+                                  />
+                                ) : (
+                                  <Input
+                                    type="text"
+                                    value={entry.grade}
+                                    onChange={(e) =>
+                                      updateMark(student.id, 'grade', e.target.value)
+                                    }
+                                    className="text-lg h-12 text-center font-semibold uppercase"
+                                    placeholder="A/B/C"
+                                    maxLength={2}
+                                  />
+                                )}
                               </div>
                             </div>
                           </CardContent>
@@ -657,10 +701,9 @@ export default function MarksEntryPage() {
                     <Table>
                       <TableHeader>
                         <TableRow>
-                          <TableHead className="w-32">Roll No</TableHead>
+                          <TableHead className="w-32">Reg. Number</TableHead>
                           <TableHead>Student Name</TableHead>
-                          <TableHead className="w-40 text-center">Marks</TableHead>
-                          <TableHead className="w-32 text-center">Grade</TableHead>
+                          <TableHead className="w-40 text-center">{isNumericSubject ? 'Marks' : 'Grade'}</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
@@ -671,26 +714,34 @@ export default function MarksEntryPage() {
                           return (
                             <TableRow key={student.id} className="hover:bg-muted/50">
                               <TableCell className="font-medium">
-                                {student.rollNo}
+                                {student.regNo}
                               </TableCell>
                               <TableCell className="font-medium">{student.name}</TableCell>
                               <TableCell className="text-center">
-                                <Input
-                                  type="number"
-                                  min="0"
-                                  max={selectedSubjectData?.maxMarks}
-                                  value={entry.marks}
-                                  onChange={(e) =>
-                                    updateMark(student.id, 'marks', e.target.value)
-                                  }
-                                  className="w-28 text-center text-base font-semibold mx-auto"
-                                  placeholder="0"
-                                />
-                              </TableCell>
-                              <TableCell className="text-center">
-                                <Badge className={`${getGradeColor(entry.grade)} text-base px-3 py-1`}>
-                                  {entry.grade}
-                                </Badge>
+                                {isNumericSubject ? (
+                                  <Input
+                                    type="number"
+                                    min="0"
+                                    max={maxMarks}
+                                    value={entry.marks}
+                                    onChange={(e) =>
+                                      updateMark(student.id, 'marks', e.target.value)
+                                    }
+                                    className="w-28 text-center text-base font-semibold mx-auto"
+                                    placeholder="0"
+                                  />
+                                ) : (
+                                  <Input
+                                    type="text"
+                                    value={entry.grade}
+                                    onChange={(e) =>
+                                      updateMark(student.id, 'grade', e.target.value)
+                                    }
+                                    className="w-28 text-center text-base font-semibold mx-auto uppercase"
+                                    placeholder="A/B/C"
+                                    maxLength={2}
+                                  />
+                                )}
                               </TableCell>
                             </TableRow>
                           )

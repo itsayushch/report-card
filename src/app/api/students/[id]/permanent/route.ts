@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { auth } from '@/lib/auth'
-import { logAdminAction, AdminActions } from '@/lib/admin-log'
+// import { logAdminAction, AdminActions } from '@/lib/admin-log'
 
 interface RouteParams {
   params: Promise<{ id: string }>
@@ -24,7 +24,7 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
     // Get student info before deletion
     const student = await prisma.student.findUnique({
       where: { id },
-      select: { name: true, rollNo: true, class: true, status: true }
+      select: { name: true, regNo: true, class: true, status: true }
     })
 
     if (!student) {
@@ -42,14 +42,15 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
       )
     }
 
-    // Check if student has any marks
-    const marksCount = await prisma.mark.count({
-      where: { studentId: id }
+    // Get full student data to check for academic records
+    const studentWithRecords = await prisma.student.findUnique({
+      where: { id },
     })
 
-    if (marksCount > 0) {
+    // Check if student has any academic records
+    if (studentWithRecords && studentWithRecords.academicRecords && studentWithRecords.academicRecords.length > 0) {
       return NextResponse.json(
-        { error: 'Cannot permanently delete student with marks. Please delete all marks first.' },
+        { error: 'Cannot permanently delete student with academic records. Please delete all marks first.' },
         { status: 400 }
       )
     }
@@ -60,21 +61,21 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
     })
 
     // Log the permanent deletion
-    if (session.user.id) {
-      await logAdminAction({
-        adminId: session.user.id,
-        action: 'PERMANENT_DELETE_STUDENT',
-        entityType: 'Student',
-        entityId: id,
-        description: `Permanently deleted student: ${student.name} (Roll No: ${student.rollNo}, Class: ${student.class})`,
-        metadata: {
-          studentName: student.name,
-          rollNo: student.rollNo,
-          class: student.class,
-          permanentDelete: true
-        }
-      })
-    }
+    // if (session.user.id) {
+    //   await logAdminAction({
+    //     adminId: session.user.id,
+    //     action: 'PERMANENT_DELETE_STUDENT',
+    //     entityType: 'Student',
+    //     entityId: id,
+    //     description: `Permanently deleted student: ${student.name} (Reg. Number: ${student.regNo}, Class: ${student.class})`,
+    //     metadata: {
+    //       studentName: student.name,
+    //       regNo: student.regNo,
+    //       class: student.class,
+    //       permanentDelete: true
+    //     }
+    //   })
+    // }
 
     return NextResponse.json({ 
       success: true, 

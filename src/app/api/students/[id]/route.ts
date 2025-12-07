@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { studentSchema } from '@/lib/validations'
-import { logAdminAction, AdminActions } from '@/lib/admin-log'
+// import { logAdminAction, AdminActions } from '@/lib/admin-log'
 import { auth } from '@/lib/auth'
 
 interface RouteParams {
@@ -75,7 +75,7 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
     // Get student info before marking inactive
     const studentBefore = await prisma.student.findUnique({
       where: { id },
-      select: { name: true, rollNo: true, class: true }
+      select: { name: true, regNo: true, class: true }
     })
 
     if (!studentBefore) {
@@ -92,21 +92,21 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
     })
 
     // Log the action if admin is logged in
-    if (session?.user?.id) {
-      await logAdminAction({
-        adminId: session.user.id,
-        action: AdminActions.DELETE_STUDENT,
-        entityType: 'Student',
-        entityId: id,
-        description: `Marked student as inactive: ${studentBefore.name} (Roll No: ${studentBefore.rollNo}, Class: ${studentBefore.class})`,
-        metadata: {
-          studentName: studentBefore.name,
-          rollNo: studentBefore.rollNo,
-          class: studentBefore.class,
-          action: 'marked_inactive'
-        }
-      })
-    }
+    // if (session?.user?.id) {
+    //   await logAdminAction({
+    //     adminId: session.user.id,
+    //     action: AdminActions.DELETE_STUDENT,
+    //     entityType: 'Student',
+    //     entityId: id,
+    //     description: `Marked student as inactive: ${studentBefore.name} (Reg. Number: ${studentBefore.regNo}, Class: ${studentBefore.class})`,
+    //     metadata: {
+    //       studentName: studentBefore.name,
+    //       regNo: studentBefore.regNo,
+    //       class: studentBefore.class,
+    //       action: 'marked_inactive'
+    //     }
+    //   })
+    // }
 
     return NextResponse.json(student)
   } catch (error) {

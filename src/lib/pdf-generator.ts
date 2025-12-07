@@ -4,7 +4,7 @@ import autoTable from 'jspdf-autotable';
 export interface ReportData {
   student: {
     name: string;
-    rollNo: string;
+    regNo: string;
     class: string;
   };
   academicYear: string;
@@ -50,7 +50,7 @@ export function generateReportCardPDF(data: ReportData): jsPDF {
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(10);
   doc.text(`Name: ${data.student.name}`, 20, 48);
-  doc.text(`Roll No: ${data.student.rollNo}`, 20, 56);
+  doc.text(`Reg. Number: ${data.student.regNo}`, 20, 56);
   doc.text(`Class: ${data.student.class}`, 20, 64);
   
   doc.text(`Academic Year: ${data.academicYear}`, 120, 48);

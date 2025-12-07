@@ -9,14 +9,14 @@ interface StudentLayoutWrapperProps {
   children: React.ReactNode
   userName?: string
   userEmail?: string
-  rollNo?: string
+  regNo?: string
 }
 
 export function StudentLayoutWrapper({
   children,
   userName,
   userEmail,
-  rollNo,
+  regNo,
 }: StudentLayoutWrapperProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
 
@@ -39,7 +39,7 @@ export function StudentLayoutWrapper({
         <StudentHeader
           userName={userName}
           userEmail={userEmail}
-          rollNo={rollNo}
+          regNo={regNo}
           onMenuClick={() => setSidebarOpen(true)}
         />
         <main className="flex-1 overflow-y-auto bg-gray-50">{children}</main>

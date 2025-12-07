@@ -47,10 +47,8 @@ export function StudentTable({ students, onEdit, onDelete, onRestore, onPermanen
               />
             </TableHead>
             <TableHead>Student</TableHead>
-            <TableHead>Roll No</TableHead>
+            <TableHead>Reg. Number</TableHead>
             <TableHead>Class</TableHead>
-            <TableHead>Parent</TableHead>
-            <TableHead>Contact</TableHead>
             <TableHead>Status</TableHead>
             <TableHead className="text-right">Actions</TableHead>
           </TableRow>
@@ -58,7 +56,7 @@ export function StudentTable({ students, onEdit, onDelete, onRestore, onPermanen
         <TableBody>
           {sortedStudents.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={8} className="text-center py-8 text-gray-500">
+              <TableCell colSpan={6} className="text-center py-8 text-gray-500">
                 No students found
               </TableCell>
             </TableRow>
@@ -76,17 +74,8 @@ export function StudentTable({ students, onEdit, onDelete, onRestore, onPermanen
                       <p className="font-medium">{student.name}</p>
                   </div>
                 </TableCell>
-                <TableCell className="font-mono">{student.rollNo}</TableCell>
+                <TableCell className="font-mono">{student.regNo}</TableCell>
                 <TableCell>{formatClass(student.class)}</TableCell>
-                <TableCell>{student.parentName}</TableCell>
-                <TableCell>
-                  <div className="flex flex-col gap-1 text-sm">
-                    <div className="flex items-center gap-1 text-gray-600">
-                      <Phone className="h-3 w-3" />
-                      <span>{student.phone}</span>
-                    </div>
-                  </div>
-                </TableCell>
                 <TableCell>
                   <Badge
                     variant={student.status === 'ACTIVE' ? 'default' : 'secondary'}

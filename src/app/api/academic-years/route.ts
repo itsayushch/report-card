@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { academicYearSchema } from '@/lib/validations'
+import { getTermsForClass, allTerms } from '@/lib/terms'
 
 // GET all academic years
 export async function GET() {
@@ -9,7 +10,13 @@ export async function GET() {
       orderBy: { startDate: 'desc' },
     })
 
-    return NextResponse.json({ academicYears })
+    // Add terms to each academic year
+    const academicYearsWithTerms = academicYears.map(year => ({
+      ...year,
+      terms: allTerms.map(term => ({ name: term }))
+    }))
+
+    return NextResponse.json({ academicYears: academicYearsWithTerms })
   } catch (error) {
     console.error('Error fetching academic years:', error)
     return NextResponse.json(

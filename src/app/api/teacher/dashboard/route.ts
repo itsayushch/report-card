@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { getSubjectById } from '@/lib/subjects'
 
 export async function GET(request: NextRequest) {
   try {
@@ -26,17 +27,25 @@ export async function GET(request: NextRequest) {
 
     // Get assigned classes and subjects from classSubjectPairs
     const assignedClasses = Array.from(new Set(teacher.classSubjectPairs.map(p => p.classAssigned))).sort((a, b) => parseInt(a) - parseInt(b))
-    const assignedSubjectNames = Array.from(new Set(teacher.classSubjectPairs.map(p => p.subject)))
+    
+    // Convert subject IDs to subject details using the subjects utility
+    const subjectDetails = teacher.classSubjectPairs.map(pair => {
+      const subject = getSubjectById(pair.classAssigned, pair.subject)
+      return subject ? {
+        id: subject.id,
+        name: subject.name,
+        class: pair.classAssigned,
+      } : null
+    }).filter(Boolean)
 
-    // Get subject details and student counts in parallel
-    const [subjects, ...studentCountResults] = await Promise.all([
-      prisma.subject.findMany({
-        where: {
-          name: { in: assignedSubjectNames },
-          academicYear: activeYear?.year,
-        },
-      }),
-      ...assignedClasses.map((cls: string) => {
+    // Get unique subjects
+    const uniqueSubjects = Array.from(
+      new Map(subjectDetails.map(s => [s!.id, s])).values()
+    )
+
+    // Get student counts in parallel
+    const studentCountResults = await Promise.all(
+      assignedClasses.map((cls: string) => {
         return prisma.student.count({
           where: {
             class: cls,
@@ -44,8 +53,8 @@ export async function GET(request: NextRequest) {
             academicYear: activeYear?.year,
           },
         })
-      }),
-    ])
+      })
+    )
 
     const studentCounts = assignedClasses.map((cls: string, index: number) => ({
       class: cls,
@@ -68,7 +77,7 @@ export async function GET(request: NextRequest) {
       },
       select: {
         name: true,
-        rollNo: true,
+        regNo: true,
         class: true,
         academicRecords: true,
         updatedAt: true,
@@ -86,13 +95,13 @@ export async function GET(request: NextRequest) {
           .filter(record => record.enteredBy === teacher.id)
           .flatMap(record =>
             record.subjects.map(subject => ({
-              id: `${student.rollNo}-${record.term}-${subject.subjectCode}`,
+              id: `${student.regNo}-${record.term}-${subject.subjectCode}`,
               marks: subject.marks,
               term: record.term,
               createdAt: record.enteredAt,
               student: {
                 name: student.name,
-                rollNo: student.rollNo,
+                regNo: student.regNo,
                 class: student.class,
               },
               subject: {
@@ -109,13 +118,13 @@ export async function GET(request: NextRequest) {
         name: teacher.name,
         email: teacher.email,
         assignedClasses,
-        subjects,
+        subjects: uniqueSubjects,
         classSubjectPairs: teacher.classSubjectPairs,
       },
       stats: {
         totalStudents,
         totalClasses: assignedClasses.length,
-        totalSubjects: subjects.length,
+        totalSubjects: uniqueSubjects.length,
         studentCounts,
       },
       recentMarks,

@@ -13,7 +13,7 @@ export async function GET(request: NextRequest) {
     // Get student data and active academic year in parallel
     const [student, activeYear] = await Promise.all([
       prisma.student.findUnique({
-        where: { email: session.user.email! },
+        where: { regNo: session.user.email! }, // session.user.email contains regNo for students
       }),
       prisma.academicYear.findFirst({
         where: { isActive: true },

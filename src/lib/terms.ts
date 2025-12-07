@@ -11,7 +11,7 @@ const termsListHigher = [
     { name: '1st Unit Test', maxMarks: 50},
     { name: 'Mid Term', maxMarks: 100 },
     { name: '2nd Unit Test', maxMarks: 50 },
-    { name: 'Final Exam', maxMarks: 100 },
+    { name: 'Final Term', maxMarks: 100 },
 ];
 
 export function getTermsForClass(classValue: string): { name: string; maxMarks: number }[] {

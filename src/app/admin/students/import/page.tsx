@@ -16,7 +16,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 
 interface StudentImportData {
   name: string
-  rollNo: string
+  regNo: string
   class: string
   dateOfBirth: string
   parentName?: string
@@ -79,7 +79,7 @@ export default function StudentImportPage() {
     const template = [
       {
         name: 'John Doe',
-        rollNo: '2024001',
+        regNo: '2024001',
         class: '9',
         dateOfBirth: '15/08/2010',
         parentName: 'Jane Doe',
@@ -89,7 +89,7 @@ export default function StudentImportPage() {
       },
       {
         name: 'Alice Smith',
-        rollNo: '2024002',
+        regNo: '2024002',
         class: '10',
         dateOfBirth: '22/03/2009',
         parentName: 'Bob Smith',
@@ -258,7 +258,7 @@ export default function StudentImportPage() {
               <h3 className="font-semibold">Required Fields:</h3>
               <ul className="list-disc list-inside space-y-1 text-muted-foreground">
                 <li>name - Student full name</li>
-                <li>rollNo - Unique roll number</li>
+                <li>regNo - Unique registration number</li>
                 <li>class - Class number (e.g., 9, 10, 11, 12)</li>
                 <li>dateOfBirth - Date of birth in DD/MM/YYYY format</li>
               </ul>
@@ -299,7 +299,7 @@ export default function StudentImportPage() {
                 <TableHeader>
                   <TableRow>
                     <TableHead>Name</TableHead>
-                    <TableHead>Roll No</TableHead>
+                    <TableHead>Reg. Number</TableHead>
                     <TableHead>Class</TableHead>
                     <TableHead>Date of Birth</TableHead>
                     <TableHead>Parent Name</TableHead>
@@ -312,7 +312,7 @@ export default function StudentImportPage() {
                   {preview.slice(0, 10).map((student, index) => (
                     <TableRow key={index}>
                       <TableCell>{student.name}</TableCell>
-                      <TableCell>{student.rollNo}</TableCell>
+                      <TableCell>{student.regNo}</TableCell>
                       <TableCell>{student.class}</TableCell>
                       <TableCell>{student.dateOfBirth || '-'}</TableCell>
                       <TableCell>{student.parentName || '-'}</TableCell>

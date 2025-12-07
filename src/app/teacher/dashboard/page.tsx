@@ -8,6 +8,8 @@ import { Skeleton } from '@/components/ui/skeleton'
 import Link from 'next/link'
 import { toast } from 'sonner'
 import { formatClass } from '@/lib/class-utils'
+import { getSubjectById } from '@/lib/subjects'
+import { getTermsForClass } from '@/lib/terms'
 
 interface TeacherStats {
   totalStudents: number
@@ -31,7 +33,7 @@ interface RecentMark {
   createdAt: string
   student: {
     name: string
-    rollNo: string
+    regNo: string
     class: string
   }
   subject: {
@@ -135,37 +137,43 @@ export default function TeacherDashboardPage() {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid gap-6 md:grid-cols-3">
+      <div className="grid gap-3 grid-cols-3">
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Students</CardTitle>
-            <Users className="h-4 w-4 text-gray-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats?.totalStudents || 0}</div>
-            <p className="text-xs text-gray-500">Across all your classes</p>
+          <CardContent className="p-4 py-3">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">TOTAL STUDENTS</p>
+                <p className="text-3xl font-bold mt-1">{stats?.totalStudents || 0}</p>
+                <p className="text-xs text-muted-foreground mt-1">Across classes assigned</p>
+              </div>
+              <Users className="h-8 w-8 text-blue-500" />
+            </div>
           </CardContent>
         </Card>
 
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Classes</CardTitle>
-            <GraduationCap className="h-4 w-4 text-gray-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats?.totalClasses || 0}</div>
-            <p className="text-xs text-gray-500">Assigned to you</p>
+          <CardContent className="p-4 py-3">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">CLASSES</p>
+                <p className="text-3xl font-bold mt-1">{stats?.totalClasses || 0}</p>
+                <p className="text-xs text-muted-foreground mt-1">Assigned to you</p>
+              </div>
+              <GraduationCap className="h-8 w-8 text-green-500" />
+            </div>
           </CardContent>
         </Card>
 
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Subjects</CardTitle>
-            <BookOpen className="h-4 w-4 text-gray-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats?.totalSubjects || 0}</div>
-            <p className="text-xs text-gray-500">You are teaching</p>
+          <CardContent className="p-4 py-3">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">SUBJECTS</p>
+                <p className="text-3xl font-bold mt-1">{stats?.totalSubjects || 0}</p>
+                <p className="text-xs text-muted-foreground mt-1">You are teaching</p>
+              </div>
+              <BookOpen className="h-8 w-8 text-purple-500" />
+            </div>
           </CardContent>
         </Card>
       </div>
@@ -224,7 +232,6 @@ export default function TeacherDashboardPage() {
               >
                 <div>
                   <p className="font-medium">{subject.name}</p>
-                  <p className="text-sm text-gray-500">Max: {subject.maxMarks} | Pass: {subject.passingMarks}</p>
                 </div>
               </div>
             ))}
@@ -247,15 +254,15 @@ export default function TeacherDashboardPage() {
                 >
                   <div>
                     <p className="font-medium">
-                      {mark.student.name} ({mark.student.rollNo})
+                      {mark.student.name} ({mark.student.regNo})
                     </p>
                     <p className="text-sm text-gray-500">
-                      {mark.subject.name} • {mark.term} • Class {formatClass(mark.student.class)}
+                      {getSubjectById(mark.student.class, mark.subject.name)?.name || 'Unknown Subject'} • {mark.term} • Class {formatClass(mark.student.class)}
                     </p>
                   </div>
                   <div className="text-right">
                     <p className="font-medium">
-                      {mark.marks} ({mark.grade})
+                      {mark.marks} / {getTermsForClass(mark.student.class).find(term => term.name === mark.term)?.maxMarks || 'N/A'}
                     </p>
                     <p className="text-xs text-gray-500">
                       {new Date(mark.createdAt).toLocaleDateString()}

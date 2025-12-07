@@ -24,7 +24,7 @@ interface TeacherFormProps {
   onSuccess: () => void
 }
 
-const availableClasses = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12']
+const availableClasses = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10']
 
 type ClassSubjectPair = {
   subject: string
@@ -103,18 +103,19 @@ export function TeacherForm({ open, onOpenChange, teacher, onSuccess }: TeacherF
     setHasChanges(hasFormChanges)
   }, [formValues, classSubjectPairs, isAdmin, originalData])
 
-  const addPair = () => {
+  // Auto-add subject when both class and subject are selected
+  useEffect(() => {
     if (selectedClass && selectedSubject) {
-      const subjectName = getSubjectNameById(selectedSubject, selectedClass)
       const isDuplicate = classSubjectPairs.some(
-        p => p.classAssigned === selectedClass && p.subject === subjectName
+        p => p.classAssigned === selectedClass && p.subject === selectedSubject
       )
 
       if (isDuplicate) {
         toast.error('This subject is already assigned to this class')
+        setSelectedSubject('')
       } else {
         const updated = [...classSubjectPairs, {
-          subject: subjectName,
+          subject: selectedSubject, // Store subject ID instead of name
           classAssigned: selectedClass
         }]
         setClassSubjectPairs(updated)
@@ -122,9 +123,10 @@ export function TeacherForm({ open, onOpenChange, teacher, onSuccess }: TeacherF
         
         setSelectedClass('')
         setSelectedSubject('')
+        toast.success('Subject assigned successfully')
       }
     }
-  }
+  }, [selectedClass, selectedSubject])
 
   const removePair = (pair: ClassSubjectPair) => {
     const updated = classSubjectPairs.filter(
@@ -247,48 +249,35 @@ export function TeacherForm({ open, onOpenChange, teacher, onSuccess }: TeacherF
               </div>
             </div>
 
-            <Button
-              type="button"
-              variant="outline"
-              onClick={addPair}
-              disabled={!selectedClass || !selectedSubject}
-              className="w-full"
-            >
-              Add Subject
-            </Button>
-
             {/* Current Assignments */}
             {classSubjectPairs.length > 0 && (
-              <div className="border rounded-md p-3 space-y-2 bg-gray-50">
-                <p className="text-sm font-medium text-gray-700">Current Assignments:</p>
-                <div className="space-y-1">
+              <div className="space-y-1.5">
+                <p className="text-xs font-medium text-gray-600">Current Assignments:</p>
+                <div className="flex flex-wrap gap-1.5">
                   {classSubjectPairs.map((pair, index) => (
-                    <div
+                    <Badge
                       key={index}
-                      className="flex items-center justify-between p-2 bg-white rounded border"
+                      variant="secondary"
+                      className="pl-2 pr-1 py-1 gap-1.5 text-xs font-normal"
                     >
-                      <span className="text-sm">
-                        <span className="font-medium">Class {formatClass(pair.classAssigned)}</span>
-                        {' - '}
-                        <span className="text-gray-600">{pair.subject}</span>
-                      </span>
-                      <Button
+                      <span className="font-medium">Class {formatClass(pair.classAssigned)}</span>
+                      <span className="text-gray-500">-</span>
+                      <span>{getSubjectNameById(pair.subject, pair.classAssigned)}</span>
+                      <button
                         type="button"
-                        variant="ghost"
-                        size="sm"
                         onClick={() => removePair(pair)}
-                        className="h-7 w-7 p-0"
+                        className="ml-0.5 hover:bg-gray-300 rounded-full p-0.5 transition-colors"
                       >
-                        <X className="h-4 w-4" />
-                      </Button>
-                    </div>
+                        <X className="h-3 w-3" />
+                      </button>
+                    </Badge>
                   ))}
                 </div>
               </div>
             )}
 
             {classSubjectPairs.length === 0 && (
-              <p className="text-sm text-gray-500 text-center py-2">
+              <p className="text-xs text-gray-400 text-center py-1">
                 No classes assigned yet.
               </p>
             )}

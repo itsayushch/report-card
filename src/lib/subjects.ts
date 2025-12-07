@@ -97,11 +97,10 @@ export function getAllSubjectNames(): string[] {
   return Array.from(allSubjects);
 } 
 
-export function getSubjectById(classValue: string, subjectId: string): { id: string; name: string; dataType: string } | null {
-  const subjects = subjectsByClass[classValue] || [];
+export function getSubjectById(classAssigned: string, subjectId: string): { id: string; name: string; dataType: string } | null {
+  const subjects = subjectsByClass[classAssigned];
+  if (!subjects) return null;
   return subjects.find(subj => subj.id === subjectId) || null;
 }
-
-
 
 

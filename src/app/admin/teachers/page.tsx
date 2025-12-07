@@ -54,10 +54,11 @@ export default function TeachersPage() {
     return (
       teacher.name.toLowerCase().includes(search) ||
       teacher.email.toLowerCase().includes(search) ||
-      teacher.classSubjectPairs.some((pair) => 
-        pair.subject.toLowerCase().includes(search) || 
-        pair.classAssigned.toLowerCase().includes(search)
-      )
+      teacher.classSubjectPairs.some((pair) => {
+        const subjectName = getSubjectById(pair.classAssigned, pair.subject)?.name || pair.subject
+        return subjectName.toLowerCase().includes(search) || 
+               pair.classAssigned.toLowerCase().includes(search)
+      })
     )
   }).sort((a, b) => {
     // Super Admin first

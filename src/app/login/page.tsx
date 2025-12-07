@@ -10,13 +10,9 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
-import { Calendar } from '@/components/ui/calendar'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { loginSchema, type LoginFormData } from '@/lib/validations'
-import { GraduationCap, AlertCircle, CalendarIcon } from 'lucide-react'
-import { format } from 'date-fns'
-import { cn } from '@/lib/utils'
+import { GraduationCap, AlertCircle } from 'lucide-react'
 
 function LoginForm() {
   const router = useRouter()
@@ -26,7 +22,6 @@ function LoginForm() {
   
   const [error, setError] = useState<string>('')
   const [isLoading, setIsLoading] = useState(false)
-  const [dateOfBirth, setDateOfBirth] = useState<Date | undefined>(undefined)
 
   useEffect(() => {
     if (status === 'authenticated' && session?.user) {
@@ -59,18 +54,9 @@ function LoginForm() {
       setIsLoading(true)
       setError('')
 
-      // For students, convert date of birth to DDMMYYYY format if provided
-      let password = data.password
-      if (data.role === 'STUDENT' && dateOfBirth) {
-        const day = String(dateOfBirth.getDate()).padStart(2, '0')
-        const month = String(dateOfBirth.getMonth() + 1).padStart(2, '0')
-        const year = dateOfBirth.getFullYear()
-        password = `${day}${month}${year}`
-      }
-
       const result = await signIn('credentials', {
         email: data.email,
-        password: password || undefined,
+        password: data.password || undefined,
         role: data.role,
         redirect: false,
       })
@@ -78,7 +64,7 @@ function LoginForm() {
       if (result?.error) {
         console.error('Login error:', result)
         setError(data.role === 'STUDENT' 
-          ? 'Invalid credentials. Please check your roll number and select your date of birth.'
+          ? 'Invalid credentials. Please check your registration number.'
           : 'Invalid credentials. Please check your email and password.')
       } else {
         // Redirect based on role
@@ -215,14 +201,14 @@ function LoginForm() {
 
               <div className="space-y-2">
                 <Label htmlFor="email" className="text-sm font-medium text-gray-700">
-                  {selectedRole === 'STUDENT' ? 'Roll Number' : 'Email Address'}
+                  {selectedRole === 'STUDENT' ? 'Registration Number' : 'Email Address'}
                 </Label>
                 <Input
                   id="email"
                   type="text"
                   placeholder={
                     selectedRole === 'STUDENT' 
-                      ? 'Enter your roll number' 
+                      ? 'Enter your registration number' 
                       : 'Enter your email'
                   }
                   {...register('email')}
@@ -236,47 +222,20 @@ function LoginForm() {
 
               <div className="space-y-2">
                 <Label htmlFor="password" className="text-sm font-medium text-gray-700">
-                  {selectedRole === 'STUDENT' ? 'Date of Birth' : 'Password'}
+                  Password
                 </Label>
-                {selectedRole === 'STUDENT' ? (
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant="outline"
-                        className={cn(
-                          "w-full h-12 justify-start text-left font-normal border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 rounded-lg",
-                          !dateOfBirth && "text-gray-400"
-                        )}
-                        disabled={isLoading}
-                      >
-                        <CalendarIcon className="mr-2 h-4 w-4" />
-                        {dateOfBirth ? format(dateOfBirth, "dd/MM/yyyy") : <span>Pick your date of birth</span>}
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
-                      <Calendar
-                        mode="single"
-                        selected={dateOfBirth}
-                        onSelect={setDateOfBirth}
-                        captionLayout="dropdown"
-                        startMonth={new Date(1990, 0)}
-                        endMonth={new Date(new Date().getFullYear() - 3, 11)}
-                        disabled={(date) =>
-                          date > new Date() || date < new Date("1900-01-01")
-                        }
-                      />
-                    </PopoverContent>
-                  </Popover>
-                ) : (
-                  <Input
-                    id="password"
-                    type="password"
-                    placeholder="Enter your password"
-                    {...register('password')}
-                    disabled={isLoading}
-                    className="h-12 border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 rounded-lg"
-                  />
-                )}
+                <Input
+                  id="password"
+                  type="password"
+                  placeholder={
+                    selectedRole === 'STUDENT'
+                      ? 'Enter your password (same as registration number)'
+                      : 'Enter your password'
+                  }
+                  {...register('password')}
+                  disabled={isLoading}
+                  className="h-12 border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 rounded-lg"
+                />
                 {errors.password && (
                   <p className="text-sm text-red-600 mt-1">{errors.password.message}</p>
                 )}

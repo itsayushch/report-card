@@ -26,7 +26,7 @@ export async function GET(request: NextRequest) {
     const students = await prisma.student.findMany({
       where,
       orderBy: {
-        rollNo: 'asc',
+        regNo: 'asc',
       },
     })
 

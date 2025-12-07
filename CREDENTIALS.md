@@ -125,7 +125,7 @@ Students cannot reset their password. Contact admin to update date of birth if n
 ### Student Model
 ```prisma
 model Student {
-  rollNo       String @unique  // Username
+  regNo       String @unique  // Username
   password     String          // Date of birth (DDMMYYYY)
   dateOfBirth  String          // Date of birth (DDMMYYYY)
   email        String @unique
@@ -172,7 +172,7 @@ This implementation is **ONLY** suitable for:
 POST /api/students
 {
   "name": "John Doe",
-  "rollNo": "2024001",
+  "regNo": "2024001",
   "dateOfBirth": "15032010",  // March 15, 2010
   "email": "john@example.com",
   "class": "10",
@@ -202,7 +202,7 @@ POST /api/teachers
 ### CSV Import (Students)
 CSV must include:
 ```csv
-name,rollNo,dateOfBirth,email,class,section,parentName,phone
+name,regNo,dateOfBirth,email,class,section,parentName,phone
 John Doe,2024001,15032010,john@example.com,10,A,Jane Doe,+1234567890
 ```
 
@@ -268,7 +268,7 @@ No environment variables needed for passwords since they're plain text.
 
 - [ ] Admin can login with email/email
 - [ ] Teacher can login with email/email
-- [ ] Student can login with rollNo/dateOfBirth
+- [ ] Student can login with regNo/dateOfBirth
 - [ ] Teacher forced to reset password on first login
 - [ ] Password reset works for teachers
 - [ ] Students created with correct dateOfBirth

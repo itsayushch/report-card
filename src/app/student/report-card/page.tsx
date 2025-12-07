@@ -24,10 +24,12 @@ import { Download, Printer, Loader2, FileX, Eye, Lock } from 'lucide-react'
 import { generateReportCardPDF } from '@/lib/pdf-generator'
 import { getGradeColor } from '@/lib/calculations'
 
+import { getTermsForClass } from '@/lib/terms'
+
 interface ReportData {
   student: {
     name: string
-    rollNo: string
+    regNo: string
     class: string
   }
   academicYear: string
@@ -61,6 +63,7 @@ export default function ReportCardPage() {
   const [academicYears, setAcademicYears] = useState<any[]>([])
   const [selectedYear, setSelectedYear] = useState('')
   const [studentId, setStudentId] = useState<string>('')
+  const [studentClass, setStudentClass] = useState<string>('')
   const [termReports, setTermReports] = useState<TermReport[]>([])
   const [loading, setLoading] = useState(false)
   const [initialLoading, setInitialLoading] = useState(true)
@@ -89,6 +92,7 @@ export default function ReportCardPage() {
         const years = yearsData.academicYears || []
         setAcademicYears(years)
         setStudentId(dashboard.student.id)
+        setStudentClass(dashboard.student.class)
 
         const activeYear = years.find((y: any) => y.isActive)
         if (activeYear) {
@@ -108,13 +112,14 @@ export default function ReportCardPage() {
   const fetchAllReports = async () => {
     setLoading(true)
     
-    const selectedYearData = academicYears.find((y) => y.year === selectedYear)
-    if (!selectedYearData || !selectedYearData.terms) {
+    // Get terms based on student's class
+    const classTerms = getTermsForClass(studentClass)
+    const terms = classTerms.map(t => t.name)
+    
+    if (terms.length === 0) {
       setLoading(false)
       return
     }
-
-    const terms = selectedYearData.terms.map((t: any) => t.name)
     
     // Initialize term reports
     const initialReports: TermReport[] = terms.map((term: string) => ({
@@ -190,7 +195,7 @@ export default function ReportCardPage() {
     if (!reportData) return
 
     const pdf = generateReportCardPDF(reportData)
-    pdf.save(`report-card-${reportData.student.rollNo}-${reportData.term}.pdf`)
+    pdf.save(`report-card-${reportData.student.regNo}-${reportData.term}.pdf`)
     toast.success('Report card downloaded successfully!')
   }
   
@@ -301,128 +306,97 @@ export default function ReportCardPage() {
           {/* Term Reports Grid */}
           {!loading && termReports.length > 0 && (
             <div>
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-xl font-semibold text-gray-900">
-                  Term Reports ({termReports.length})
-                </h2>
-                <p className="text-sm text-gray-500">
-                  {termReports.filter(r => r.isPublished).length} Published
-                </p>
+              <div className="flex items-center justify-between mb-5">
+                <div>
+                  <h2 className="text-xl font-bold text-gray-900">Academic Performance</h2>
+                  <p className="text-xs text-gray-500 mt-0.5">
+                    {termReports.filter(r => r.isPublished).length}/{termReports.length} published
+                  </p>
+                </div>
               </div>
               
-              <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                {termReports.map((termReport) => (
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+                {termReports.map((termReport, index) => (
                   <Card 
                     key={termReport.term} 
-                    className={`flex flex-col border-2 transition-all ${
+                    className={`relative overflow-hidden transition-all duration-200 ${
                       termReport.isPublished 
-                        ? 'hover:shadow-xl hover:border-indigo-300' 
-                        : 'bg-gray-50/30'
+                        ? 'border border-gray-200 hover:shadow-md bg-white' 
+                        : 'border border-gray-100 bg-gray-50/50'
                     }`}
                   >
-                    <CardHeader className="border-b pb-4">
-                      <div className="flex items-start justify-between">
-                        <div>
-                          <CardTitle className="text-xl font-bold text-gray-900">
+                    <CardHeader className="pb-3 pt-4 px-4">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex-1 min-w-0">
+                          <CardTitle className="text-base font-bold text-gray-900 truncate">
                             {termReport.term}
                           </CardTitle>
-                          <p className="text-sm text-gray-500 mt-1">
+                          <p className="text-xs text-gray-500 mt-0.5">
                             {selectedYear}
                           </p>
                         </div>
                         {termReport.isPublished ? (
-                          <Badge className="bg-green-600 hover:bg-green-600 text-white">
-                            Published
+                          <Badge className="bg-emerald-600 hover:bg-emerald-600 text-white text-xs px-2 py-0.5 h-5">
+                            Live
                           </Badge>
                         ) : (
-                          <Badge variant="secondary" className="flex items-center gap-1.5 bg-gray-200">
-                            <Lock className="h-3.5 w-3.5" />
+                          <Badge variant="secondary" className="text-xs px-2 py-0.5 h-5 bg-gray-200 text-gray-600">
+                            <Lock className="h-2.5 w-2.5 mr-1" />
                             Locked
                           </Badge>
                         )}
                       </div>
                     </CardHeader>
                     
-                    <CardContent className="flex-1 flex flex-col justify-between pt-6">
+                    <CardContent className="px-4 pb-4 pt-0">
                       {termReport.loading ? (
                         <div className="flex items-center justify-center py-12">
-                          <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
+                          <Loader2 className="h-6 w-6 animate-spin text-gray-400" />
                         </div>
                       ) : termReport.isPublished && termReport.data ? (
-                        <>
-                          <div className="space-y-4 mb-6">
-                            {/* Stats Grid */}
-                            <div className="grid grid-cols-2 gap-3">
-                              <div className="border-2 border-indigo-200 bg-indigo-50 p-4 rounded-lg">
-                                <p className="text-xs font-medium text-indigo-700 uppercase tracking-wide mb-1">
-                                  Percentage
-                                </p>
-                                <p className="text-2xl font-bold text-indigo-900">
-                                  {termReport.data.summary.percentage}%
-                                </p>
-                              </div>
-                              <div className={`border-2 p-4 rounded-lg ${
-                                termReport.data.summary.result === 'PASS' 
-                                  ? 'border-green-200 bg-green-50' 
-                                  : 'border-red-200 bg-red-50'
-                              }`}>
-                              <p className={`text-xs font-medium uppercase tracking-wide mb-1 ${
-                                termReport.data.summary.result === 'PASS' 
-                                  ? 'text-green-700' 
-                                  : 'text-red-700'
-                              }`}>
-                                Result
-                              </p>
-                              <p className={`text-xl font-bold ${
-                                termReport.data.summary.result === 'PASS' 
-                                  ? 'text-green-900' 
-                                  : 'text-red-900'
-                              }`}>
-                                {termReport.data.summary.result}
-                              </p>
-                              </div>
-                            </div>
-                            
-                            {/* Total Marks */}
-                            <div className="border-2 bg-white p-4 rounded-lg">
-                              <p className="text-xs font-medium text-gray-600 uppercase tracking-wide mb-1">
-                                Total Marks
-                              </p>
-                              <p className="text-xl font-bold text-gray-900">
-                                {termReport.data.summary.totalObtained} 
-                                <span className="text-gray-400 font-medium"> / </span>
-                                {termReport.data.summary.totalMax}
+                        <div className="space-y-3">
+                          {/* Compact Score Display */}
+                          <div className="flex items-center justify-between py-3 px-3 bg-gradient-to-r from-indigo-50 to-purple-50 rounded-lg border border-indigo-100">
+                            <div>
+                              <p className="text-xs font-medium text-indigo-700 mb-0.5">Score</p>
+                              <p className="text-2xl font-bold text-indigo-900">
+                                {termReport.data.summary.percentage}<span className="text-sm">%</span>
                               </p>
                             </div>
-
-
-                            {/* Subject Count */}
-                            <div className="flex items-center justify-center gap-2 pt-2">
-                              <div className="h-2 w-2 rounded-full bg-indigo-600"></div>
-                              <p className="text-sm font-medium text-gray-700">
-                                {termReport.data.marks.length} Subjects Evaluated
+                            <div className="text-right">
+                              <p className="text-xs font-medium text-gray-600 mb-0.5">Marks</p>
+                              <p className="text-sm font-bold text-gray-900">
+                                {termReport.data.summary.totalObtained}
+                                <span className="text-gray-400 font-normal text-xs mx-0.5">/</span>
+                                <span className="text-gray-600">{termReport.data.summary.totalMax}</span>
                               </p>
                             </div>
                           </div>
 
-                          {/* Actions */}
+
+                          {/* Subjects Count */}
+                          <p className="text-xs text-center text-gray-500 py-1">
+                            {termReport.data.marks.length} subjects
+                          </p>
+
+                          {/* View Button */}
                           <Button 
                             onClick={() => handleViewFullReport(termReport.term)}
-                            className="w-full h-11 bg-indigo-600 hover:bg-indigo-700 font-semibold"
-                            size="lg"
+                            className="w-full h-9 bg-indigo-600 hover:bg-indigo-700 text-sm font-medium"
+                            size="sm"
                           >
-                            <Eye className="mr-2 h-4 w-4" />
-                            View Full Report
+                            <Eye className="mr-1.5 h-3.5 w-3.5" />
+                            View Report
                           </Button>
-                        </>
+                        </div>
                       ) : (
-                        <div className="text-center py-12">
-                          <div className="inline-flex items-center justify-center h-16 w-16 rounded-full bg-gray-200 mb-4">
-                            <Lock className="h-8 w-8 text-gray-400" />
+                        <div className="text-center py-8">
+                          <div className="inline-flex items-center justify-center h-12 w-12 rounded-xl bg-gray-100 mb-2">
+                            <Lock className="h-5 w-5 text-gray-400" />
                           </div>
-                          <h3 className="font-semibold text-gray-900 mb-1">Not Published Yet</h3>
-                          <p className="text-sm text-gray-500">
-                            Report will be available once published
+                          <p className="text-xs font-medium text-gray-900 mb-1">Awaiting Publication</p>
+                          <p className="text-xs text-gray-500 leading-relaxed px-2">
+                            Results not published
                           </p>
                         </div>
                       )}

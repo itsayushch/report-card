@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { auth } from '@/lib/auth'
-import { logAdminAction, AdminActions } from '@/lib/admin-log'
 
 export async function PATCH(request: NextRequest) {
   try {
@@ -26,7 +25,7 @@ export async function PATCH(request: NextRequest) {
     // Get student names for logging
     const students = await prisma.student.findMany({
       where: { id: { in: studentIds } },
-      select: { id: true, name: true, rollNo: true, class: true }
+      select: { id: true, name: true, regNo: true, class: true }
     })
 
     // Restore students (mark as ACTIVE)
@@ -36,23 +35,23 @@ export async function PATCH(request: NextRequest) {
     })
 
     // Log the bulk restore action
-    if (session.user.id) {
-      await logAdminAction({
-        adminId: session.user.id,
-        action: AdminActions.RESTORE_STUDENTS,
-        entityType: 'Student',
-        description: `Restored ${studentIds.length} student(s) to active status`,
-        metadata: {
-          count: studentIds.length,
-          students: students.map(s => ({
-            id: s.id,
-            name: s.name,
-            rollNo: s.rollNo,
-            class: s.class
-          }))
-        }
-      })
-    }
+    // if (session.user.id) {
+    //   await logAdminAction({
+    //     adminId: session.user.id,
+    //     action: AdminActions.RESTORE_STUDENTS,
+    //     entityType: 'Student',
+    //     description: `Restored ${studentIds.length} student(s) to active status`,
+    //     metadata: {
+    //       count: studentIds.length,
+    //       students: students.map(s => ({
+    //         id: s.id,
+    //         name: s.name,
+    //         regNo: s.regNo,
+    //         class: s.class
+    //       }))
+    //     }
+    //   })
+    // }
 
     return NextResponse.json({ 
       success: true,

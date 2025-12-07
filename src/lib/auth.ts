@@ -40,65 +40,69 @@ export const authOptions = {
 
         const role = credentials.role as UserRole
 
-        if (role === 'STUDENT') {
-          const student = await prisma.student.findUnique({
-            where: { rollNo: credentials.email as string },  // Use rollNo as username
-          })
+        // Check if it's a student login (regNo format)
+        console.log('Login attempt:', credentials.email, 'Role:', role);
 
-          if (!student) {
-            throw new Error('No student found with this roll number')
-          }
+        const student = await prisma.student.findUnique({
+          where: { regNo: credentials.email as string }, // Using email field but checking regNo
+        })
 
-          if (student.status !== 'ACTIVE') {
-            throw new Error('Student account is inactive')
+        if (student) {
+          console.log('Student found:', student.regNo, 'Password in DB:', student.password, 'Input password:', credentials.password);
+          
+          // For students, use password field if exists, otherwise fall back to regNo
+          const studentPassword = student.password || student.regNo
+          
+          console.log('Expected password:', studentPassword, 'Match:', credentials.password === studentPassword);
+          
+          if (credentials.password === studentPassword) {
+            return {
+              id: student.id,
+              name: student.name,
+              email: student.regNo, // Use regNo as email for session
+              role: 'STUDENT',
+            }
           }
-
-          // For students, password is the dateOfBirth in DDMMYYYY format (passed in credentials.password)
-          // If password is provided, verify it matches
-          if (credentials.password && credentials.password !== student.password) {
-            return null
-          }
-
-          return {
-            id: student.id,
-            email: student.email,
-            name: student.name,
-            role: 'STUDENT' as UserRole,
-          }
-        } else if (role === 'TEACHER' || role === 'ADMIN') {
-          if (!credentials.password) {
-            throw new Error('Password is required')
-          }
-
-          const teacher = await prisma.teacher.findUnique({
-            where: { email: credentials.email as string },
-          })
-
-          if (!teacher) {
-            throw new Error('No teacher found with this email')
-          }
-
-          // Check if trying to login as admin
-          if (role === 'ADMIN' && !teacher.isAdmin) {
-            throw new Error('You do not have admin privileges')
-          }
-
-          // Password is email ID (plain text)
-          if (credentials.password !== teacher.password) {
-            return null
-          }
-
-          return {
-            id: teacher.id,
-            email: teacher.email,
-            name: teacher.name,
-            role: teacher.isAdmin && role === 'ADMIN' ? 'ADMIN' : 'TEACHER' as UserRole,
-            isAdmin: teacher.isAdmin,
-            firstLogin: teacher.firstLogin,
-          }
+          console.log('Password mismatch!');
+          return null
         }
 
-        throw new Error('Invalid role')
+        console.log('Student not found, checking teacher');
+
+        // Check for regular user (teacher/admin)
+        const user = await prisma.teacher.findUnique({
+          where: { email: credentials.email as string },
+        })
+
+        if (!user) {
+          console.log('Teacher not found');
+          return null
+        }
+
+        const isValid = credentials.password === user.password
+
+        if (!isValid) {
+          console.log('Teacher password invalid');
+          return null
+        }
+
+        // Use the role from credentials instead of determining from isAdmin flag
+        // This allows teachers to login as TEACHER even if they have admin privileges
+        const userRole = credentials.role as UserRole
+        
+        // However, only allow ADMIN login if user actually has admin privileges
+        if (userRole === 'ADMIN' && !user.isAdmin) {
+          console.log('User does not have admin privileges');
+          return null
+        }
+
+        return {
+          id: user.id,
+          name: user.name,
+          email: user.email,
+          role: userRole,
+          isAdmin: user.isAdmin,
+        }
       },
     }),
   ],
@@ -113,8 +117,8 @@ export const authOptions = {
       return token
     },
     async session({ session, token }: {session: any, token: any}) {
-      if (session.user) {
-        session.user.id = token.id as string
+      if (session?.user) {
+        session.user.id = (token.id as string) || ''
         session.user.role = token.role as UserRole
         session.user.isAdmin = token.isAdmin as boolean | undefined
         session.user.firstLogin = token.firstLogin as boolean | undefined

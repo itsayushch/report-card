@@ -33,6 +33,16 @@ const menuItems = [
     icon: GraduationCap,
   },
   {
+    title: 'Class Teachers',
+    href: '/admin/class-teachers',
+    icon: Users,
+  },
+  {
+    title: 'Subjects',
+    href: '/admin/subjects',
+    icon: BookOpen,
+  },
+  {
     title: 'Academic Years',
     href: '/admin/academic-years',
     icon: Calendar,

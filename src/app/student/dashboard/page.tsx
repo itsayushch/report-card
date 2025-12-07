@@ -14,7 +14,7 @@ interface DashboardData {
   student: {
     id: string
     name: string
-    rollNo: string
+    regNo: string
     class: string
     email: string
     academicYear: string
@@ -97,12 +97,12 @@ export default function StudentDashboard() {
     )
   }
 
-  const initials = data.student.name
-    .split(' ')
+  const initials = data?.student?.name
+    ?.split(' ')
     .map((n) => n[0])
     .join('')
     .toUpperCase()
-    .slice(0, 2)
+    .slice(0, 2) || ''
 
 
   return (
@@ -110,7 +110,7 @@ export default function StudentDashboard() {
       {/* Header */}
       <div>
         <h1 className="text-3xl font-bold text-gray-900">Student Dashboard</h1>
-        <p className="text-gray-500 mt-1">Welcome back, {data.student.name}!</p>
+        <p className="text-gray-500 mt-1">Welcome back, {data?.student?.name}!</p>
       </div>
 
       {/* Profile Card */}
@@ -127,7 +127,7 @@ export default function StudentDashboard() {
               <div>
                 <h2 className="text-2xl font-bold text-gray-900">{data.student.name}</h2>
                 <p className="text-gray-600 mt-1">
-                  Class {formatClass(data.student.class)} • Roll No: {data.student.rollNo}
+                  Class {formatClass(data.student.class)} • Reg. Number: {data.student.regNo}
                 </p>
               </div>
 
@@ -145,7 +145,7 @@ export default function StudentDashboard() {
                       : 'bg-yellow-100 text-yellow-700 hover:bg-yellow-100'
                   }
                 >
-                  {data.student.promotionStatus}
+                  {data.student.promotionStatus === 'PENDING' ? 'Promotion Pending' : data.student.promotionStatus}
                 </Badge>
               </div>
             </div>
@@ -182,7 +182,7 @@ export default function StudentDashboard() {
             </Card>
           </Link>
 
-          <Link href="/student/performance">
+          {/* <Link href="/student/performance">
             <Card className="hover:shadow-lg transition-shadow cursor-pointer h-full">
               <CardContent className="pt-6">
                 <div className="flex flex-col items-center text-center space-y-3">
@@ -198,8 +198,8 @@ export default function StudentDashboard() {
                 </div>
               </CardContent>
             </Card>
-          </Link>
-
+          </Link> */}
+{/* 
           <Link href="/student/profile">
             <Card className="hover:shadow-lg transition-shadow cursor-pointer h-full">
               <CardContent className="pt-6">
@@ -216,7 +216,7 @@ export default function StudentDashboard() {
                 </div>
               </CardContent>
             </Card>
-          </Link>
+          </Link> */}
         </div>
       </div>
     </div>

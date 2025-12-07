@@ -4,7 +4,7 @@ import { prisma } from '@/lib/prisma'
 
 interface StudentImportData {
   name: string
-  rollNo: string
+  regNo: string
   dateOfBirth?: string
   class: string
   parentName?: string
@@ -47,25 +47,25 @@ export async function POST(request: NextRequest) {
 
       try {
         // Validate required fields
-        if (!student.name || !student.rollNo || !student.class || !student.email) {
+        if (!student.name || !student.regNo || !student.class || !student.email) {
           results.failed++
           results.errors.push({
             row: i + 1,
-            error: 'Missing required fields (name, rollNo, class, email)',
+            error: 'Missing required fields (name, regNo, class, email)',
           })
           continue
         }
 
         // Check if student already exists
         const existing = await prisma.student.findUnique({
-          where: { rollNo: student.rollNo },
+          where: { regNo: student.regNo },
         })
 
         if (existing) {
           results.failed++
           results.errors.push({
             row: i + 1,
-            error: `Student with roll number ${student.rollNo} already exists`,
+            error: `Student with registration number ${student.regNo} already exists`,
           })
           continue
         }
@@ -101,7 +101,7 @@ export async function POST(request: NextRequest) {
             dateOfBirth = student.dateOfBirth
           }
         } else {
-          password = student.rollNo
+          password = student.regNo
           dateOfBirth = ''
         }
 
@@ -109,7 +109,7 @@ export async function POST(request: NextRequest) {
         await prisma.student.create({
           data: {
             name: student.name,
-            rollNo: student.rollNo,
+            regNo: student.regNo,
             email: student.email,
             password: password,
             dateOfBirth: dateOfBirth,

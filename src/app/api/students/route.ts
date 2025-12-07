@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { studentSchema } from '@/lib/validations'
 import { auth } from '@/lib/auth'
-import { createAdminLog, AdminActions } from '@/lib/admin-log'
+// import { createAdminLog, AdminActions } from '@/lib/admin-log'
 
 // GET all students with filters and search
 export async function GET(request: NextRequest) {
@@ -12,7 +12,7 @@ export async function GET(request: NextRequest) {
     const classFilter = searchParams.get('class') || ''
     const statusFilter = searchParams.get('status') || ''
     const page = parseInt(searchParams.get('page') || '1')
-    const limit = parseInt(searchParams.get('limit') || '10')
+    const limit = parseInt(searchParams.get('limit') || '1000') // Increased default limit
     const skip = (page - 1) * limit
 
     const where: any = {}
@@ -20,8 +20,7 @@ export async function GET(request: NextRequest) {
     if (search) {
       where.OR = [
         { name: { contains: search, mode: 'insensitive' } },
-        { rollNo: { contains: search, mode: 'insensitive' } },
-        { email: { contains: search, mode: 'insensitive' } },
+        { regNo: { contains: search, mode: 'insensitive' } },
       ]
     }
 
@@ -85,78 +84,43 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Check if roll number already exists
+    // Check if registration number already exists
     const existingStudent = await prisma.student.findUnique({
-      where: { rollNo: validatedData.rollNo },
+      where: { regNo: validatedData.regNo },
     })
 
     if (existingStudent) {
       return NextResponse.json(
-        { error: 'Roll number already exists' },
+        { error: 'Registration number already exists' },
         { status: 400 }
       )
     }
 
-    // Check if email already exists
-    const existingEmail = await prisma.student.findFirst({
-      where: { email: validatedData.email },
-    })
-
-    if (existingEmail) {
-      return NextResponse.json(
-        { error: 'Email already exists' },
-        { status: 400 }
-      )
-    }
-
-    // Password is dateOfBirth in DDMMYYYY format (plain text, no slashes)
-    // dateOfBirth is stored with slashes DD/MM/YYYY
-    let password: string
-    let dateOfBirth: string
-
-    if (validatedData.dateOfBirth) {
-      // Remove any slashes from input to get DDMMYYYY
-      const dobWithoutSlashes = validatedData.dateOfBirth.replace(/\//g, '')
-      password = dobWithoutSlashes
-      
-      // Format as DD/MM/YYYY for storage
-      if (dobWithoutSlashes.length === 8) {
-        dateOfBirth = `${dobWithoutSlashes.slice(0, 2)}/${dobWithoutSlashes.slice(2, 4)}/${dobWithoutSlashes.slice(4, 8)}`
-      } else {
-        dateOfBirth = validatedData.dateOfBirth
-      }
-    } else {
-      password = validatedData.rollNo
-      dateOfBirth = ''
-    }
-
-    // Create student with embedded auth
+    // Create student
     const student = await prisma.student.create({
       data: {
         ...validatedData,
-        dateOfBirth: dateOfBirth,
-        password: password,
         academicYear: activeYear.year,
-        status: validatedData.status || 'ACTIVE',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
       },
     })
 
     // Log admin action
-    await createAdminLog({
-      adminId: session.user.id,
-      action: AdminActions.CREATE_STUDENT,
-      entityType: 'Student',
-      entityId: student.id,
-      description: `Created student: ${student.name} (${student.rollNo})`,
-      metadata: {
-        studentData: {
-          name: student.name,
-          rollNo: student.rollNo,
-          class: student.class,
-          email: student.email,
-        },
-      },
-    })
+    // await createAdminLog({
+    //   adminId: session.user.id,
+    //   action: AdminActions.CREATE_STUDENT,
+    //   entityType: 'Student',
+    //   entityId: student.id,
+    //   description: `Created student: ${student.name} (${student.regNo})`,
+    //   metadata: {
+    //     studentData: {
+    //       name: student.name,
+    //       regNo: student.regNo,
+    //       class: student.class,
+    //     },
+    //   },
+    // })
 
     return NextResponse.json(student, { status: 201 })
   } catch (error: any) {

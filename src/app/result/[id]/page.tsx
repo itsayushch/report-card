@@ -3,29 +3,65 @@ import { Printer } from 'lucide-react';
 import { useEffect, useState, Suspense } from 'react';
 import { useSearchParams, useParams } from 'next/navigation';
 import { formatClass } from '@/lib/class-utils';
+import { getSubjectById } from '@/lib/subjects';
+import { getTermsForClass } from '@/lib/terms';
 
 interface ReportData {
   student: {
     name: string;
-    rollNo: string;
+    regNo: string;
     class: string;
   };
   academicYear: string;
-  term: string;
-  marks: Array<{
-    subject: string;
-    maxMarks: number;
-    obtainedMarks: number;
-    grade: string;
-    remarks?: string;
-  }>;
-  summary: {
-    totalMarks: number;
-    obtainedMarks: number;
-    percentage: number;
-    grade: string;
-    result: string;
+  termReports: {
+    '1st Unit Test'?: {
+      subjects: Array<{
+        subjectCode: string;
+        marks: number;
+        maxMarks: number;
+        grade: string;
+      }>;
+      totalObtained: number;
+      totalMax: number;
+      percentage: number;
+    };
+    'Mid Term'?: {
+      subjects: Array<{
+        subjectCode: string;
+        marks: number;
+        maxMarks: number;
+        grade: string;
+      }>;
+      totalObtained: number;
+      totalMax: number;
+      percentage: number;
+    };
+    '2nd Unit Test'?: {
+      subjects: Array<{
+        subjectCode: string;
+        marks: number;
+        maxMarks: number;
+        grade: string;
+      }>;
+      totalObtained: number;
+      totalMax: number;
+      percentage: number;
+    };
+    'Final Term'?: {
+      subjects: Array<{
+        subjectCode: string;
+        marks: number;
+        maxMarks: number;
+        grade: string;
+      }>;
+      totalObtained: number;
+      totalMax: number;
+      percentage: number;
+    };
   };
+  overallPercentage: number;
+  overallGrade: string;
+  result: string;
   promotionStatus?: string;
   isPublished: boolean;
 }
@@ -41,10 +77,9 @@ function PrintableReportCardContent() {
     const fetchReport = async () => {
       try {
         const studentId = params.id as string;
-        const term = searchParams.get('term') || 'Final';
         const academicYear = searchParams.get('year') || '2025';
         
-        const response = await fetch(`/api/reports/student/${studentId}?term=${term}&academicYear=${academicYear}`);
+        const response = await fetch(`/api/reports/student/${studentId}?academicYear=${academicYear}`);
         
         if (!response.ok) {
           const errorData = await response.json();
@@ -89,11 +124,71 @@ function PrintableReportCardContent() {
   }
 
   // Calculate CGPA (assuming 10-point scale)
-  const cgpa = data.summary.percentage / 10;
+  const cgpa = data.overallPercentage / 10;
 
-  // Calculate total marks from marks array
-  const totalMaxMarks = data.marks.reduce((sum, mark) => sum + mark.maxMarks, 0);
-  const totalObtainedMarks = data.marks.reduce((sum, mark) => sum + mark.obtainedMarks, 0);
+  // Get all unique subjects from all terms
+  const allSubjects = new Set<string>();
+  Object.values(data.termReports).forEach(termData => {
+    if (termData) {
+      termData.subjects.forEach(sub => allSubjects.add(sub.subjectCode));
+    }
+  });
+  
+  // TEMPORARY: Add dummy subjects for testing (REMOVE LATER)
+  const dummySubjects = [
+    'MATH', 'ENG', 'SCI', 'SST', 'HIN', 'SANS', 'COMP', 'PHY',
+    'CHEM', 'BIO', 'GEO', 'HIST', 'ECON', 'COMM', 'ACC', 'BUS',
+    'POL', 'PSYCH', 'SOCIO'
+  ];
+  dummySubjects.forEach(sub => allSubjects.add(sub));
+  // END TEMPORARY
+  
+  const subjects = Array.from(allSubjects);
+
+  // Helper to get marks for a subject in a specific term
+  const getMarksForTerm = (subjectCode: string, termKey: string) => {
+    const termData = data.termReports[termKey as keyof typeof data.termReports];
+    if (!termData) return null;
+    return termData.subjects.find(s => s.subjectCode === subjectCode);
+  };
+
+  // Calculate cumulative marks up to each term
+  const getCumulativeMarks = (subjectCode: string, upToTerm: string) => {
+    const termOrder = ['1st Unit Test', 'Mid Term', '2nd Unit Test', 'Final Term'];
+    const endIndex = termOrder.indexOf(upToTerm);
+    
+    let totalObtained = 0;
+    let totalMax = 0;
+    
+    for (let i = 0; i <= endIndex; i++) {
+      const marks = getMarksForTerm(subjectCode, termOrder[i]);
+      if (marks) {
+        totalObtained += marks.marks;
+        totalMax += marks.maxMarks;
+      }
+    }
+    
+    return { totalObtained, totalMax };
+  };
+
+  // Calculate cumulative totals for each term
+  const getCumulativeTotals = (upToTerm: string) => {
+    const termOrder = ['1st Unit Test', 'Mid Term', '2nd Unit Test', 'Final Term'];
+    const endIndex = termOrder.indexOf(upToTerm);
+    
+    let totalObtained = 0;
+    let totalMax = 0;
+    
+    for (let i = 0; i <= endIndex; i++) {
+      const termData = data.termReports[termOrder[i] as keyof typeof data.termReports];
+      if (termData) {
+        totalObtained += termData.totalObtained;
+        totalMax += termData.totalMax;
+      }
+    }
+    
+    return { totalObtained, totalMax };
+  };
 
   // Convert letter grades to ICSE numeric grades (1-9 scale)
   const convertToICSEGrade = (letterGrade: string): string => {
@@ -169,6 +264,10 @@ function PrintableReportCardContent() {
           .watermark-text {
             color: rgba(59, 130, 246, 0.08) !important;
           }
+          .page-break-avoid {
+            page-break-inside: avoid;
+            break-inside: avoid;
+          }
         }
       `}</style>
 
@@ -227,105 +326,125 @@ function PrintableReportCardContent() {
               <h3 className="text-blue-800 text-lg font-bold tracking-wide">
                 STATEMENT OF MARKS
               </h3>
-              <p className="text-blue-700 text-sm font-semibold mt-1">
-                {data.term.toUpperCase()}
-              </p>
             </div>
 
             {/* Horizontal Line */}
             <div className="border-t-2 border-blue-800 mx-6 my-3 relative z-10"></div>
 
             {/* Student Information - Compact Two Column Layout */}
-            <div className="px-6 pb-6 relative z-10">
+            <div className="px-6 pb-4 relative z-10">
               <div className="border-2 border-blue-800">
                 <div className="grid grid-cols-2">
-                  <div className="flex border-r border-b border-blue-800 px-3 py-2">
-                    <span className="font-bold text-gray-900 min-w-[120px]">NAME:</span>
-                    <span className="text-gray-900 uppercase font-semibold">{data.student.name}</span>
+                  <div className="flex border-r border-b border-blue-800 px-2 py-1">
+                    <span className="font-bold text-gray-900 text-xs min-w-[100px]">NAME:</span>
+                    <span className="text-gray-900 uppercase font-semibold text-xs">{data.student.name}</span>
                   </div>
-                  <div className="flex border-b border-blue-800 px-3 py-2">
-                    <span className="font-bold text-gray-900 min-w-[180px]">ENROLLMENT NO:</span>
-                    <span className="text-gray-900 font-semibold">{data.student.rollNo}</span>
+                  <div className="flex border-r border-b border-blue-800 px-2 py-1">
+                    <span className="font-bold text-gray-900 text-xs min-w-[140px]">ENROLLMENT NO:</span>
+                    <span className="text-gray-900 font-semibold text-xs">{data.student.regNo}</span>
                   </div>
-                  <div className="flex border-r border-blue-800 px-3 py-2">
-                    <span className="font-bold text-gray-900 min-w-[120px]">CLASS:</span>
-                    <span className="text-gray-900 font-semibold">{formatClass(data.student.class)}</span>
+                  <div className="flex border-r border-blue-800 px-2 py-1">
+                    <span className="font-bold text-gray-900 text-xs min-w-[100px]">CLASS:</span>
+                    <span className="text-gray-900 font-semibold text-xs">{formatClass(data.student.class)}</span>
                   </div>
-                  <div className="flex px-3 py-2">
-                    <span className="font-bold text-gray-900 min-w-[180px]">ACADEMIC YEAR:</span>
-                    <span className="text-gray-900 font-semibold">{data.academicYear.split('-')[0]}</span>
+                  <div className="flex px-2 py-1">
+                    <span className="font-bold text-gray-900 text-xs min-w-[140px]">ACADEMIC YEAR:</span>
+                    <span className="text-gray-900 font-semibold text-xs">{data.academicYear.split('-')[0]}</span>
                   </div>
                 </div>
               </div>
             </div>
 
             {/* Marks Table */}
-            <div className="px-6 pb-6 relative z-10">
-              <table className="w-full border-2 border-blue-800">
+            <div className="px-6 pb-4 relative z-10">
+              <table className="w-full border-2 border-blue-800 text-xs">
                 <thead>
                   <tr className="bg-white border-b-2 border-blue-800">
-                    <th className="border-r border-blue-800 px-3 py-2 text-center text-sm font-bold text-gray-900">
+                    <th className="border-r border-blue-800 px-2 py-1 text-center text-xs font-bold text-gray-900">
                       SUBJECTS
                     </th>
-                    <th colSpan={2} className="border-r border-blue-800 px-3 py-2 text-center text-sm font-bold text-gray-900">
+                    <th colSpan={4} className="border-r border-blue-800 px-2 py-1 text-center text-xs font-bold text-gray-900">
                       MARKS OBTAINED
                     </th>
-                    <th className="border-r border-blue-800 px-3 py-2 text-center text-sm font-bold text-gray-900 w-28">
-                      OVERALL<br/>PERCENTAGE
-                    </th>
-                    <th className="px-3 py-2 text-center text-sm font-bold text-gray-900 w-24">
-                      OVERALL<br/>GRADE
+                    <th className="border-r border-blue-800 px-2 py-1 text-center text-xs font-bold text-gray-900 w-20">
+                      AVERAGE<br />(100)
                     </th>
                   </tr>
                   <tr className="bg-white border-b border-blue-800">
-                    <th className="border-r border-blue-800 px-3 py-1 text-center text-xs font-semibold text-gray-700"></th>
-                    <th className="border-r border-blue-800 px-3 py-1 text-center text-xs font-semibold text-gray-700">
-                      TERM 1
+                    <th className="border-r border-blue-800 px-1 py-0.5 text-center text-[10px] font-semibold text-gray-700"></th>
+                    <th className="border-r border-blue-800 px-1 py-0.5 text-center text-[10px] font-semibold text-gray-700">
+                      1st Unit Test ({getTermsForClass(data.student.class).find(t => t.name === '1st Unit Test')?.maxMarks || '-'})
                     </th>
-                    <th className="border-r border-blue-800 px-3 py-1 text-center text-xs font-semibold text-gray-700">
-                      TERM 2
+                    <th className="border-r border-blue-800 px-1 py-0.5 text-center text-[10px] font-semibold text-gray-700">
+                      Mid Term ({getTermsForClass(data.student.class).find(t => t.name === 'Mid Term')?.maxMarks || '-'})
                     </th>
-                    <th className="border-r border-blue-800 px-3 py-1 text-center text-xs font-semibold text-gray-700"></th>
-                    <th className="px-3 py-1 text-center text-xs font-semibold text-gray-700"></th>
+                    <th className="border-r border-blue-800 px-1 py-0.5 text-center text-[10px] font-semibold text-gray-700">
+                      2nd Unit Test ({getTermsForClass(data.student.class).find(t => t.name === '2nd Unit Test')?.maxMarks || '-'})
+                    </th>
+                    <th className="border-r border-blue-800 px-1 py-0.5 text-center text-[10px] font-semibold text-gray-700">
+                      Final Term ({getTermsForClass(data.student.class).find(t => t.name === 'Final Term')?.maxMarks || '-'})
+                    </th>
+                    <th className="border-r border-blue-800 px-1 py-0.5 text-center text-[10px] font-semibold text-gray-700"></th>
                   </tr>
                 </thead>
                 <tbody>
-                  {data.marks.map((mark, index) => (
-                    <tr key={index} className="border-b border-blue-800">
-                      <td className="border-r border-blue-800 px-3 py-2 text-sm text-gray-900">
-                        {mark.subject}
-                      </td>
-                      <td className="border-r border-blue-800 px-3 py-2 text-center text-base font-bold text-gray-900">
-                        {mark.obtainedMarks}
-                      </td>
-                      <td className="border-r border-blue-800 px-3 py-2 text-center text-sm text-gray-700">
-                        -
-                      </td>
-                      <td className="border-r border-blue-800 px-3 py-2 text-center text-base font-bold text-gray-900">
-                        {mark.obtainedMarks}
-                      </td>
-                      <td className="px-3 py-2 text-center text-base font-bold text-gray-900">
-                        {convertToICSEGrade(mark.grade)}
-                      </td>
-                    </tr>
-                  ))}
+                  {subjects.map((subjectCode) => {
+                    const term1 = getMarksForTerm(subjectCode, '1st Unit Test');
+                    const term2 = getMarksForTerm(subjectCode, 'Mid Term');
+                    const term3 = getMarksForTerm(subjectCode, '2nd Unit Test');
+                    const term4 = getMarksForTerm(subjectCode, 'Final Term');
+                    const cumulative = getCumulativeMarks(subjectCode, 'Final Term');
+                    const percentage = cumulative.totalMax > 0 ? (cumulative.totalObtained / cumulative.totalMax * 100) : 0;
+                    
+                    return (
+                      <tr key={subjectCode} className="border-b border-blue-800">
+                        <td className="border-r border-blue-800 px-2 py-0.5 text-[11px] text-gray-900">
+                          {getSubjectById(data.student.class, subjectCode)?.name || subjectCode}
+                        </td>
+                        <td className="border-r border-blue-800 px-1 py-0.5 text-center text-xs font-semibold text-gray-900">
+                          {term1 ? term1.marks : '-'}
+                        </td>
+                        <td className="border-r border-blue-800 px-1 py-0.5 text-center text-xs font-semibold text-gray-900">
+                          {term2 ? term2.marks : '-'}
+                        </td>
+                        <td className="border-r border-blue-800 px-1 py-0.5 text-center text-xs font-semibold text-gray-900">
+                          {term3 ? term3.marks : '-'}
+                        </td>
+                        <td className="border-r border-blue-800 px-1 py-0.5 text-center text-xs font-semibold text-gray-900">
+                          {term4 ? term4.marks : '-'}
+                        </td>
+                        <td className="border-r border-blue-800 px-1 py-0.5 text-center text-xs font-semibold text-gray-900">
+                          {cumulative.totalObtained > 0 ? `${percentage.toFixed(0)}` : '-'}
+                        </td>
+                      </tr>
+                    );
+                  })}
                   
                   {/* Total Row */}
                   <tr className="border-b-2 border-blue-800 bg-gray-50">
-                    <td className="border-r border-blue-800 px-3 py-2 text-sm font-bold text-gray-900">
+                    <td className="border-r border-blue-800 px-2 py-1 text-xs font-bold text-gray-900">
                       TOTAL
                     </td>
-                    <td className="border-r border-blue-800 px-3 py-2 text-center text-base font-bold text-gray-900">
-                      {totalObtainedMarks} / {totalMaxMarks}
+                    <td className="border-r border-blue-800 px-1 py-1 text-center text-xs font-bold text-gray-900">
+                      {data.termReports['1st Unit Test'] ? `${data.termReports['1st Unit Test'].totalObtained} / ${data.termReports['1st Unit Test'].totalMax}` : '-'}
                     </td>
-                    <td className="border-r border-blue-800 px-3 py-2 text-center text-sm text-gray-700">
-                      -
+                    <td className="border-r border-blue-800 px-1 py-1 text-center text-xs font-bold text-gray-900">
+                      {data.termReports['Mid Term'] ? `${data.termReports['Mid Term'].totalObtained} / ${data.termReports['Mid Term'].totalMax}` : '-'}
                     </td>
-                    <td className="border-r border-blue-800 px-3 py-2 text-center text-base font-bold text-gray-900">
-                      {totalObtainedMarks} / {totalMaxMarks}
+                    <td className="border-r border-blue-800 px-1 py-1 text-center text-xs font-bold text-gray-900">
+                      {data.termReports['2nd Unit Test'] ? `${data.termReports['2nd Unit Test'].totalObtained} / ${data.termReports['2nd Unit Test'].totalMax}` : '-'}
                     </td>
-                    <td className="px-3 py-2 text-center text-sm text-gray-700">
-                      -
+                    <td className="border-r border-blue-800 px-1 py-1 text-center text-xs font-bold text-gray-900">
+                      {data.termReports['Final Term'] ? `${data.termReports['Final Term'].totalObtained} / ${data.termReports['Final Term'].totalMax}` : '-'}
+                    </td>
+                    <td className="border-r border-blue-800 px-1 py-1 text-center text-xs font-bold text-gray-900">
+                      {(() => {
+                        // Calculate sum of Mid Term and 2nd Unit Test percentages
+                        const midTermPercentage = data.termReports['Mid Term'] ? data.termReports['Mid Term'].percentage : 0;
+                        const unitTest2Percentage = data.termReports['2nd Unit Test'] ? data.termReports['2nd Unit Test'].percentage : 0;
+                        const total = Math.round(midTermPercentage + unitTest2Percentage);
+                        return total > 0 ? `${total} / 200` : '-';
+                      })()}
                     </td>
                   </tr>
                 </tbody>
@@ -333,45 +452,53 @@ function PrintableReportCardContent() {
             </div>
 
             {/* Summary Section */}
-            <div className="px-6 pb-6 relative z-10">
+            <div className="px-6 pb-0 relative z-10">
               <table className="w-full border-2 border-blue-800">
                 <tbody>
-                  <tr className="border-b border-blue-800">
+                  <tr>
                     <td className="px-4 py-2 text-sm font-bold text-gray-900 bg-gray-50">PERCENTAGE</td>
                     <td className="px-4 py-2 text-center text-lg font-bold text-blue-800">
-                      {data.summary.percentage.toFixed(2)} %
-                    </td>
-                  </tr>
-                  <tr className="border-b border-blue-800">
-                    <td className="px-4 py-2 text-sm font-bold text-gray-900 bg-gray-50">CGPA</td>
-                    <td className="px-4 py-2 text-center text-lg font-bold text-blue-800">
-                      {cgpa.toFixed(2)} / 10
-                    </td>
-                  </tr>
-                  <tr>
-                    <td className="px-4 py-2 text-sm font-bold text-gray-900 bg-gray-50">RESULT</td>
-                    <td className="px-4 py-2 text-center text-lg font-bold text-green-700 uppercase">
-                      {data.summary.result}
+                      {data.overallPercentage.toFixed(2)} %
                     </td>
                   </tr>
                 </tbody>
               </table>
             </div>
             
-            {/* Footer Note */}
-            <div className="px-6 pb-4 text-center mt-auto relative z-10">
-              <p className="text-red-600 text-xs italic">
-                * This is a Computer Generated Document and does not require a signature.
-              </p>
+            {/* Spacer to push signatures to bottom */}
+            <div className="grow"></div>
+
+            {/* Signatures */}
+            <div className="px-6 pb-6 relative z-10 page-break-avoid">
+              <div className="grid grid-cols-2 gap-12 mt-8">
+                <div className="text-center">
+                  <div className="h-24 flex items-end justify-center mb-2">
+                    <div className="text-gray-400 text-sm italic">
+                      [Signature]
+                    </div>
+                  </div>
+                  <div className="border-t-2 border-gray-800 pt-2 mx-8">
+                    <p className="text-sm font-bold text-gray-900">Class Teacher Signature</p>
+                  </div>
+                </div>
+                <div className="text-center">
+                  <div className="h-24 flex items-end justify-center mb-2">
+                    <div className="text-gray-400 text-sm italic">
+                      [Signature]
+                    </div>
+                  </div>
+                  <div className="border-t-2 border-gray-800 pt-2 mx-8">
+                    <p className="text-sm font-bold text-gray-900">Principal Signature</p>
+                  </div>
+                </div>
+              </div>
             </div>
 
             {/* Horizontal Line */}
-            <div className="border-t-2 border-blue-800 mx-6 my-4 relative z-10"></div>
-
-
+            {/* <div className="border-t-2 border-blue-800 mx-6 my-4 relative z-10"></div> */}
 
             {/* School Footer */}
-            <div className="px-6 pb-6 text-center relative z-10">
+            {/* <div className="px-6 pb-6 text-center relative z-10 page-break-avoid">
               <p className="text-sm font-semibold text-gray-900">
                 St. Helen's Secondary School, Kurseong - 734203, Dist. Darjeeling, West Bengal, India.
               </p>
@@ -381,7 +508,7 @@ function PrintableReportCardContent() {
               <p className="text-xs text-gray-700">
                 Email: fcsthelens1@gmail.com
               </p>
-            </div>
+            </div> */}
           </div>
 
           {/* PAGE 2 - Grading System */}
@@ -435,155 +562,73 @@ function PrintableReportCardContent() {
 
             {/* Grading Table */}
             <div className="px-6 pb-8 relative z-10">
-              <table className="w-full border-2 border-blue-800">
-                <thead>
-                  <tr className="bg-blue-800 text-white">
-                    <th className="border-r border-blue-700 px-4 py-3 text-center text-sm font-bold">
-                      GRADE
-                    </th>
-                    <th className="border-r border-blue-700 px-4 py-3 text-center text-sm font-bold">
-                      MARKS RANGE
-                    </th>
-                    <th className="px-4 py-3 text-center text-sm font-bold">
-                      DESCRIPTION
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr className="border-b border-blue-800 bg-white">
-                    <td className="border-r border-blue-800 px-4 py-3 text-center text-lg font-bold text-gray-900">
-                      1
-                    </td>
-                    <td className="border-r border-blue-800 px-4 py-3 text-center text-sm font-semibold text-gray-900">
-                      91 - 100
-                    </td>
-                    <td className="px-4 py-3 text-sm text-gray-900">
-                      Outstanding
-                    </td>
-                  </tr>
-                  <tr className="border-b border-blue-800 bg-gray-50">
-                    <td className="border-r border-blue-800 px-4 py-3 text-center text-lg font-bold text-gray-900">
-                      2
-                    </td>
-                    <td className="border-r border-blue-800 px-4 py-3 text-center text-sm font-semibold text-gray-900">
-                      81 - 90
-                    </td>
-                    <td className="px-4 py-3 text-sm text-gray-900">
-                      Excellent
-                    </td>
-                  </tr>
-                  <tr className="border-b border-blue-800 bg-white">
-                    <td className="border-r border-blue-800 px-4 py-3 text-center text-lg font-bold text-gray-900">
-                      3
-                    </td>
-                    <td className="border-r border-blue-800 px-4 py-3 text-center text-sm font-semibold text-gray-900">
-                      71 - 80
-                    </td>
-                    <td className="px-4 py-3 text-sm text-gray-900">
-                      Very Good
-                    </td>
-                  </tr>
-                  <tr className="border-b border-blue-800 bg-gray-50">
-                    <td className="border-r border-blue-800 px-4 py-3 text-center text-lg font-bold text-gray-900">
-                      4
-                    </td>
-                    <td className="border-r border-blue-800 px-4 py-3 text-center text-sm font-semibold text-gray-900">
-                      61 - 70
-                    </td>
-                    <td className="px-4 py-3 text-sm text-gray-900">
-                      Good
-                    </td>
-                  </tr>
-                  <tr className="border-b border-blue-800 bg-white">
-                    <td className="border-r border-blue-800 px-4 py-3 text-center text-lg font-bold text-gray-900">
-                      5
-                    </td>
-                    <td className="border-r border-blue-800 px-4 py-3 text-center text-sm font-semibold text-gray-900">
-                      51 - 60
-                    </td>
-                    <td className="px-4 py-3 text-sm text-gray-900">
-                      Above Average
-                    </td>
-                  </tr>
-                  <tr className="border-b border-blue-800 bg-gray-50">
-                    <td className="border-r border-blue-800 px-4 py-3 text-center text-lg font-bold text-gray-900">
-                      6
-                    </td>
-                    <td className="border-r border-blue-800 px-4 py-3 text-center text-sm font-semibold text-gray-900">
-                      41 - 50
-                    </td>
-                    <td className="px-4 py-3 text-sm text-gray-900">
-                      Average
-                    </td>
-                  </tr>
-                  <tr className="border-b border-blue-800 bg-white">
-                    <td className="border-r border-blue-800 px-4 py-3 text-center text-lg font-bold text-gray-900">
-                      7
-                    </td>
-                    <td className="border-r border-blue-800 px-4 py-3 text-center text-sm font-semibold text-gray-900">
-                      33 - 40
-                    </td>
-                    <td className="px-4 py-3 text-sm text-gray-900">
-                      Below Average
-                    </td>
-                  </tr>
-                  <tr className="border-b border-blue-800 bg-gray-50">
-                    <td className="border-r border-blue-800 px-4 py-3 text-center text-lg font-bold text-gray-900">
-                      8
-                    </td>
-                    <td className="border-r border-blue-800 px-4 py-3 text-center text-sm font-semibold text-gray-900">
-                      21 - 32
-                    </td>
-                    <td className="px-4 py-3 text-sm text-gray-900">
-                      Marginal
-                    </td>
-                  </tr>
-                  <tr className="bg-white">
-                    <td className="border-r border-blue-800 px-4 py-3 text-center text-lg font-bold text-gray-900">
-                      9
-                    </td>
-                    <td className="border-r border-blue-800 px-4 py-3 text-center text-sm font-semibold text-gray-900">
-                      Below 21
-                    </td>
-                    <td className="px-4 py-3 text-sm text-gray-900">
-                      Needs Improvement
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
+              <div className="border-2 border-blue-800 rounded-lg p-6 bg-white max-w-md mx-auto">
+                <h3 className="text-center text-blue-800 font-bold text-lg mb-4 underline">GRADES</h3>
+                <table className="w-full">
+                  <tbody>
+                    <tr className="border-b border-gray-300">
+                      <td className="py-2 text-center font-bold text-gray-900">A</td>
+                      <td className="py-2 text-center text-gray-900">:</td>
+                      <td className="py-2 text-center text-gray-900">90</td>
+                      <td className="py-2 text-center text-gray-900">-</td>
+                      <td className="py-2 text-center text-gray-900">100</td>
+                      <td className="py-2 text-center text-gray-900">Very Good</td>
+                    </tr>
+                    <tr className="border-b border-gray-300">
+                      <td className="py-2 text-center font-bold text-gray-900">B</td>
+                      <td className="py-2 text-center text-gray-900">:</td>
+                      <td className="py-2 text-center text-gray-900">70</td>
+                      <td className="py-2 text-center text-gray-900">-</td>
+                      <td className="py-2 text-center text-gray-900">89</td>
+                      <td className="py-2 text-center text-gray-900">Good</td>
+                    </tr>
+                    <tr className="border-b border-gray-300">
+                      <td className="py-2 text-center font-bold text-gray-900">C</td>
+                      <td className="py-2 text-center text-gray-900">:</td>
+                      <td className="py-2 text-center text-gray-900">50</td>
+                      <td className="py-2 text-center text-gray-900">-</td>
+                      <td className="py-2 text-center text-gray-900">69</td>
+                      <td className="py-2 text-center text-gray-900">Satisfactory</td>
+                    </tr>
+                    <tr className="border-b border-gray-300">
+                      <td className="py-2 text-center font-bold text-gray-900">D</td>
+                      <td className="py-2 text-center text-gray-900">:</td>
+                      <td className="py-2 text-center text-gray-900">45</td>
+                      <td className="py-2 text-center text-gray-900">-</td>
+                      <td className="py-2 text-center text-gray-900">49</td>
+                      <td className="py-2 text-center text-gray-900">Fair</td>
+                    </tr>
+                    <tr>
+                      <td className="py-2 text-center font-bold text-gray-900">E</td>
+                      <td className="py-2 text-center text-gray-900">:</td>
+                      <td className="py-2 text-center text-gray-900">Below</td>
+                      <td className="py-2 text-center text-gray-900">-</td>
+                      <td className="py-2 text-center text-gray-900">45</td>
+                      <td className="py-2 text-center text-gray-900">Unsatisfactory</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
             </div>
 
-            {/* Important Notes */}
+            {/* A Word to Parents */}
             <div className="px-6 pb-6 relative z-10">
-              <h4 className="text-blue-800 font-bold text-sm mb-3">IMPORTANT NOTES:</h4>
-              <ul className="space-y-2 text-xs text-gray-700">
-                <li className="flex">
-                  <span className="mr-2">•</span>
-                  <span>The above grading system is based on the ICSE (Indian Certificate of Secondary Education) pattern.</span>
-                </li>
-                <li className="flex">
-                  <span className="mr-2">•</span>
-                  <span>Grades are awarded based on the percentage of marks obtained in each subject.</span>
-                </li>
-                <li className="flex">
-                  <span className="mr-2">•</span>
-                  <span>A student must obtain at least Grade 7 (40% marks) to pass in a subject.</span>
-                </li>
-                <li className="flex">
-                  <span className="mr-2">•</span>
-                  <span>CGPA (Cumulative Grade Point Average) is calculated on a 10-point scale.</span>
-                </li>
-                <li className="flex">
-                  <span className="mr-2">•</span>
-                  <span>This report card is valid only when all subjects are passed.</span>
-                </li>
-              </ul>
+              <h4 className="text-blue-800 font-bold text-base mb-4 underline">A WORD TO PARENTS</h4>
+              <ol className="space-y-2 text-sm text-gray-700 list-decimal list-inside">
+                <li>The decision of the school authorities with regard to promotion, is final.</li>
+                <li>Promotion is decided on the whole year's performance & not on the final examination only.</li>
+                <li className="italic">Promotion will not be granted to any student obtaining less than 40% in any compulsory subject.</li>
+                <li className="font-semibold">Pass Marks - 45%</li>
+                <li>Parents and students should bear in mind that results once published is final and will not be changed.</li>
+                <li>A student failing twice in the same class must apply for withdrawal.</li>
+              </ol>
             </div>
 
+            {/* Spacer to push footer to bottom */}
+            <div className="grow"></div>
 
             {/* Horizontal Line */}
             <div className="border-t-2 border-blue-800 mx-6 my-4"></div>
-
 
             {/* School Footer */}
             <div className="px-6 pb-6 text-center relative z-10">
