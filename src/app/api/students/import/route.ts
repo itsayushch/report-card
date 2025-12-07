@@ -70,19 +70,19 @@ export async function POST(request: NextRequest) {
           continue
         }
 
-        // Check if email already exists
-        const existingEmail = await prisma.student.findFirst({
-          where: { email: student.email },
-        })
+        // Check if registration number already exists (removed email check since students don't have email)
+        // const existingEmail = await prisma.student.findFirst({
+        //   where: { email: student.email },
+        // })
 
-        if (existingEmail) {
-          results.failed++
-          results.errors.push({
-            row: i + 1,
-            error: `Email ${student.email} already exists`,
-          })
-          continue
-        }
+        // if (existingEmail) {
+        //   results.failed++
+        //   results.errors.push({
+        //     row: i + 1,
+        //     error: `Email ${student.email} already exists`,
+        //   })
+        //   continue
+        // }
 
         // Password is dateOfBirth in DDMMYYYY format (plain text, no slashes)
         // dateOfBirth is stored with slashes DD/MM/YYYY
@@ -110,15 +110,13 @@ export async function POST(request: NextRequest) {
           data: {
             name: student.name,
             regNo: student.regNo,
-            email: student.email,
             password: password,
-            dateOfBirth: dateOfBirth,
             class: student.class,
-            parentName: student.parentName || 'Parent',
-            phone: student.phone || '',
             status: 'ACTIVE',
             academicYear: student.academicYear || activeYear?.year || '2024-2025',
             promotionStatus: 'PENDING',
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
           },
         })
 

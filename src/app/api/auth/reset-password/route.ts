@@ -16,16 +16,12 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Check if teacher or student exists
+    // Check if teacher exists
     const teacher = await prisma.teacher.findUnique({
       where: { email },
     })
 
-    const student = await prisma.student.findUnique({
-      where: { email },
-    })
-
-    if (!teacher && !student) {
+    if (!teacher) {
       // Don't reveal if email exists or not for security
       return NextResponse.json({
         message: 'If the email exists, a password reset email has been sent',
@@ -35,26 +31,16 @@ export async function POST(request: NextRequest) {
     // Generate a random temporary password (8 characters: letters + numbers)
     const tempPassword = crypto.randomBytes(4).toString('hex').toUpperCase()
 
-    const user = teacher || student
-    const userName = user!.name
+    const userName = teacher.name
 
     // Update the password in database
-    if (teacher) {
-      await prisma.teacher.update({
-        where: { email },
-        data: {
-          password: tempPassword,
-          firstLogin: true, // Force password change on next login
-        },
-      })
-    } else if (student) {
-      await prisma.student.update({
-        where: { email },
-        data: {
-          password: tempPassword,
-        },
-      })
-    }
+    await prisma.teacher.update({
+      where: { email },
+      data: {
+        password: tempPassword,
+        firstLogin: true, // Force password change on next login
+      },
+    })
 
     // Send email via SendGrid
     const emailResult = await sendPasswordResetEmail(email, tempPassword, userName)
