@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { teacherSchema } from '@/lib/validations'
 import { auth } from '@/lib/auth'
-import { createAdminLog, AdminActions } from '@/lib/admin-log'
+// import { createAdminLog, AdminActions } from '@/lib/admin-log'
 
 // GET all teachers
 export async function GET() {
@@ -57,21 +57,21 @@ export async function POST(request: NextRequest) {
     })
 
     // Log admin action
-    await createAdminLog({
-      adminId: session.user.id,
-      action: validatedData.isAdmin ? AdminActions.CREATE_TEACHER : AdminActions.CREATE_TEACHER,
-      entityType: 'Teacher',
-      entityId: teacher.id,
-      description: `Created teacher: ${teacher.name}${teacher.isAdmin ? ' (Admin)' : ''}`,
-      metadata: {
-        teacherData: {
-          name: teacher.name,
-          email: teacher.email,
-          classSubjectPairs: teacher.classSubjectPairs,
-          isAdmin: teacher.isAdmin,
-        },
-      },
-    })
+    // await createAdminLog({
+    //   adminId: session.user.id,
+    //   action: validatedData.isAdmin ? AdminActions.CREATE_TEACHER : AdminActions.CREATE_TEACHER,
+    //   entityType: 'Teacher',
+    //   entityId: teacher.id,
+    //   description: `Created teacher: ${teacher.name}${teacher.isAdmin ? ' (Admin)' : ''}`,
+    //   metadata: {
+    //     teacherData: {
+    //       name: teacher.name,
+    //       email: teacher.email,
+    //       classSubjectPairs: teacher.classSubjectPairs,
+    //       isAdmin: teacher.isAdmin,
+    //     },
+    //   },
+    // })
 
     return NextResponse.json(teacher, { status: 201 })
   } catch (error: any) {

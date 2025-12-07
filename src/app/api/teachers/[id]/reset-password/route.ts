@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
-import { logAdminAction } from '@/lib/admin-log'
+// import { logAdminAction } from '@/lib/admin-log'
 
 interface RouteParams {
   params: Promise<{ id: string }>
@@ -58,15 +58,15 @@ export async function POST(
     })
 
     // Log admin action
-    await logAdminAction({
-      adminId: admin.id,
-      action: 'RESET_PASSWORD',
-      entityType: 'Teacher',
-      entityId: id,
-      description: `Reset password for teacher: ${teacher.name}`,
-      ipAddress: request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || undefined,
-      userAgent: request.headers.get('user-agent') || undefined,
-    })
+    // await logAdminAction({
+    //   adminId: admin.id,
+    //   action: 'RESET_PASSWORD',
+    //   entityType: 'Teacher',
+    //   entityId: id,
+    //   description: `Reset password for teacher: ${teacher.name}`,
+    //   ipAddress: request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || undefined,
+    //   userAgent: request.headers.get('user-agent') || undefined,
+    // })
 
     return NextResponse.json({
       message: 'Password reset successfully',

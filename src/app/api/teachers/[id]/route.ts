@@ -69,16 +69,16 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
     })
 
     // Log admin privilege changes
-    if (validatedData.isAdmin !== existingTeacher.isAdmin) {
-      const { createAdminLog, AdminActions } = await import('@/lib/admin-log')
-      await createAdminLog({
-        adminId: session.user.id,
-        action: validatedData.isAdmin ? AdminActions.GRANT_ADMIN : AdminActions.REVOKE_ADMIN,
-        entityType: 'Teacher',
-        entityId: teacher.id,
-        description: `${validatedData.isAdmin ? 'Granted' : 'Revoked'} admin privileges for ${teacher.name}`,
-      })
-    }
+    // if (validatedData.isAdmin !== existingTeacher.isAdmin) {
+    //   const { createAdminLog, AdminActions } = await import('@/lib/admin-log')
+    //   await createAdminLog({
+    //     adminId: session.user.id,
+    //     action: validatedData.isAdmin ? AdminActions.GRANT_ADMIN : AdminActions.REVOKE_ADMIN,
+    //     entityType: 'Teacher',
+    //     entityId: teacher.id,
+    //     description: `${validatedData.isAdmin ? 'Granted' : 'Revoked'} admin privileges for ${teacher.name}`,
+    //   })
+    // }
 
     return NextResponse.json(teacher)
   } catch (error: any) {
