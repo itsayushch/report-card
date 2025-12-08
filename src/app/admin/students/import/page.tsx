@@ -286,11 +286,6 @@ export default function StudentImportPage() {
                     <TableHead>Name</TableHead>
                     <TableHead>Reg. Number</TableHead>
                     <TableHead>Class</TableHead>
-                    <TableHead>Date of Birth</TableHead>
-                    <TableHead>Parent Name</TableHead>
-                    <TableHead>Email</TableHead>
-                    <TableHead>Phone</TableHead>
-                    <TableHead>Academic Year</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -299,11 +294,6 @@ export default function StudentImportPage() {
                       <TableCell>{student.name}</TableCell>
                       <TableCell>{student.regNo}</TableCell>
                       <TableCell>{student.class}</TableCell>
-                      <TableCell>{student.dateOfBirth || '-'}</TableCell>
-                      <TableCell>{student.parentName || '-'}</TableCell>
-                      <TableCell>{student.email || '-'}</TableCell>
-                      <TableCell>{student.phone || '-'}</TableCell>
-                      <TableCell>{student.academicYear || 'Current'}</TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
