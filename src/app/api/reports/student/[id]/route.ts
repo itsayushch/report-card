@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { calculateResult } from '@/lib/calculations'
+import { getSubjectById } from '@/lib/subjects'
 
 export async function GET(
   request: NextRequest,
@@ -90,18 +91,24 @@ export async function GET(
             : calculateGrade((s.marks / s.maxMarks) * 100), // Use stored grade if available, otherwise calculate
         }));
 
-        // Only include numeric subjects (those without stored grades) in totals
+        // Only include numeric subjects (those without alphabetical grading) in totals
         const totalObtained = termRecord.subjects.reduce((sum: number, s: any) => {
-          // Skip subjects with alphabetical grades
-          if (s.grade !== undefined && s.grade !== null && s.grade !== '') {
+          // Check if subject has alphabetical grading based on subject definition
+          const subjectDetail = getSubjectById(student.class, s.subjectCode);
+          
+          // If we can't find the subject or if it's alphabetical, skip it
+          if (!subjectDetail || subjectDetail.dataType === 'string') {
             return sum;
           }
           return sum + s.marks;
         }, 0);
         
         const totalMax = termRecord.subjects.reduce((sum: number, s: any) => {
-          // Skip subjects with alphabetical grades
-          if (s.grade !== undefined && s.grade !== null && s.grade !== '') {
+          // Check if subject has alphabetical grading based on subject definition
+          const subjectDetail = getSubjectById(student.class, s.subjectCode);
+          
+          // If we can't find the subject or if it's alphabetical, skip it
+          if (!subjectDetail || subjectDetail.dataType === 'string') {
             return sum;
           }
           return sum + s.maxMarks;

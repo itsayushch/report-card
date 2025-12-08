@@ -48,22 +48,25 @@ export async function GET(request: NextRequest) {
       },
     })
 
-    // Calculate marks and determine eligibility
+    // Calculate marks and determine eligibility based on Final Term
     const studentsWithMarks = students.map((student) => {
       let totalObtained = 0
       let totalMax = 0
       let hasMarks = false
 
-      // Get the latest academic record for this year
-      const currentRecord = student.academicRecords.find(
-        (record) => record.year === academicYear && record.status === 'published'
+      // Get the Final Term record for this year
+      const finalTermRecord = student.academicRecords.find(
+        (record) => record.year === academicYear && record.term === 'Final Term' && record.status === 'published'
       )
 
-      if (currentRecord && currentRecord.subjects.length > 0) {
+      if (finalTermRecord && finalTermRecord.subjects.length > 0) {
         hasMarks = true
-        currentRecord.subjects.forEach((subject) => {
-          totalObtained += subject.marks
-          totalMax += subject.maxMarks
+        finalTermRecord.subjects.forEach((subject) => {
+          // Skip alphabetical grading subjects from total calculation
+          if (!subject.grade || subject.grade === '') {
+            totalObtained += subject.marks
+            totalMax += subject.maxMarks
+          }
         })
       }
 

@@ -15,8 +15,9 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { toast } from 'sonner'
-import { Loader2, TrendingUp, TrendingDown, CheckCircle2, AlertCircle, ArrowRightCircle } from 'lucide-react'
+import { Loader2, TrendingUp, TrendingDown, CheckCircle2, AlertCircle, ExternalLink } from 'lucide-react'
 import { formatClass } from '@/lib/class-utils'
+import Link from 'next/link'
 import {
   Dialog,
   DialogContent,
@@ -53,8 +54,6 @@ export default function TeacherPromotionPage() {
   const [processing, setProcessing] = useState(false)
   const [showConfirmDialog, setShowConfirmDialog] = useState(false)
   const [confirmAction, setConfirmAction] = useState<'PROMOTE' | 'DETAIN'>('PROMOTE')
-  const [showMoveDialog, setShowMoveDialog] = useState(false)
-  const [movingStudents, setMovingStudents] = useState(false)
   const [activeTab, setActiveTab] = useState('not-promoted')
 
   useEffect(() => {
@@ -159,59 +158,6 @@ export default function TeacherPromotionPage() {
     setShowConfirmDialog(true)
   }
 
-  const handleMoveToClass = () => {
-    // Filter to only promoted students
-    const promotedStudents = Array.from(selectedStudents).filter((id) => {
-      const student = students.find((s) => s.id === id)
-      return student?.promotionStatus === 'PROMOTED'
-    })
-
-    if (promotedStudents.length === 0) {
-      toast.error('Please select at least one promoted student')
-      return
-    }
-
-    setShowMoveDialog(true)
-  }
-
-  const confirmMoveToClass = async () => {
-    const promotedStudents = Array.from(selectedStudents).filter((id) => {
-      const student = students.find((s) => s.id === id)
-      return student?.promotionStatus === 'PROMOTED'
-    })
-
-    setMovingStudents(true)
-    try {
-      const response = await fetch('/api/teacher/promotion/move-class', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          studentIds: promotedStudents,
-          academicYear: activeAcademicYear,
-        }),
-      })
-
-      const data = await response.json()
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Failed to move students')
-      }
-
-      toast.success(data.message)
-      setShowMoveDialog(false)
-      setSelectedStudents(new Set())
-      
-      // Refresh the student list
-      if (activeAcademicYear) {
-        fetchEligibleStudents(activeAcademicYear)
-      }
-    } catch (error: any) {
-      toast.error(error.message || 'Failed to move students')
-    } finally {
-      setMovingStudents(false)
-    }
-  }
-
   const confirmPromotion = async () => {
     setProcessing(true)
     try {
@@ -295,7 +241,8 @@ export default function TeacherPromotionPage() {
 
   // Filter students based on promotion status
   const promotedStudents = students?.filter(s => s.promotionStatus === 'PROMOTED') || []
-  const notPromotedStudents = students?.filter(s => s.promotionStatus === 'PENDING' || s.promotionStatus === 'DETAINED') || []
+  const detainedStudents = students?.filter(s => s.promotionStatus === 'DETAINED') || []
+  const notPromotedStudents = students?.filter(s => s.promotionStatus === 'PENDING') || []
 
   return (
     <div className="p-4 md:p-6 space-y-6">
@@ -309,12 +256,15 @@ export default function TeacherPromotionPage() {
       <Card className="w-full">
         <CardContent className="pt-4 md:pt-6 px-3 md:px-6">
           <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="grid w-full grid-cols-2 h-auto">
+            <TabsList className="grid w-full grid-cols-3 h-auto">
               <TabsTrigger value="not-promoted">
-                Not Promoted ({notPromotedStudents.length})
+                Pending ({notPromotedStudents.length})
               </TabsTrigger>
               <TabsTrigger value="promoted">
                 Promoted ({promotedStudents.length})
+              </TabsTrigger>
+              <TabsTrigger value="detained">
+                Detained ({detainedStudents.length})
               </TabsTrigger>
             </TabsList>
 
@@ -372,9 +322,9 @@ export default function TeacherPromotionPage() {
                         <TableHead className="min-w-[100px]">Reg No</TableHead>
                         <TableHead className="min-w-[150px]">Name</TableHead>
                         <TableHead className="min-w-[80px]">Class</TableHead>
-                        <TableHead className="min-w-[100px] hidden md:table-cell">Marks</TableHead>
+                        <TableHead className="min-w-[100px] hidden md:table-cell">Final Term Marks</TableHead>
                         <TableHead className="min-w-[100px]">Percentage</TableHead>
-                        <TableHead className="min-w-[100px] hidden lg:table-cell">Result</TableHead>
+                        <TableHead className="min-w-[120px]">Action</TableHead>
                         <TableHead className="min-w-[100px]">Status</TableHead>
                       </TableRow>
                     </TableHeader>
@@ -410,7 +360,18 @@ export default function TeacherPromotionPage() {
                               <span className="text-xs md:text-sm text-muted-foreground">-</span>
                             )}
                           </TableCell>
-                          <TableCell className="hidden lg:table-cell">{getResultBadge(student.result)}</TableCell>
+                          <TableCell>
+                            {student.hasMarks ? (
+                              <Link href={`/result/${student.id}`} target="_blank">
+                                <Button variant="outline" size="sm" className="gap-1">
+                                  <ExternalLink className="h-3 w-3" />
+                                  View Result
+                                </Button>
+                              </Link>
+                            ) : (
+                              <span className="text-xs text-muted-foreground">No result</span>
+                            )}
+                          </TableCell>
                           <TableCell>{getPromotionStatusBadge(student.promotionStatus)}</TableCell>
                         </TableRow>
                       ))}
@@ -426,22 +387,9 @@ export default function TeacherPromotionPage() {
                 <div>
                   <h3 className="text-base md:text-lg font-semibold">Promoted Students</h3>
                   <p className="text-xs md:text-sm text-muted-foreground">
-                    {selectedStudents.size} of {promotedStudents.length} selected
+                    These students will be automatically moved to the next class when a new academic year is created
                   </p>
                 </div>
-                <Button
-                  onClick={handleMoveToClass}
-                  disabled={selectedStudents.size === 0 || movingStudents}
-                  className="bg-blue-600 hover:bg-blue-700 w-full sm:w-auto text-sm"
-                  size="sm"
-                >
-                  {movingStudents ? (
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  ) : (
-                    <ArrowRightCircle className="mr-2 h-4 w-4" />
-                  )}
-                  Move to New Class
-                </Button>
               </div>
               {promotedStudents.length === 0 ? (
                 <div className="text-center py-8 text-muted-foreground">
@@ -453,30 +401,18 @@ export default function TeacherPromotionPage() {
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead className="w-12">
-                          <Checkbox
-                            checked={promotedStudents.length > 0 && promotedStudents.every(s => selectedStudents.has(s.id))}
-                            onCheckedChange={() => toggleAll(promotedStudents)}
-                          />
-                        </TableHead>
                         <TableHead className="min-w-[100px]">Reg No</TableHead>
                         <TableHead className="min-w-[150px]">Name</TableHead>
                         <TableHead className="min-w-[80px]">Class</TableHead>
-                        <TableHead className="min-w-[100px] hidden md:table-cell">Marks</TableHead>
+                        <TableHead className="min-w-[100px] hidden md:table-cell">Final Term Marks</TableHead>
                         <TableHead className="min-w-[100px]">Percentage</TableHead>
-                        <TableHead className="min-w-[100px] hidden lg:table-cell">Result</TableHead>
+                        <TableHead className="min-w-[120px]">Action</TableHead>
                         <TableHead className="min-w-[100px]">Status</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {promotedStudents.map((student) => (
                         <TableRow key={student.id}>
-                          <TableCell>
-                            <Checkbox
-                              checked={selectedStudents.has(student.id)}
-                              onCheckedChange={() => toggleStudent(student.id)}
-                            />
-                          </TableCell>
                           <TableCell className="font-medium">{student.regNo}</TableCell>
                           <TableCell>{student.name}</TableCell>
                           <TableCell>
@@ -500,7 +436,92 @@ export default function TeacherPromotionPage() {
                               <span className="text-xs md:text-sm text-muted-foreground">-</span>
                             )}
                           </TableCell>
-                          <TableCell className="hidden lg:table-cell">{getResultBadge(student.result)}</TableCell>
+                          <TableCell>
+                            {student.hasMarks ? (
+                              <Link href={`/result/${student.id}`} target="_blank">
+                                <Button variant="outline" size="sm" className="gap-1 text-xs">
+                                  <ExternalLink className="h-3 w-3" />
+                                  View Result
+                                </Button>
+                              </Link>
+                            ) : (
+                              <span className="text-xs text-muted-foreground">No result</span>
+                            )}
+                          </TableCell>
+                          <TableCell>{getPromotionStatusBadge(student.promotionStatus)}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
+            </TabsContent>
+
+            {/* Promoted Tab */}
+            <TabsContent value="detained" className="mt-4 md:mt-6">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
+                <div>
+                  <h3 className="text-base md:text-lg font-semibold">Detained Students</h3>
+                  <p className="text-xs md:text-sm text-muted-foreground">
+                    These students will remain in the same class
+                  </p>
+                </div>
+              </div>
+              {detainedStudents.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  <CheckCircle2 className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                  <p className="text-sm md:text-base">No detained students in your class</p>
+                </div>
+              ) : (
+                <div className="rounded-md border overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="min-w-[100px]">Reg No</TableHead>
+                        <TableHead className="min-w-[150px]">Name</TableHead>
+                        <TableHead className="min-w-[80px]">Class</TableHead>
+                        <TableHead className="min-w-[100px] hidden md:table-cell">Final Term Marks</TableHead>
+                        <TableHead className="min-w-[100px]">Percentage</TableHead>
+                        <TableHead className="min-w-[120px]">Action</TableHead>
+                        <TableHead className="min-w-[100px]">Status</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {detainedStudents.map((student) => (
+                        <TableRow key={student.id}>
+                          <TableCell className="font-medium">{student.regNo}</TableCell>
+                          <TableCell className="font-medium">{student.name}</TableCell>
+                          <TableCell>{formatClass(student.class)}</TableCell>
+                          <TableCell className="hidden md:table-cell">
+                            {student.hasMarks ? (
+                              <span className="text-sm">
+                                {student.totalObtained}/{student.totalMax}
+                              </span>
+                            ) : (
+                              <span className="text-sm text-muted-foreground">No marks</span>
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            {student.hasMarks ? (
+                              <span className="text-xs md:text-sm font-medium">
+                                {student.percentage.toFixed(2)}%
+                              </span>
+                            ) : (
+                              <span className="text-xs md:text-sm text-muted-foreground">-</span>
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            {student.hasMarks ? (
+                              <Link href={`/result/${student.id}`} target="_blank">
+                                <Button variant="outline" size="sm" className="gap-1 text-xs">
+                                  <ExternalLink className="h-3 w-3" />
+                                  View Result
+                                </Button>
+                              </Link>
+                            ) : (
+                              <span className="text-xs text-muted-foreground">No result</span>
+                            )}
+                          </TableCell>
                           <TableCell>{getPromotionStatusBadge(student.promotionStatus)}</TableCell>
                         </TableRow>
                       ))}
@@ -524,7 +545,7 @@ export default function TeacherPromotionPage() {
               {selectedStudents.size} student(s)?
               {confirmAction === 'PROMOTE' && (
                 <span className="block mt-2 font-medium">
-                  Students will be marked as promoted. Use "Move to New Class" button to actually move them.
+                  Students will be marked as promoted and automatically moved to the next class when a new academic year is created.
                 </span>
               )}
               {confirmAction === 'DETAIN' && (
@@ -546,34 +567,6 @@ export default function TeacherPromotionPage() {
             <Button onClick={confirmPromotion} disabled={processing} className="w-full sm:w-auto">
               {processing && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
               Confirm
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      <Dialog open={showMoveDialog} onOpenChange={setShowMoveDialog}>
-        <DialogContent className="w-[95vw] max-w-md mx-auto">
-          <DialogHeader>
-            <DialogTitle className="text-lg md:text-xl">Move Students to New Class</DialogTitle>
-            <DialogDescription className="text-sm">
-              Are you sure you want to move the selected promoted students to their next class?
-              <span className="block mt-2 font-medium text-orange-600">
-                This action will permanently change their class assignment.
-              </span>
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter className="flex-col sm:flex-row gap-2">
-            <Button
-              variant="outline"
-              onClick={() => setShowMoveDialog(false)}
-              disabled={movingStudents}
-              className="w-full sm:w-auto"
-            >
-              Cancel
-            </Button>
-            <Button onClick={confirmMoveToClass} disabled={movingStudents} className="w-full sm:w-auto">
-              {movingStudents && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-              Move to New Class
             </Button>
           </DialogFooter>
         </DialogContent>

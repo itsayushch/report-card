@@ -136,9 +136,15 @@ function PrintableReportCardContent() {
     }
   });
 
-  // Add all subjects for the class (to show subjects even if they don't have marks yet)
-  const classSubjects = subjectsByClass[data.student.class] || [];
-  classSubjects.forEach(subject => allSubjects.add(subject.id));
+  // TEMPORARY: Add dummy subjects for testing (REMOVE LATER)
+  const dummySubjects = [
+    'PHYS', 'CHEM', 'BIO', 'ENG-LIT', 'ENG-LANG', 
+    'HINDI', 'SANS', 'COMP-SCI', 'INFO-TECH', 'ART',
+    'MUSIC', 'PE', 'GEO', 'ECO', 'POL-SCI',
+    'SOCIO', 'PSYCH'
+  ];
+  dummySubjects.forEach(sub => allSubjects.add(sub));
+  // END TEMPORARY
 
   const subjects = Array.from(allSubjects);
 
@@ -481,14 +487,25 @@ function PrintableReportCardContent() {
                     const subjectDetail = getSubjectById(data.student.class, subjectCode);
                     const isAlphabetical = subjectDetail?.dataType === 'string';
                     
-                    const cumulative = getCumulativeMarks(
-                      subjectCode,
-                      "Final Term"
-                    );
-                    const percentage =
-                      cumulative.totalMax > 0
-                        ? (cumulative.totalObtained / cumulative.totalMax) * 100
-                        : 0;
+                    // Calculate average percentage for numeric subjects
+                    let totalObtained = 0;
+                    let totalMax = 0;
+                    let hasMarks = false;
+                    let averagePercentage = 0;
+                    
+                    if (!isAlphabetical) {
+                      [term1, term2, term3, term4].forEach((term) => {
+                        if (term && term.marks !== undefined) {
+                          totalObtained += term.marks;
+                          totalMax += term.maxMarks;
+                          hasMarks = true;
+                        }
+                      });
+                      
+                      if (totalMax > 0) {
+                        averagePercentage = (totalObtained / totalMax) * 100;
+                      }
+                    }
 
                     return (
                       <tr
@@ -512,8 +529,8 @@ function PrintableReportCardContent() {
                           {term4 ? (isAlphabetical && term4.grade ? term4.grade : term4.marks) : "-"}
                         </td>
                         <td className="border-r border-blue-800 px-2 py-1.5 text-center text-sm font-semibold text-gray-900 print:px-1.5 print:py-1 print:text-xs">
-                          {isAlphabetical ? "-" : (cumulative.totalObtained > 0
-                            ? `${percentage.toFixed(0)}`
+                          {isAlphabetical ? "-" : (hasMarks
+                            ? averagePercentage.toFixed(0)
                             : "-")}
                         </td>
                       </tr>
@@ -547,19 +564,39 @@ function PrintableReportCardContent() {
                     </td>
                     <td className="border-r border-blue-800 px-2 py-2 text-center text-sm font-bold text-gray-900 print:px-1.5 print:py-1.5 print:text-xs">
                       {(() => {
-                        // Calculate sum of Mid Term and 2nd Unit Test percentages
-                        const midTermPercentage = data.termReports["Mid Term"]
-                          ? data.termReports["Mid Term"].percentage
-                          : 0;
-                        const unitTest2Percentage = data.termReports[
-                          "2nd Unit Test"
-                        ]
-                          ? data.termReports["2nd Unit Test"].percentage
-                          : 0;
-                        const total = Math.round(
-                          midTermPercentage + unitTest2Percentage
-                        );
-                        return total > 0 ? `${total} / 200` : "-";
+                        let totalAverage = 0;
+                        let subjectCount = 0;
+                        
+                        subjects.forEach((subjectCode) => {
+                          const subjectDetail = getSubjectById(data.student.class, subjectCode);
+                          const isAlphabetical = subjectDetail?.dataType === 'string';
+                          
+                          if (!isAlphabetical) {
+                            let totalObtained = 0;
+                            let totalMax = 0;
+                            
+                            const term1 = getMarksForTerm(subjectCode, "1st Unit Test");
+                            const term2 = getMarksForTerm(subjectCode, "Mid Term");
+                            const term3 = getMarksForTerm(subjectCode, "2nd Unit Test");
+                            const term4 = getMarksForTerm(subjectCode, "Final Term");
+                            
+                            [term1, term2, term3, term4].forEach((term) => {
+                              if (term && term.marks !== undefined) {
+                                totalObtained += term.marks;
+                                totalMax += term.maxMarks;
+                              }
+                            });
+                            
+                            if (totalMax > 0) {
+                              const percentage = (totalObtained / totalMax) * 100;
+                              totalAverage += percentage;
+                              subjectCount++;
+                            }
+                          }
+                        });
+                        
+                        const maxPossible = subjectCount * 100;
+                        return subjectCount > 0 ? `${totalAverage.toFixed(0)} / ${maxPossible}` : "-";
                       })()}
                     </td>
                   </tr>
@@ -576,7 +613,7 @@ function PrintableReportCardContent() {
                       PERCENTAGE
                     </td>
                     <td className="px-4 py-2 text-center text-lg font-bold text-blue-800 print:px-2 print:py-1 print:text-base">
-                      {data.overallPercentage.toFixed(2)} %
+                      {data.overallPercentage.toFixed(0)} %
                     </td>
                   </tr>
                   {data.promotionStatus && data.promotionStatus !== "PENDING" && (
