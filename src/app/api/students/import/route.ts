@@ -5,12 +5,7 @@ import { prisma } from '@/lib/prisma'
 interface StudentImportData {
   name: string
   regNo: string
-  dateOfBirth?: string
   class: string
-  parentName?: string
-  email: string
-  phone?: string
-  academicYear?: string
 }
 
 export async function POST(request: NextRequest) {
@@ -47,11 +42,11 @@ export async function POST(request: NextRequest) {
 
       try {
         // Validate required fields
-        if (!student.name || !student.regNo || !student.class || !student.email) {
+        if (!student.name || !student.regNo || !student.class) {
           results.failed++
           results.errors.push({
             row: i + 1,
-            error: 'Missing required fields (name, regNo, class, email)',
+            error: 'Missing required fields (name, regNo, class)',
           })
           continue
         }
@@ -70,42 +65,21 @@ export async function POST(request: NextRequest) {
           continue
         }
 
-        // Check if registration number already exists (removed email check since students don't have email)
-        // const existingEmail = await prisma.student.findFirst({
-        //   where: { email: student.email },
-        // })
-
-        // if (existingEmail) {
-        //   results.failed++
-        //   results.errors.push({
-        //     row: i + 1,
-        //     error: `Email ${student.email} already exists`,
-        //   })
-        //   continue
-        // }
-
-        // Password is dateOfBirth in DDMMYYYY format (plain text, no slashes)
-        // dateOfBirth is stored with slashes DD/MM/YYYY
-        let password: string
-        let dateOfBirth: string
-
-        if (student.dateOfBirth) {
-          // Remove any slashes from input to get DDMMYYYY
-          const dobWithoutSlashes = student.dateOfBirth.replace(/\//g, '')
-          password = dobWithoutSlashes
-          
-          // Format as DD/MM/YYYY for storage
-          if (dobWithoutSlashes.length === 8) {
-            dateOfBirth = `${dobWithoutSlashes.slice(0, 2)}/${dobWithoutSlashes.slice(2, 4)}/${dobWithoutSlashes.slice(4, 8)}`
-          } else {
-            dateOfBirth = student.dateOfBirth
-          }
-        } else {
-          password = student.regNo
-          dateOfBirth = ''
+        // Validate class is valid (optional but recommended)
+        const classNum = parseInt(student.class)
+        if (isNaN(classNum) || classNum < 1 || classNum > 12) {
+          results.failed++
+          results.errors.push({
+            row: i + 1,
+            error: `Invalid class: ${student.class}. Must be between 1 and 12`,
+          })
+          continue
         }
 
-        // Create student with embedded auth
+        // Use registration number as default password
+        const password = student.regNo
+
+        // Create student with all required fields
         await prisma.student.create({
           data: {
             name: student.name,
@@ -113,8 +87,9 @@ export async function POST(request: NextRequest) {
             password: password,
             class: student.class,
             status: 'ACTIVE',
-            academicYear: student.academicYear || activeYear?.year || '2024-2025',
+            academicYear: activeYear?.year || new Date().getFullYear().toString(),
             promotionStatus: 'PENDING',
+            academicRecords: [],
             createdAt: new Date().toISOString(),
             updatedAt: new Date().toISOString(),
           },

@@ -83,6 +83,7 @@ export default function MarksEntryPage() {
   const [initialLoading, setInitialLoading] = useState(true)
   const [cardTerms, setCardTerms] = useState<Map<string, string>>(new Map())
   const [classSubjectMap, setClassSubjectMap] = useState<Array<{ class: string; subjects: Subject[] }>>([])
+  const [hasChanges, setHasChanges] = useState(false)
 
   useEffect(() => {
     fetchInitialData()
@@ -216,6 +217,7 @@ export default function MarksEntryPage() {
       })
 
       setMarksData(newMarksMap)
+      setHasChanges(false) // Reset changes flag when fetching fresh data
     } catch (error) {
       toast.error('Failed to fetch students and marks')
     } finally {
@@ -247,12 +249,18 @@ export default function MarksEntryPage() {
           entry.marks = ''
           entry.grade = ''
         }
+      } else if (field === 'grade') {
+        // For alphabetical grading subjects
+        entry.grade = value.toUpperCase()
+        // Set marks to the grade value for non-numeric subjects
+        entry.marks = value.toUpperCase()
       } else {
         entry[field] = value
       }
       
       newMarksMap.set(studentId, entry)
       setMarksData(newMarksMap)
+      setHasChanges(true) // Mark that changes have been made
     }
   }
 
@@ -289,6 +297,7 @@ export default function MarksEntryPage() {
 
       toast.success(data.message || 'Marks saved successfully!')
       fetchStudentsAndMarks() // Refresh data
+      setHasChanges(false) // Reset changes flag after successful save
     } catch (error: any) {
       toast.error(error.message || 'Failed to save marks')
     } finally {
@@ -458,47 +467,68 @@ export default function MarksEntryPage() {
               </div>
 
               {/* Cards for selected term */}
-              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
                 {classSubjectMap.flatMap((classData) => 
                   classData.subjects.map((subject) => {
                     const term = termsForClass.find(t => t.name === selectedTerm)
                     if (!term) return null
                     
+                    // Check if this subject is numeric
+                    const subjectDetail = getSubjectById(classData.class, subject.id)
+                    const isNumeric = subjectDetail?.dataType === 'number'
+                    
                     return (
                       <Card 
                         key={`${classData.class}-${subject.id}`}
-                        className="group relative overflow-hidden border border-gray-200/80 bg-white hover:border-blue-200 hover:shadow-lg transition-all duration-300 cursor-pointer"
+                        className="group relative overflow-hidden border-2 border-gray-100 bg-gradient-to-br from-white to-gray-50/30 hover:border-blue-300 hover:shadow-xl hover:shadow-blue-100/50 transition-all duration-300 cursor-pointer"
                         onClick={() => handleClassSelect(classData.class, selectedTerm, subject.id)}
                       >
-                        {/* Subtle gradient accent */}
-                        <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-blue-500 to-indigo-500 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                        {/* Top accent bar */}
+                        <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-blue-500 via-blue-600 to-indigo-600"></div>
                         
-                        <CardHeader className="pb-4">
+                        <CardHeader className="pb-2.5 pt-4">
                           <div className="flex items-start justify-between gap-2">
                             <div className="flex-1 min-w-0">
-                              <CardTitle className="text-base font-semibold text-gray-900 group-hover:text-blue-600 transition-colors">
+                              <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 font-semibold px-2 py-0.5 text-xs mb-1.5">
                                 Class {formatClass(classData.class)}
+                              </Badge>
+                              <CardTitle className="text-sm font-bold text-gray-800 group-hover:text-blue-700 transition-colors leading-tight">
+                                {subject.name}
                               </CardTitle>
-                              <p className="text-sm text-gray-600 mt-1 truncate">{subject.name}</p>
                             </div>
-                            <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-blue-50 group-hover:bg-blue-100 flex items-center justify-center transition-colors">
-                              <span className="text-sm font-semibold text-blue-600">{formatClass(classData.class)}</span>
+                            <div className="flex-shrink-0 w-9 h-9 rounded-lg bg-gradient-to-br from-blue-500 to-blue-600 group-hover:from-blue-600 group-hover:to-indigo-600 flex items-center justify-center transition-all duration-300 shadow-sm">
+                              <span className="text-sm font-bold text-white">{formatClass(classData.class)}</span>
                             </div>
                           </div>
                         </CardHeader>
                         
-                        <CardContent className="space-y-4">
-                          <div className="flex items-center justify-center py-3 px-3 bg-gray-50 rounded-lg">
-                            <div className="flex flex-col items-center">
-                              <span className="text-xs text-gray-500 font-medium">Maximum Marks</span>
-                              <span className="text-lg font-semibold text-gray-900">{term.maxMarks}</span>
+                        <CardContent className="space-y-2.5 pb-4">
+                          {isNumeric ? (
+                            <div className="relative overflow-hidden rounded-lg bg-gradient-to-br from-gray-50 to-gray-100/80 border border-gray-200/60 p-2.5 group-hover:border-gray-300 transition-colors h-[68px]">
+                              <div className="flex flex-col items-center justify-center h-full">
+                                <span className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide">Maximum Marks</span>
+                                <span className="text-2xl font-bold text-gray-900">{term.maxMarks}</span>
+                              </div>
+                              <div className="absolute -right-4 -top-4 w-16 h-16 rounded-full bg-gray-200/30 blur-xl"></div>
                             </div>
-                          </div>
+                          ) : (
+                            <div className="relative overflow-hidden rounded-lg bg-gradient-to-br from-purple-50 to-purple-100/60 border border-purple-200/60 p-2.5 group-hover:border-purple-300 transition-colors h-[68px]">
+                              <div className="flex items-center justify-center gap-1.5 h-full">
+                                <div className="w-1.5 h-1.5 rounded-full bg-purple-500 animate-pulse"></div>
+                                <span className="text-[11px] font-bold text-purple-700 uppercase tracking-wide">Alphabetical Grading</span>
+                                <div className="w-1.5 h-1.5 rounded-full bg-purple-500 animate-pulse"></div>
+                              </div>
+                              <div className="absolute -right-4 -top-4 w-16 h-16 rounded-full bg-purple-300/20 blur-xl"></div>
+                            </div>
+                          )}
                           
                           <Button 
-                            className="w-full bg-blue-600 hover:bg-blue-700 text-white shadow-sm font-medium"
+                            className="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-indigo-700 text-white shadow-sm hover:shadow-md font-semibold py-2 text-sm rounded-lg transition-all duration-300"
                           >
-                            Enter Marks →
+                            <span className="flex items-center justify-center gap-1.5">
+                              Enter Marks
+                              <span className="group-hover:translate-x-1 transition-transform duration-300 text-xs">→</span>
+                            </span>
                           </Button>
                         </CardContent>
                       </Card>
@@ -571,17 +601,17 @@ export default function MarksEntryPage() {
                 </div>
                 {students.length > 0 && (
                   <div className="flex flex-wrap gap-2">
-                    <Button onClick={handleDownloadMarks} variant="outline" size="sm" className="gap-2">
+                    {/* <Button onClick={handleDownloadMarks} variant="outline" size="sm" className="gap-2">
                       <Download className="h-4 w-4" />
                       Download CSV
-                    </Button>
+                    </Button> */}
                     <label htmlFor="upload-marks">
-                      <Button variant="outline" size="sm" asChild className="gap-2 cursor-pointer">
+                      {/* <Button variant="outline" size="sm" asChild className="gap-2 cursor-pointer">
                         <span>
                           <Upload className="h-4 w-4" />
                           Upload CSV
                         </span>
-                      </Button>
+                      </Button> */}
                       <input
                         id="upload-marks"
                         type="file"
@@ -594,7 +624,7 @@ export default function MarksEntryPage() {
                         }}
                       />
                     </label>
-                    <Button onClick={handleSaveMarks} disabled={saving || loading} size="sm" className="gap-2">
+                    <Button onClick={handleSaveMarks} disabled={saving || loading || !hasChanges} size="sm" className="gap-2">
                       {saving ? (
                         <>
                           <Loader2 className="h-4 w-4 animate-spin" />

@@ -38,11 +38,6 @@ const menuItems = [
     icon: Users,
   },
   {
-    title: 'Subjects',
-    href: '/admin/subjects',
-    icon: BookOpen,
-  },
-  {
     title: 'Academic Years',
     href: '/admin/academic-years',
     icon: Calendar,
@@ -51,17 +46,7 @@ const menuItems = [
     title: 'Publish Reports',
     href: '/admin/reports',
     icon: FileCheck,
-  },
-  {
-    title: 'Promotions',
-    href: '/admin/promotion',
-    icon: TrendingUp,
-  },
-  {
-    title: 'Audit Logs',
-    href: '/admin/audit-logs',
-    icon: Shield,
-  },
+  }
 ]
 
 interface AdminSidebarProps {

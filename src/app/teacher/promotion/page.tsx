@@ -298,18 +298,18 @@ export default function TeacherPromotionPage() {
   const notPromotedStudents = students?.filter(s => s.promotionStatus === 'PENDING' || s.promotionStatus === 'DETAINED') || []
 
   return (
-    <div className="p-6 space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold">Student Promotion</h1>
-        <p className="text-muted-foreground mt-1">
+    <div className="p-4 md:p-6 space-y-6">
+      <div className="space-y-2">
+        <h1 className="text-2xl md:text-3xl font-bold">Student Promotion</h1>
+        <p className="text-sm md:text-base text-muted-foreground">
           Manage promotions for your class: {formatClass(classTeacherInfo.class!)}
         </p>
       </div>
 
-      <Card>
-        <CardContent className="pt-6">
+      <Card className="w-full">
+        <CardContent className="pt-4 md:pt-6 px-3 md:px-6">
           <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="grid w-full grid-cols-2">
+            <TabsList className="grid w-full grid-cols-2 h-auto">
               <TabsTrigger value="not-promoted">
                 Not Promoted ({notPromotedStudents.length})
               </TabsTrigger>
@@ -319,19 +319,21 @@ export default function TeacherPromotionPage() {
             </TabsList>
 
             {/* Not Promoted Tab */}
-            <TabsContent value="not-promoted" className="mt-6">
-              <div className="flex items-center justify-between mb-4">
+            <TabsContent value="not-promoted" className="mt-4 md:mt-6">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
                 <div>
-                  <h3 className="text-lg font-semibold">Students Pending Promotion</h3>
-                  <p className="text-sm text-muted-foreground">
+                  <h3 className="text-base md:text-lg font-semibold">Students Pending Promotion</h3>
+                  <p className="text-xs md:text-sm text-muted-foreground">
                     {selectedStudents.size} of {notPromotedStudents.length} selected
                   </p>
                 </div>
-                <div className="flex gap-2">
+                <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
                   <Button
                     variant="outline"
                     onClick={handleDetain}
                     disabled={selectedStudents.size === 0 || processing}
+                    className="w-full sm:w-auto text-sm"
+                    size="sm"
                   >
                     <TrendingDown className="mr-2 h-4 w-4" />
                     Detain Selected
@@ -339,6 +341,8 @@ export default function TeacherPromotionPage() {
                   <Button
                     onClick={handlePromote}
                     disabled={selectedStudents.size === 0 || processing}
+                    className="w-full sm:w-auto text-sm"
+                    size="sm"
                   >
                     {processing ? (
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -352,10 +356,10 @@ export default function TeacherPromotionPage() {
               {notPromotedStudents.length === 0 ? (
                 <div className="text-center py-8 text-muted-foreground">
                   <CheckCircle2 className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                  <p>No students pending promotion in your class</p>
+                  <p className="text-sm md:text-base">No students pending promotion in your class</p>
                 </div>
               ) : (
-                <div className="rounded-md border">
+                <div className="rounded-md border overflow-x-auto">
                   <Table>
                     <TableHeader>
                       <TableRow>
@@ -365,13 +369,13 @@ export default function TeacherPromotionPage() {
                             onCheckedChange={() => toggleAll(notPromotedStudents)}
                           />
                         </TableHead>
-                        <TableHead>Reg No</TableHead>
-                        <TableHead>Name</TableHead>
-                        <TableHead>Class</TableHead>
-                        <TableHead>Marks</TableHead>
-                        <TableHead>Percentage</TableHead>
-                        <TableHead>Result</TableHead>
-                        <TableHead>Status</TableHead>
+                        <TableHead className="min-w-[100px]">Reg No</TableHead>
+                        <TableHead className="min-w-[150px]">Name</TableHead>
+                        <TableHead className="min-w-[80px]">Class</TableHead>
+                        <TableHead className="min-w-[100px] hidden md:table-cell">Marks</TableHead>
+                        <TableHead className="min-w-[100px]">Percentage</TableHead>
+                        <TableHead className="min-w-[100px] hidden lg:table-cell">Result</TableHead>
+                        <TableHead className="min-w-[100px]">Status</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -386,9 +390,9 @@ export default function TeacherPromotionPage() {
                           <TableCell className="font-medium">{student.regNo}</TableCell>
                           <TableCell>{student.name}</TableCell>
                           <TableCell>
-                            <Badge variant="outline">{formatClass(student.class)}</Badge>
+                            <Badge variant="outline" className="text-xs">{formatClass(student.class)}</Badge>
                           </TableCell>
-                          <TableCell>
+                          <TableCell className="hidden md:table-cell">
                             {student.hasMarks ? (
                               <span className="text-sm">
                                 {student.totalObtained}/{student.totalMax}
@@ -399,14 +403,14 @@ export default function TeacherPromotionPage() {
                           </TableCell>
                           <TableCell>
                             {student.hasMarks ? (
-                              <span className="text-sm font-medium">
+                              <span className="text-xs md:text-sm font-medium">
                                 {student.percentage.toFixed(2)}%
                               </span>
                             ) : (
-                              <span className="text-sm text-muted-foreground">-</span>
+                              <span className="text-xs md:text-sm text-muted-foreground">-</span>
                             )}
                           </TableCell>
-                          <TableCell>{getResultBadge(student.result)}</TableCell>
+                          <TableCell className="hidden lg:table-cell">{getResultBadge(student.result)}</TableCell>
                           <TableCell>{getPromotionStatusBadge(student.promotionStatus)}</TableCell>
                         </TableRow>
                       ))}
@@ -417,18 +421,19 @@ export default function TeacherPromotionPage() {
             </TabsContent>
 
             {/* Promoted Tab */}
-            <TabsContent value="promoted" className="mt-6">
-              <div className="flex items-center justify-between mb-4">
+            <TabsContent value="promoted" className="mt-4 md:mt-6">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
                 <div>
-                  <h3 className="text-lg font-semibold">Promoted Students</h3>
-                  <p className="text-sm text-muted-foreground">
+                  <h3 className="text-base md:text-lg font-semibold">Promoted Students</h3>
+                  <p className="text-xs md:text-sm text-muted-foreground">
                     {selectedStudents.size} of {promotedStudents.length} selected
                   </p>
                 </div>
                 <Button
                   onClick={handleMoveToClass}
                   disabled={selectedStudents.size === 0 || movingStudents}
-                  className="bg-blue-600 hover:bg-blue-700"
+                  className="bg-blue-600 hover:bg-blue-700 w-full sm:w-auto text-sm"
+                  size="sm"
                 >
                   {movingStudents ? (
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -441,10 +446,10 @@ export default function TeacherPromotionPage() {
               {promotedStudents.length === 0 ? (
                 <div className="text-center py-8 text-muted-foreground">
                   <CheckCircle2 className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                  <p>No promoted students in your class</p>
+                  <p className="text-sm md:text-base">No promoted students in your class</p>
                 </div>
               ) : (
-                <div className="rounded-md border">
+                <div className="rounded-md border overflow-x-auto">
                   <Table>
                     <TableHeader>
                       <TableRow>
@@ -454,13 +459,13 @@ export default function TeacherPromotionPage() {
                             onCheckedChange={() => toggleAll(promotedStudents)}
                           />
                         </TableHead>
-                        <TableHead>Reg No</TableHead>
-                        <TableHead>Name</TableHead>
-                        <TableHead>Class</TableHead>
-                        <TableHead>Marks</TableHead>
-                        <TableHead>Percentage</TableHead>
-                        <TableHead>Result</TableHead>
-                        <TableHead>Status</TableHead>
+                        <TableHead className="min-w-[100px]">Reg No</TableHead>
+                        <TableHead className="min-w-[150px]">Name</TableHead>
+                        <TableHead className="min-w-[80px]">Class</TableHead>
+                        <TableHead className="min-w-[100px] hidden md:table-cell">Marks</TableHead>
+                        <TableHead className="min-w-[100px]">Percentage</TableHead>
+                        <TableHead className="min-w-[100px] hidden lg:table-cell">Result</TableHead>
+                        <TableHead className="min-w-[100px]">Status</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -475,9 +480,9 @@ export default function TeacherPromotionPage() {
                           <TableCell className="font-medium">{student.regNo}</TableCell>
                           <TableCell>{student.name}</TableCell>
                           <TableCell>
-                            <Badge variant="outline">{formatClass(student.class)}</Badge>
+                            <Badge variant="outline" className="text-xs">{formatClass(student.class)}</Badge>
                           </TableCell>
-                          <TableCell>
+                          <TableCell className="hidden md:table-cell">
                             {student.hasMarks ? (
                               <span className="text-sm">
                                 {student.totalObtained}/{student.totalMax}
@@ -488,14 +493,14 @@ export default function TeacherPromotionPage() {
                           </TableCell>
                           <TableCell>
                             {student.hasMarks ? (
-                              <span className="text-sm font-medium">
+                              <span className="text-xs md:text-sm font-medium">
                                 {student.percentage.toFixed(2)}%
                               </span>
                             ) : (
-                              <span className="text-sm text-muted-foreground">-</span>
+                              <span className="text-xs md:text-sm text-muted-foreground">-</span>
                             )}
                           </TableCell>
-                          <TableCell>{getResultBadge(student.result)}</TableCell>
+                          <TableCell className="hidden lg:table-cell">{getResultBadge(student.result)}</TableCell>
                           <TableCell>{getPromotionStatusBadge(student.promotionStatus)}</TableCell>
                         </TableRow>
                       ))}
@@ -509,12 +514,12 @@ export default function TeacherPromotionPage() {
       </Card>
 
       <Dialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
-        <DialogContent>
+        <DialogContent className="w-[95vw] max-w-md mx-auto">
           <DialogHeader>
-            <DialogTitle>
+            <DialogTitle className="text-lg md:text-xl">
               Confirm {confirmAction === 'PROMOTE' ? 'Promotion' : 'Detention'}
             </DialogTitle>
-            <DialogDescription>
+            <DialogDescription className="text-sm">
               Are you sure you want to {confirmAction === 'PROMOTE' ? 'promote' : 'detain'}{' '}
               {selectedStudents.size} student(s)?
               {confirmAction === 'PROMOTE' && (
@@ -529,15 +534,16 @@ export default function TeacherPromotionPage() {
               )}
             </DialogDescription>
           </DialogHeader>
-          <DialogFooter>
+          <DialogFooter className="flex-col sm:flex-row gap-2">
             <Button
               variant="outline"
               onClick={() => setShowConfirmDialog(false)}
               disabled={processing}
+              className="w-full sm:w-auto"
             >
               Cancel
             </Button>
-            <Button onClick={confirmPromotion} disabled={processing}>
+            <Button onClick={confirmPromotion} disabled={processing} className="w-full sm:w-auto">
               {processing && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
               Confirm
             </Button>
@@ -546,25 +552,26 @@ export default function TeacherPromotionPage() {
       </Dialog>
 
       <Dialog open={showMoveDialog} onOpenChange={setShowMoveDialog}>
-        <DialogContent>
+        <DialogContent className="w-[95vw] max-w-md mx-auto">
           <DialogHeader>
-            <DialogTitle>Move Students to New Class</DialogTitle>
-            <DialogDescription>
+            <DialogTitle className="text-lg md:text-xl">Move Students to New Class</DialogTitle>
+            <DialogDescription className="text-sm">
               Are you sure you want to move the selected promoted students to their next class?
               <span className="block mt-2 font-medium text-orange-600">
                 This action will permanently change their class assignment.
               </span>
             </DialogDescription>
           </DialogHeader>
-          <DialogFooter>
+          <DialogFooter className="flex-col sm:flex-row gap-2">
             <Button
               variant="outline"
               onClick={() => setShowMoveDialog(false)}
               disabled={movingStudents}
+              className="w-full sm:w-auto"
             >
               Cancel
             </Button>
-            <Button onClick={confirmMoveToClass} disabled={movingStudents}>
+            <Button onClick={confirmMoveToClass} disabled={movingStudents} className="w-full sm:w-auto">
               {movingStudents && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
               Move to New Class
             </Button>

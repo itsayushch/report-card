@@ -52,7 +52,7 @@ export async function GET(request: NextRequest) {
         studentId: student.id,
         subjectId: subject,
         marks: subjectData.marks,
-        grade: '', // Grade is calculated on frontend
+        grade: subjectData.grade || '', // Use stored grade for alphabetical subjects
         teacherRemarks: null,
       }]
     })

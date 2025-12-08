@@ -184,92 +184,94 @@ export default function ClassTeachersPage() {
   const availableClasses = CLASSES.filter((c) => !assignedClasses.includes(c))
 
   return (
-    <div className="p-6 space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold">Class Teachers</h1>
-        <p className="text-muted-foreground mt-1">
+    <div className="p-4 md:p-6 space-y-6">
+      <div className="space-y-2">
+        <h1 className="text-2xl md:text-3xl font-bold">Class Teachers</h1>
+        <p className="text-sm md:text-base text-muted-foreground">
           Assign teachers as class teachers to manage student promotions
         </p>
       </div>
 
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
+      <Card className="w-full">
+        <CardHeader className="space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div className="space-y-1">
-              <CardTitle>Class Teacher Assignments</CardTitle>
-              <CardDescription>
+              <CardTitle className="text-lg md:text-xl">Class Teacher Assignments</CardTitle>
+              <CardDescription className="text-sm">
                 Manage which teachers are assigned as class teachers
               </CardDescription>
             </div>
-            <Button onClick={() => handleOpenDialog()}>
+            <Button onClick={() => handleOpenDialog()} className="w-full sm:w-auto">
               <Plus className="h-4 w-4 mr-2" />
               Assign Class Teacher
             </Button>
           </div>
         </CardHeader>
-        <CardContent>
+        <CardContent className="px-0 sm:px-6">
           {loading ? (
             <div className="flex items-center justify-center py-8">
               <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
             </div>
           ) : classTeachers.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">
+            <div className="text-center py-8 text-muted-foreground px-4">
               <GraduationCap className="h-12 w-12 mx-auto mb-4 opacity-50" />
-              <p>No class teachers assigned for this academic year</p>
+              <p className="text-sm md:text-base">No class teachers assigned for this academic year</p>
             </div>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Class</TableHead>
-                  <TableHead>Teacher Name</TableHead>
-                  <TableHead>Email</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {classTeachers.map((ct) => (
-                  <TableRow key={ct.id}>
-                    <TableCell>
-                      <Badge variant="outline">{formatClass(ct.class)}</Badge>
-                    </TableCell>
-                    <TableCell className="font-medium">{ct.teacher.name}</TableCell>
-                    <TableCell className="text-muted-foreground">
-                      {ct.teacher.email}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex items-center justify-end gap-2">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleOpenDialog(ct)}
-                        >
-                          <Pencil className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleDelete(ct.id)}
-                        >
-                          <Trash2 className="h-4 w-4 text-destructive" />
-                        </Button>
-                      </div>
-                    </TableCell>
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="min-w-[80px]">Class</TableHead>
+                    <TableHead className="min-w-[150px]">Teacher Name</TableHead>
+                    <TableHead className="min-w-[200px] hidden sm:table-cell">Email</TableHead>
+                    <TableHead className="text-right min-w-[100px]">Actions</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody>
+                  {classTeachers.map((ct) => (
+                    <TableRow key={ct.id}>
+                      <TableCell>
+                        <Badge variant="outline">{formatClass(ct.class)}</Badge>
+                      </TableCell>
+                      <TableCell className="font-medium">{ct.teacher.name}</TableCell>
+                      <TableCell className="text-muted-foreground hidden sm:table-cell">
+                        {ct.teacher.email}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex items-center justify-end gap-1 sm:gap-2">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleOpenDialog(ct)}
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleDelete(ct.id)}
+                          >
+                            <Trash2 className="h-4 w-4 text-destructive" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
           )}
         </CardContent>
       </Card>
 
       <Dialog open={showDialog} onOpenChange={setShowDialog}>
-        <DialogContent>
+        <DialogContent className="w-[95vw] max-w-md mx-auto">
           <DialogHeader>
-            <DialogTitle>
+            <DialogTitle className="text-lg md:text-xl">
               {editingId ? 'Edit Class Teacher' : 'Assign Class Teacher'}
             </DialogTitle>
-            <DialogDescription>
+            <DialogDescription className="text-sm">
               {editingId
                 ? 'Update the class teacher assignment'
                 : 'Assign a teacher as a class teacher for a specific class'}
@@ -277,34 +279,34 @@ export default function ClassTeachersPage() {
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="space-y-2">
-              <Label>Teacher</Label>
+              <Label className="text-sm">Teacher</Label>
               <Select
                 value={formData.teacherId}
                 onValueChange={(value) =>
                   setFormData((prev) => ({ ...prev, teacherId: value }))
                 }
               >
-                <SelectTrigger>
+                <SelectTrigger className="w-full">
                   <SelectValue placeholder="Select teacher" />
                 </SelectTrigger>
                 <SelectContent>
                   {teachers.map((teacher) => (
                     <SelectItem key={teacher.id} value={teacher.id}>
-                      {teacher.name} ({teacher.email})
+                      <span className="text-sm">{teacher.name} ({teacher.email})</span>
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
             <div className="space-y-2">
-              <Label>Class</Label>
+              <Label className="text-sm">Class</Label>
               <Select
                 value={formData.class}
                 onValueChange={(value) =>
                   setFormData((prev) => ({ ...prev, class: value }))
                 }
               >
-                <SelectTrigger>
+                <SelectTrigger className="w-full">
                   <SelectValue placeholder="Select class" />
                 </SelectTrigger>
                 <SelectContent>
@@ -317,11 +319,11 @@ export default function ClassTeachersPage() {
               </Select>
             </div>
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={handleCloseDialog}>
+          <DialogFooter className="flex-col sm:flex-row gap-2">
+            <Button variant="outline" onClick={handleCloseDialog} className="w-full sm:w-auto">
               Cancel
             </Button>
-            <Button onClick={handleSubmit}>
+            <Button onClick={handleSubmit} className="w-full sm:w-auto">
               {editingId ? 'Update' : 'Assign'}
             </Button>
           </DialogFooter>

@@ -85,11 +85,28 @@ export async function GET(
           subjectCode: s.subjectCode,
           marks: s.marks,
           maxMarks: s.maxMarks,
-          grade: calculateGrade((s.marks / s.maxMarks) * 100),
+          grade: s.grade !== undefined && s.grade !== null && s.grade !== '' 
+            ? s.grade 
+            : calculateGrade((s.marks / s.maxMarks) * 100), // Use stored grade if available, otherwise calculate
         }));
 
-        const totalObtained = termRecord.subjects.reduce((sum: number, s: any) => sum + s.marks, 0);
-        const totalMax = termRecord.subjects.reduce((sum: number, s: any) => sum + s.maxMarks, 0);
+        // Only include numeric subjects (those without stored grades) in totals
+        const totalObtained = termRecord.subjects.reduce((sum: number, s: any) => {
+          // Skip subjects with alphabetical grades
+          if (s.grade !== undefined && s.grade !== null && s.grade !== '') {
+            return sum;
+          }
+          return sum + s.marks;
+        }, 0);
+        
+        const totalMax = termRecord.subjects.reduce((sum: number, s: any) => {
+          // Skip subjects with alphabetical grades
+          if (s.grade !== undefined && s.grade !== null && s.grade !== '') {
+            return sum;
+          }
+          return sum + s.maxMarks;
+        }, 0);
+        
         const percentage = totalMax > 0 ? (totalObtained / totalMax) * 100 : 0;
 
         termReports[term] = {

@@ -3,7 +3,7 @@ import { Printer } from "lucide-react";
 import { useEffect, useState, Suspense } from "react";
 import { useSearchParams, useParams } from "next/navigation";
 import { formatClass } from "@/lib/class-utils";
-import { getSubjectById } from "@/lib/subjects";
+import { getSubjectById, subjectsByClass } from "@/lib/subjects";
 import { getTermsForClass } from "@/lib/terms";
 
 interface ReportData {
@@ -136,15 +136,9 @@ function PrintableReportCardContent() {
     }
   });
 
-  // TEMPORARY: Add dummy subjects for testing (REMOVE LATER)
-  const dummySubjects = [
-    'PHYS', 'CHEM', 'BIO', 'ENG-LIT', 'ENG-LANG', 
-    'HINDI', 'SANS', 'COMP-SCI', 'INFO-TECH', 'ART',
-    'MUSIC', 'PE', 'GEO', 'ECO', 'POL-SCI',
-    'SOCIO', 'PSYCH'
-  ];
-  dummySubjects.forEach(sub => allSubjects.add(sub));
-  // END TEMPORARY
+  // Add all subjects for the class (to show subjects even if they don't have marks yet)
+  const classSubjects = subjectsByClass[data.student.class] || [];
+  classSubjects.forEach(subject => allSubjects.add(subject.id));
 
   const subjects = Array.from(allSubjects);
 
@@ -482,6 +476,11 @@ function PrintableReportCardContent() {
                     const term2 = getMarksForTerm(subjectCode, "Mid Term");
                     const term3 = getMarksForTerm(subjectCode, "2nd Unit Test");
                     const term4 = getMarksForTerm(subjectCode, "Final Term");
+                    
+                    // Check if this is an alphabetical grading subject
+                    const subjectDetail = getSubjectById(data.student.class, subjectCode);
+                    const isAlphabetical = subjectDetail?.dataType === 'string';
+                    
                     const cumulative = getCumulativeMarks(
                       subjectCode,
                       "Final Term"
@@ -501,21 +500,21 @@ function PrintableReportCardContent() {
                             ?.name || subjectCode}
                         </td>
                         <td className="border-r border-blue-800 px-2 py-1.5 text-center text-sm font-semibold text-gray-900 print:px-1.5 print:py-1 print:text-xs">
-                          {term1 ? term1.marks : "-"}
+                          {term1 ? (isAlphabetical && term1.grade ? term1.grade : term1.marks) : "-"}
                         </td>
                         <td className="border-r border-blue-800 px-2 py-1.5 text-center text-sm font-semibold text-gray-900 print:px-1.5 print:py-1 print:text-xs">
-                          {term2 ? term2.marks : "-"}
+                          {term2 ? (isAlphabetical && term2.grade ? term2.grade : term2.marks) : "-"}
                         </td>
                         <td className="border-r border-blue-800 px-2 py-1.5 text-center text-sm font-semibold text-gray-900 print:px-1.5 print:py-1 print:text-xs">
-                          {term3 ? term3.marks : "-"}
+                          {term3 ? (isAlphabetical && term3.grade ? term3.grade : term3.marks) : "-"}
                         </td>
                         <td className="border-r border-blue-800 px-2 py-1.5 text-center text-sm font-semibold text-gray-900 print:px-1.5 print:py-1 print:text-xs">
-                          {term4 ? term4.marks : "-"}
+                          {term4 ? (isAlphabetical && term4.grade ? term4.grade : term4.marks) : "-"}
                         </td>
                         <td className="border-r border-blue-800 px-2 py-1.5 text-center text-sm font-semibold text-gray-900 print:px-1.5 print:py-1 print:text-xs">
-                          {cumulative.totalObtained > 0
+                          {isAlphabetical ? "-" : (cumulative.totalObtained > 0
                             ? `${percentage.toFixed(0)}`
-                            : "-"}
+                            : "-")}
                         </td>
                       </tr>
                     );

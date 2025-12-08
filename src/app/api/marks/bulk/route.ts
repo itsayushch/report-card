@@ -118,6 +118,7 @@ export async function POST(request: NextRequest) {
               subjectCode: subjectId,
               marks: isNumeric ? (typeof markValue === 'number' ? markValue : parseFloat(markValue as string)) : 0,
               maxMarks: maxMarks,
+              grade: isNumeric ? undefined : (grade || String(markValue)),
             }
           } else {
             // Add new subject to existing record
@@ -125,6 +126,7 @@ export async function POST(request: NextRequest) {
               subjectCode: subjectId,
               marks: isNumeric ? (typeof markValue === 'number' ? markValue : parseFloat(markValue as string)) : 0,
               maxMarks: maxMarks,
+              grade: isNumeric ? undefined : (grade || String(markValue)),
             })
           }
 
@@ -148,6 +150,7 @@ export async function POST(request: NextRequest) {
               subjectCode: subjectId,
               marks: isNumeric ? (typeof markValue === 'number' ? markValue : parseFloat(markValue as string)) : 0,
               maxMarks: maxMarks,
+              grade: isNumeric ? undefined : (grade || String(markValue)),
             }],
             enteredBy: teacher.id,
             enteredAt: new Date(),

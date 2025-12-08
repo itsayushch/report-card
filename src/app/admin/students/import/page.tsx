@@ -18,11 +18,6 @@ interface StudentImportData {
   name: string
   regNo: string
   class: string
-  dateOfBirth: string
-  parentName?: string
-  email?: string
-  phone?: string
-  academicYear?: string
 }
 
 export default function StudentImportPage() {
@@ -81,21 +76,11 @@ export default function StudentImportPage() {
         name: 'John Doe',
         regNo: '2024001',
         class: '9',
-        dateOfBirth: '15/08/2010',
-        parentName: 'Jane Doe',
-        email: 'john.doe@example.com',
-        phone: '+1234567890',
-        academicYear: '2024-2025',
       },
       {
         name: 'Alice Smith',
         regNo: '2024002',
         class: '10',
-        dateOfBirth: '22/03/2009',
-        parentName: 'Bob Smith',
-        email: 'alice.smith@example.com',
-        phone: '+1234567891',
-        academicYear: '2024-2025',
       },
     ]
 
@@ -277,7 +262,7 @@ export default function StudentImportPage() {
             <Alert>
               <AlertCircle className="h-4 w-4" />
               <AlertDescription className="text-sm">
-                Default password for all imported students will be their Date of Birth in DDMMYYYY format.
+                Default password for all imported students will be their Registration Number.
               </AlertDescription>
             </Alert>
           </CardContent>

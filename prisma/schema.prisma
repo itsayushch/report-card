@@ -39,6 +39,7 @@ type SubjectMark {
   subjectCode String
   marks       Float
   maxMarks    Int
+  grade       String? // For alphabetical grading (A/B/C)
 }
 
 enum Status {
