@@ -202,15 +202,21 @@ export default function MarksEntryPage() {
       // Initialize marks data
       const newMarksMap = new Map<string, MarkEntry>()
       
+      // Check if current subject is alphabetical
+      const subjectDetail = getSubjectById(selectedClass, selectedSubject)
+      const isAlphabetical = subjectDetail?.dataType === 'string'
+      
       studentsData.students?.forEach((student: Student) => {
         const existingMark = marksData.find(
           (m: ExistingMark) => m.studentId === student.id
         )
 
+        // For alphabetical subjects, prioritize grade over marks
+        
         newMarksMap.set(student.id, {
           studentId: student.id,
           subjectId: selectedSubject,
-          marks: existingMark?.marks ?? '',
+          marks: isAlphabetical ? (existingMark?.grade || '') : (existingMark?.marks ?? ''),
           grade: existingMark?.grade || '',
           teacherRemarks: existingMark?.teacherRemarks || '',
         })

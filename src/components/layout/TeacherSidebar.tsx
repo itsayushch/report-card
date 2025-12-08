@@ -4,14 +4,12 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
 import { signOut } from 'next-auth/react'
-import { useState, useEffect } from 'react'
 import {
   LayoutDashboard,
   ClipboardEdit,
   BarChart3,
   User,
   LogOut,
-  TrendingUp,
 } from 'lucide-react'
 
 const menuItems = [
@@ -39,45 +37,6 @@ const menuItems = [
 
 export function TeacherSidebar() {
   const pathname = usePathname()
-  const [isClassTeacher, setIsClassTeacher] = useState(false)
-
-  useEffect(() => {
-    checkClassTeacherStatus()
-  }, [])
-
-  const checkClassTeacherStatus = async () => {
-    try {
-      // Get active academic year
-      const yearResponse = await fetch('/api/academic-years')
-      const yearData = await yearResponse.json()
-      const activeYear = yearData.academicYears?.find((y: any) => y.isActive)
-      
-      if (!activeYear) return
-
-      // Check class teacher status
-      const response = await fetch(
-        `/api/teacher/class-teacher-status?academicYear=${activeYear.year}`
-      )
-      const data = await response.json()
-      setIsClassTeacher(data.isClassTeacher)
-    } catch (error) {
-      console.error('Error checking class teacher status:', error)
-    }
-  }
-
-  // Add promotion to menu items if teacher is a class teacher
-  const dynamicMenuItems = [
-    ...menuItems,
-    ...(isClassTeacher
-      ? [
-          {
-            title: 'Promotions',
-            href: '/teacher/promotion',
-            icon: TrendingUp,
-          },
-        ]
-      : []),
-  ]
 
   return (
     <div className="flex h-full flex-col bg-gray-900">
@@ -88,7 +47,7 @@ export function TeacherSidebar() {
 
       {/* Navigation */}
       <nav className="flex-1 space-y-1 p-4">
-        {dynamicMenuItems.map((item) => {
+        {menuItems.map((item) => {
           const Icon = item.icon
           const isActive = pathname === item.href
 

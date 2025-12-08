@@ -64,6 +64,40 @@ export async function POST(request: NextRequest) {
       data,
     })
 
+    // Automatically promote all students marked as PROMOTED
+    if (data.isActive) {
+      // Get all promoted students from previous year
+      const promotedStudents = await prisma.student.findMany({
+        where: {
+          promotionStatus: 'PROMOTED',
+          status: 'ACTIVE',
+        },
+        select: {
+          id: true,
+          class: true,
+        },
+      })
+
+      // Promote students to next class
+      if (promotedStudents.length > 0) {
+        const promotionUpdates = promotedStudents.map(student => {
+          const currentClass = parseInt(student.class)
+          const nextClass = currentClass >= 10 ? 10 : currentClass + 1 // Max class is 10
+          
+          return prisma.student.update({
+            where: { id: student.id },
+            data: {
+              class: nextClass.toString(),
+              academicYear: data.year,
+              promotionStatus: 'PENDING', // Reset promotion status
+            },
+          })
+        })
+
+        await Promise.all(promotionUpdates)
+      }
+    }
+
     return NextResponse.json(academicYear, { status: 201 })
   } catch (error: any) {
     console.error('Error creating academic year:', error)
