@@ -246,7 +246,7 @@ function PrintableReportCardContent() {
             display: none !important;
           }
           @page {
-            margin: 0.5cm;
+            margin: 0.3cm;
             size: A4 portrait;
           }
           body {
@@ -257,7 +257,9 @@ function PrintableReportCardContent() {
           }
           .report-container {
             max-width: 100% !important;
+            width: 100% !important;
             margin: 0 !important;
+            padding: 0 !important;
             box-shadow: none !important;
             border: none !important;
           }
@@ -267,6 +269,36 @@ function PrintableReportCardContent() {
           .page-break-avoid {
             page-break-inside: avoid;
             break-inside: avoid;
+          }
+          .print-page {
+            page-break-after: always;
+            min-height: 100vh !important;
+            display: flex !important;
+            flex-direction: column !important;
+          }
+          .print-page:last-child {
+            page-break-after: auto;
+          }
+          /* Ensure proper scaling on mobile */
+          html, body {
+            width: 100%;
+            height: 100%;
+          }
+          /* Compact spacing for mobile print */
+          .mobile-compact {
+            padding: 0.25rem !important;
+            margin: 0.25rem !important;
+          }
+          .mobile-compact-border {
+            border-width: 3px !important;
+            margin: 0.25rem !important;
+          }
+          /* Reduce font sizes slightly for better fit */
+          .mobile-text-sm {
+            font-size: 10px !important;
+          }
+          .mobile-text-xs {
+            font-size: 9px !important;
           }
         }
       `}</style>
@@ -283,10 +315,10 @@ function PrintableReportCardContent() {
       </div>
 
       {/* Report Card Container */}
-      <div className="min-h-screen bg-gray-100 py-8 px-4 print:bg-white print:p-0" style={{ minWidth: '800px' }}>
-        <div className="report-container max-w-3xl mx-auto bg-white print:shadow-none" style={{ width: '100%', maxWidth: '800px' }}>
-          {/* Main Border Container */}
-          <div className="border-[5px] border-double border-blue-800 m-4 print:m-2 min-h-[calc(100vh-4rem)] print:min-h-[calc(100vh-1rem)] flex flex-col relative">
+      <div className="min-h-screen bg-gray-100 py-8 px-4 print:bg-white print:p-0 print:py-0 print:px-0" style={{ minWidth: '800px' }}>
+        <div className="report-container max-w-3xl mx-auto bg-white print:shadow-none print:max-w-full" style={{ width: '100%', maxWidth: '800px' }}>
+          {/* Main Border Container - PAGE 1 */}
+          <div className="border-[5px] border-double border-blue-800 m-4 print:m-1 print:mobile-compact-border min-h-[calc(100vh-4rem)] print:min-h-[100vh] flex flex-col relative print-page">
             
             {/* Watermark */}
             <div className="watermark">
@@ -303,36 +335,36 @@ function PrintableReportCardContent() {
             </div>
 
             {/* School Logo/Crest */}
-            <div className="flex justify-center pt-6 pb-2 relative z-10">
+            <div className="flex justify-center pt-6 pb-2 relative z-10 print:pt-3 print:pb-1">
               <img 
                 src="https://www.schooldekho.org/storage/logo//epdo17blks0ss4sgcokg8kwsg448cco.png" 
                 alt="St. Helen's School Logo" 
-                className="w-16 h-16 object-contain"
+                className="w-16 h-16 object-contain print:w-12 print:h-12"
               />
             </div>
 
             {/* School Name Header */}
-            <div className="text-center px-6 pb-3">
-              <h1 className="text-red-700 text-2xl font-bold tracking-wide">
+            <div className="text-center px-6 pb-3 print:px-3 print:pb-2">
+              <h1 className="text-red-700 text-2xl font-bold tracking-wide print:text-xl">
                 ST. HELEN&apos;S SECONDARY SCHOOL
               </h1>
-              <h2 className="text-red-700 text-xl font-bold tracking-wider">
+              <h2 className="text-red-700 text-xl font-bold tracking-wider print:text-lg">
                 KURSEONG
               </h2>
             </div>
 
             {/* Title Section */}
-            <div className="text-center pb-2">
-              <h3 className="text-blue-800 text-lg font-bold tracking-wide">
+            <div className="text-center pb-2 print:pb-1">
+              <h3 className="text-blue-800 text-lg font-bold tracking-wide print:text-base">
                 STATEMENT OF MARKS
               </h3>
             </div>
 
             {/* Horizontal Line */}
-            <div className="border-t-2 border-blue-800 mx-6 my-3 relative z-10"></div>
+            <div className="border-t-2 border-blue-800 mx-6 my-3 relative z-10 print:mx-3 print:my-2"></div>
 
             {/* Student Information - Compact Two Column Layout */}
-            <div className="px-6 pb-4 relative z-10">
+            <div className="px-6 pb-4 relative z-10 print:px-3 print:pb-2">
               <div className="border-2 border-blue-800">
                 <div className="grid grid-cols-2">
                   <div className="flex border-r border-b border-blue-800 px-2 py-1">
@@ -356,8 +388,8 @@ function PrintableReportCardContent() {
             </div>
 
             {/* Marks Table */}
-            <div className="px-6 pb-4 relative z-10">
-              <table className="w-full border-2 border-blue-800 text-xs">
+            <div className="px-6 pb-4 relative z-10 print:px-3 print:pb-2">
+              <table className="w-full border-2 border-blue-800 text-xs print:text-[10px]">
                 <thead>
                   <tr className="bg-white border-b-2 border-blue-800">
                     <th className="border-r border-blue-800 px-2 py-1 text-center text-xs font-bold text-gray-900">
@@ -452,12 +484,12 @@ function PrintableReportCardContent() {
             </div>
 
             {/* Summary Section */}
-            <div className="px-6 pb-0 relative z-10">
+            <div className="px-6 pb-0 relative z-10 print:px-3">
               <table className="w-full border-2 border-blue-800">
                 <tbody>
                   <tr>
-                    <td className="px-4 py-2 text-sm font-bold text-gray-900 bg-gray-50">PERCENTAGE</td>
-                    <td className="px-4 py-2 text-center text-lg font-bold text-blue-800">
+                    <td className="px-4 py-2 text-sm font-bold text-gray-900 bg-gray-50 print:px-2 print:py-1 print:text-xs">PERCENTAGE</td>
+                    <td className="px-4 py-2 text-center text-lg font-bold text-blue-800 print:px-2 print:py-1 print:text-base">
                       {data.overallPercentage.toFixed(2)} %
                     </td>
                   </tr>
@@ -469,26 +501,26 @@ function PrintableReportCardContent() {
             <div className="grow"></div>
 
             {/* Signatures */}
-            <div className="px-6 pb-6 relative z-10 page-break-avoid">
-              <div className="grid grid-cols-2 gap-12 mt-8">
+            <div className="px-6 pb-6 relative z-10 page-break-avoid print:px-3 print:pb-3">
+              <div className="grid grid-cols-2 gap-12 mt-8 print:gap-6 print:mt-4">
                 <div className="text-center">
-                  <div className="h-24 flex items-end justify-center mb-2">
-                    <div className="text-gray-400 text-sm italic">
+                  <div className="h-24 flex items-end justify-center mb-2 print:h-16 print:mb-1">
+                    <div className="text-gray-400 text-sm italic print:text-xs">
                       [Signature]
                     </div>
                   </div>
-                  <div className="border-t-2 border-gray-800 pt-2 mx-8">
-                    <p className="text-sm font-bold text-gray-900">Class Teacher Signature</p>
+                  <div className="border-t-2 border-gray-800 pt-2 mx-8 print:mx-4 print:pt-1">
+                    <p className="text-sm font-bold text-gray-900 print:text-xs">Class Teacher Signature</p>
                   </div>
                 </div>
                 <div className="text-center">
-                  <div className="h-24 flex items-end justify-center mb-2">
-                    <div className="text-gray-400 text-sm italic">
+                  <div className="h-24 flex items-end justify-center mb-2 print:h-16 print:mb-1">
+                    <div className="text-gray-400 text-sm italic print:text-xs">
                       [Signature]
                     </div>
                   </div>
-                  <div className="border-t-2 border-gray-800 pt-2 mx-8">
-                    <p className="text-sm font-bold text-gray-900">Principal Signature</p>
+                  <div className="border-t-2 border-gray-800 pt-2 mx-8 print:mx-4 print:pt-1">
+                    <p className="text-sm font-bold text-gray-900 print:text-xs">Principal Signature</p>
                   </div>
                 </div>
               </div>
@@ -512,7 +544,7 @@ function PrintableReportCardContent() {
           </div>
 
           {/* PAGE 2 - Grading System */}
-          <div className="border-[5px] border-double border-blue-800 m-4 print:m-2 print:page-break-before-always mt-8 print:mt-0 min-h-[calc(100vh-4rem)] print:min-h-[calc(100vh-1rem)] flex flex-col relative">
+          <div className="border-[5px] border-double border-blue-800 m-4 print:m-1 print:mobile-compact-border print:page-break-before-always mt-8 print:mt-0 min-h-[calc(100vh-4rem)] print:min-h-[100vh] flex flex-col relative print-page">
             
             {/* Watermark */}
             <div className="watermark">
@@ -529,82 +561,82 @@ function PrintableReportCardContent() {
             </div>
 
             {/* School Logo/Crest */}
-            <div className="flex justify-center pt-6 pb-2 relative z-10">
+            <div className="flex justify-center pt-6 pb-2 relative z-10 print:pt-3 print:pb-1">
               <img 
                 src="https://www.schooldekho.org/storage/logo//epdo17blks0ss4sgcokg8kwsg448cco.png" 
                 alt="St. Helen's School Logo" 
-                className="w-16 h-16 object-contain"
+                className="w-16 h-16 object-contain print:w-12 print:h-12"
               />
             </div>
 
             {/* School Name Header */}
-            <div className="text-center px-6 pb-3 relative z-10">
-              <h1 className="text-red-700 text-2xl font-bold tracking-wide">
+            <div className="text-center px-6 pb-3 relative z-10 print:px-3 print:pb-2">
+              <h1 className="text-red-700 text-2xl font-bold tracking-wide print:text-xl">
                 ST. HELEN&apos;S SECONDARY SCHOOL
               </h1>
-              <h2 className="text-red-700 text-xl font-bold tracking-wider">
+              <h2 className="text-red-700 text-xl font-bold tracking-wider print:text-lg">
                 KURSEONG
               </h2>
             </div>
 
             {/* Title Section */}
-            <div className="text-center pb-2 relative z-10">
-              <h3 className="text-blue-800 text-lg font-bold tracking-wide">
+            <div className="text-center pb-2 relative z-10 print:pb-1">
+              <h3 className="text-blue-800 text-lg font-bold tracking-wide print:text-base">
                 GRADING SYSTEM
               </h3>
-              <p className="text-blue-700 text-sm font-semibold mt-1">
+              <p className="text-blue-700 text-sm font-semibold mt-1 print:text-xs print:mt-0">
                 Academic Year {data.academicYear}
               </p>
             </div>
 
             {/* Horizontal Line */}
-            <div className="border-t-2 border-blue-800 mx-6 my-3 relative z-10"></div>
+            <div className="border-t-2 border-blue-800 mx-6 my-3 relative z-10 print:mx-3 print:my-2"></div>
 
             {/* Grading Table */}
-            <div className="px-6 pb-8 relative z-10">
-              <div className="border-2 border-blue-800 rounded-lg p-6 bg-white max-w-md mx-auto">
-                <h3 className="text-center text-blue-800 font-bold text-lg mb-4 underline">GRADES</h3>
+            <div className="px-6 pb-8 relative z-10 print:px-3 print:pb-4">
+              <div className="border-2 border-blue-800 rounded-lg p-6 bg-white max-w-md mx-auto print:p-3 print:max-w-sm">
+                <h3 className="text-center text-blue-800 font-bold text-lg mb-4 underline print:text-base print:mb-2">GRADES</h3>
                 <table className="w-full">
                   <tbody>
                     <tr className="border-b border-gray-300">
-                      <td className="py-2 text-center font-bold text-gray-900">A</td>
-                      <td className="py-2 text-center text-gray-900">:</td>
-                      <td className="py-2 text-center text-gray-900">90</td>
-                      <td className="py-2 text-center text-gray-900">-</td>
-                      <td className="py-2 text-center text-gray-900">100</td>
-                      <td className="py-2 text-center text-gray-900">Very Good</td>
+                      <td className="py-2 text-center font-bold text-gray-900 print:py-1 print:text-sm">A</td>
+                      <td className="py-2 text-center text-gray-900 print:py-1 print:text-sm">:</td>
+                      <td className="py-2 text-center text-gray-900 print:py-1 print:text-sm">90</td>
+                      <td className="py-2 text-center text-gray-900 print:py-1 print:text-sm">-</td>
+                      <td className="py-2 text-center text-gray-900 print:py-1 print:text-sm">100</td>
+                      <td className="py-2 text-center text-gray-900 print:py-1 print:text-sm">Very Good</td>
                     </tr>
                     <tr className="border-b border-gray-300">
-                      <td className="py-2 text-center font-bold text-gray-900">B</td>
-                      <td className="py-2 text-center text-gray-900">:</td>
-                      <td className="py-2 text-center text-gray-900">70</td>
-                      <td className="py-2 text-center text-gray-900">-</td>
-                      <td className="py-2 text-center text-gray-900">89</td>
-                      <td className="py-2 text-center text-gray-900">Good</td>
+                      <td className="py-2 text-center font-bold text-gray-900 print:py-1 print:text-sm">B</td>
+                      <td className="py-2 text-center text-gray-900 print:py-1 print:text-sm">:</td>
+                      <td className="py-2 text-center text-gray-900 print:py-1 print:text-sm">70</td>
+                      <td className="py-2 text-center text-gray-900 print:py-1 print:text-sm">-</td>
+                      <td className="py-2 text-center text-gray-900 print:py-1 print:text-sm">89</td>
+                      <td className="py-2 text-center text-gray-900 print:py-1 print:text-sm">Good</td>
                     </tr>
                     <tr className="border-b border-gray-300">
-                      <td className="py-2 text-center font-bold text-gray-900">C</td>
-                      <td className="py-2 text-center text-gray-900">:</td>
-                      <td className="py-2 text-center text-gray-900">50</td>
-                      <td className="py-2 text-center text-gray-900">-</td>
-                      <td className="py-2 text-center text-gray-900">69</td>
-                      <td className="py-2 text-center text-gray-900">Satisfactory</td>
+                      <td className="py-2 text-center font-bold text-gray-900 print:py-1 print:text-sm">C</td>
+                      <td className="py-2 text-center text-gray-900 print:py-1 print:text-sm">:</td>
+                      <td className="py-2 text-center text-gray-900 print:py-1 print:text-sm">50</td>
+                      <td className="py-2 text-center text-gray-900 print:py-1 print:text-sm">-</td>
+                      <td className="py-2 text-center text-gray-900 print:py-1 print:text-sm">69</td>
+                      <td className="py-2 text-center text-gray-900 print:py-1 print:text-sm">Satisfactory</td>
                     </tr>
                     <tr className="border-b border-gray-300">
-                      <td className="py-2 text-center font-bold text-gray-900">D</td>
-                      <td className="py-2 text-center text-gray-900">:</td>
-                      <td className="py-2 text-center text-gray-900">45</td>
-                      <td className="py-2 text-center text-gray-900">-</td>
-                      <td className="py-2 text-center text-gray-900">49</td>
-                      <td className="py-2 text-center text-gray-900">Fair</td>
+                      <td className="py-2 text-center font-bold text-gray-900 print:py-1 print:text-sm">D</td>
+                      <td className="py-2 text-center text-gray-900 print:py-1 print:text-sm">:</td>
+                      <td className="py-2 text-center text-gray-900 print:py-1 print:text-sm">45</td>
+                      <td className="py-2 text-center text-gray-900 print:py-1 print:text-sm">-</td>
+                      <td className="py-2 text-center text-gray-900 print:py-1 print:text-sm">49</td>
+                      <td className="py-2 text-center text-gray-900 print:py-1 print:text-sm">Fair</td>
                     </tr>
                     <tr>
-                      <td className="py-2 text-center font-bold text-gray-900">E</td>
-                      <td className="py-2 text-center text-gray-900">:</td>
-                      <td className="py-2 text-center text-gray-900">Below</td>
-                      <td className="py-2 text-center text-gray-900">-</td>
-                      <td className="py-2 text-center text-gray-900">45</td>
-                      <td className="py-2 text-center text-gray-900">Unsatisfactory</td>
+                      <td className="py-2 text-center font-bold text-gray-900 print:py-1 print:text-sm">E</td>
+                      <td className="py-2 text-center text-gray-900 print:py-1 print:text-sm">:</td>
+                      <td className="py-2 text-center text-gray-900 print:py-1 print:text-sm">Below</td>
+                      <td className="py-2 text-center text-gray-900 print:py-1 print:text-sm">-</td>
+                      <td className="py-2 text-center text-gray-900 print:py-1 print:text-sm">45</td>
+                      <td className="py-2 text-center text-gray-900 print:py-1 print:text-sm">Unsatisfactory</td>
                     </tr>
                   </tbody>
                 </table>
@@ -612,9 +644,9 @@ function PrintableReportCardContent() {
             </div>
 
             {/* A Word to Parents */}
-            <div className="px-6 pb-6 relative z-10">
-              <h4 className="text-blue-800 font-bold text-base mb-4 underline">A WORD TO PARENTS</h4>
-              <ol className="space-y-2 text-sm text-gray-700 list-decimal list-inside">
+            <div className="px-6 pb-6 relative z-10 print:px-3 print:pb-3">
+              <h4 className="text-blue-800 font-bold text-base mb-4 underline print:text-sm print:mb-2">A WORD TO PARENTS</h4>
+              <ol className="space-y-2 text-sm text-gray-700 list-decimal list-inside print:space-y-1 print:text-xs">
                 <li>The decision of the school authorities with regard to promotion, is final.</li>
                 <li>Promotion is decided on the whole year's performance & not on the final examination only.</li>
                 <li className="italic">Promotion will not be granted to any student obtaining less than 40% in any compulsory subject.</li>
@@ -628,17 +660,17 @@ function PrintableReportCardContent() {
             <div className="grow"></div>
 
             {/* Horizontal Line */}
-            <div className="border-t-2 border-blue-800 mx-6 my-4"></div>
+            <div className="border-t-2 border-blue-800 mx-6 my-4 print:mx-3 print:my-2"></div>
 
             {/* School Footer */}
-            <div className="px-6 pb-6 text-center relative z-10">
-              <p className="text-sm font-semibold text-gray-900">
+            <div className="px-6 pb-6 text-center relative z-10 print:px-3 print:pb-3">
+              <p className="text-sm font-semibold text-gray-900 print:text-xs">
                 St. Helen's Secondary School, Kurseong - 734203, Dist. Darjeeling, West Bengal, India.
               </p>
-              <p className="text-xs text-gray-700 mt-1">
+              <p className="text-xs text-gray-700 mt-1 print:text-[10px] print:mt-0">
                 Convent: 0354 - 2344379 | School: 0354 - 2344358 | Mobile: 8116848298
               </p>
-              <p className="text-xs text-gray-700">
+              <p className="text-xs text-gray-700 print:text-[10px]">
                 Email: fcsthelens1@gmail.com
               </p>
             </div>
