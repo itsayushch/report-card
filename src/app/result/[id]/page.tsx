@@ -619,7 +619,7 @@ function PrintableReportCardContent() {
                 <div className="text-center">
                   <div className="h-24 flex items-end justify-center mb-2 print:h-12 print:mb-1">
                     <img 
-                      src={`${process.env.NEXT_PUBLIC_BASE_URL}/signatures/principal.png`}
+                      src={'https://cdn.discordapp.com/attachments/617390798350057472/1447505326470594644/principal-Photoroom.png?ex=6937dde3&is=69368c63&hm=f9c954b44f0f9827924a5e0291e6f5744de2229b0254e56515f29337d2e2023f'}
                       alt="Principal Signature"
                       className="h-20 object-contain w-60 print:h-20 border border-gray-800"
                     />
