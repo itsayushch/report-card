@@ -10,10 +10,6 @@ export async function GET(
   try {
     const session = await auth()
 
-    if (!session) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
     const { searchParams } = new URL(request.url)
     const academicYear = searchParams.get('academicYear')
     
@@ -37,8 +33,8 @@ export async function GET(
     }
     
 
-    // Check if student is accessing their own data (if role is STUDENT)
-    if (session.user.role === 'STUDENT') {
+    // Check if student is accessing their own data (if role is STUDENT and session exists)
+    if (session && session.user.role === 'STUDENT') {
       // Students log in with regNo, so check against that
       if (session.user.id !== student.id) {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -83,7 +79,8 @@ export async function GET(
       const termRecord = yearRecords.find((r: any) => r.term === term);
       const isTermPublished = publishedTerms.has(term);
       
-      if (termRecord && termRecord.subjects && termRecord.subjects.length > 0 && isTermPublished) {
+      // Always show data (removed publication filter)
+      if (termRecord && termRecord.subjects && termRecord.subjects.length > 0) {
         const subjects = termRecord.subjects.map((s: any) => ({
           subjectCode: s.subjectCode,
           marks: s.marks,
@@ -100,16 +97,7 @@ export async function GET(
           totalObtained,
           totalMax,
           percentage,
-          isPublished: true,
-        };
-      } else if (termRecord && termRecord.subjects && termRecord.subjects.length > 0) {
-        // Term has data but is not published
-        termReports[term] = {
-          subjects: [],
-          totalObtained: 0,
-          totalMax: 0,
-          percentage: 0,
-          isPublished: false,
+          isPublished: isTermPublished,
         };
       }
     });
