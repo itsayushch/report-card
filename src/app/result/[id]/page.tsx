@@ -5,6 +5,7 @@ import { useSearchParams, useParams } from "next/navigation";
 import { formatClass } from "@/lib/class-utils";
 import { getSubjectById, subjectsByClass } from "@/lib/subjects";
 import { getTermsForClass } from "@/lib/terms";
+import { getSignatureUrl } from "@/lib/signatures";
 
 interface ReportData {
   student: {
@@ -219,6 +220,8 @@ function PrintableReportCardContent() {
     };
     return gradeMap[letterGrade] || letterGrade;
   };
+
+  console.log("Report Data:", data); // Debugging log
 
   return (
     <>
@@ -632,6 +635,7 @@ function PrintableReportCardContent() {
               </table>
             </div>
 
+
             {/* Spacer to push signatures to bottom */}
             <div className="grow"></div>
 
@@ -641,8 +645,12 @@ function PrintableReportCardContent() {
                 <div className="text-center">
                   <div className="h-24 flex items-end justify-center mb-2 print:h-12 print:mb-1">
                     <img 
-                      src="https://media.discordapp.net/attachments/617390798350057472/1447497068926074891/sign-Photoroom.png?ex=6937d632&is=693684b2&hm=b45eacee5b75249fed2db6bdda389cd3110df2f01ac20029eeb74603eb754969&=&format=png&quality=lossless&width=900&height=408"
+                    
+                      src={getSignatureUrl(data.student.class)}
                       alt="Class Teacher Signature"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).src = getSignatureUrl('principal')
+                      }}
                       className="h-20 w-60 object-contain print:h-20 border border-gray-800"
                     />
                   </div>
@@ -655,7 +663,7 @@ function PrintableReportCardContent() {
                 <div className="text-center">
                   <div className="h-24 flex items-end justify-center mb-2 print:h-12 print:mb-1">
                     <img 
-                      src={'https://cdn.discordapp.com/attachments/617390798350057472/1447505326470594644/principal-Photoroom.png?ex=6937dde3&is=69368c63&hm=f9c954b44f0f9827924a5e0291e6f5744de2229b0254e56515f29337d2e2023f'}
+                      src={getSignatureUrl('principal')}
                       alt="Principal Signature"
                       className="h-20 object-contain w-60 print:h-20 border border-gray-800"
                     />

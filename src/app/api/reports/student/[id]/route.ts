@@ -42,11 +42,17 @@ export async function GET(
       }
     }
 
-    // Get publish statuses for each term for the student's class
+    // First get year records to determine the class for that academic year
+    const yearRecordsForClass = student.academicRecords?.filter(
+      (record: any) => record.year === academicYear
+    ) || []
+    const classForYear = yearRecordsForClass.length > 0 ? yearRecordsForClass[0].class : student.class
+
+    // Get publish statuses for each term for the student's class in that academic year
     const publishStatuses = await prisma.reportPublish.findMany({
       where: {
         academicYear,
-        class: student.class,
+        class: classForYear,
         isPublished: true,
       },
     })
@@ -54,10 +60,8 @@ export async function GET(
     // Create a map of published terms
     const publishedTerms = new Set(publishStatuses.map(status => status.term))
 
-    // Process academic records for the specified year
-    const yearRecords = student.academicRecords?.filter(
-      (record: any) => record.year === academicYear && record.class === student.class
-    ) || []
+    // Process academic records for the specified year (already filtered above)
+    const yearRecords = yearRecordsForClass
 
     // Helper to calculate grade based on percentage
     const calculateGrade = (percentage: number): string => {
@@ -94,7 +98,7 @@ export async function GET(
         // Only include numeric subjects (those without alphabetical grading) in totals
         const totalObtained = termRecord.subjects.reduce((sum: number, s: any) => {
           // Check if subject has alphabetical grading based on subject definition
-          const subjectDetail = getSubjectById(student.class, s.subjectCode);
+          const subjectDetail = getSubjectById(classForYear, s.subjectCode);
           
           // If we can't find the subject or if it's alphabetical, skip it
           if (!subjectDetail || subjectDetail.dataType === 'string') {
@@ -105,7 +109,7 @@ export async function GET(
         
         const totalMax = termRecord.subjects.reduce((sum: number, s: any) => {
           // Check if subject has alphabetical grading based on subject definition
-          const subjectDetail = getSubjectById(student.class, s.subjectCode);
+          const subjectDetail = getSubjectById(classForYear, s.subjectCode);
           
           // If we can't find the subject or if it's alphabetical, skip it
           if (!subjectDetail || subjectDetail.dataType === 'string') {
@@ -145,7 +149,7 @@ export async function GET(
       student: {
         name: student.name,
         regNo: student.regNo,
-        class: student.class,
+        class: classForYear, // Use the class from that academic year
       },
       academicYear,
       termReports,
