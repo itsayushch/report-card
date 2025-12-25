@@ -24,9 +24,16 @@ export async function GET(
       )
     }
 
-    // Get student data with academic records
+    // Get student data
     const student = await prisma.student.findUnique({
       where: { id },
+      include: {
+        academicRecords: {
+          where: {
+            academicYear,
+          },
+        },
+      },
     })
 
     if (!student) {
@@ -42,11 +49,9 @@ export async function GET(
       }
     }
 
-    // First get year records to determine the class for that academic year
-    const yearRecordsForClass = student.academicRecords?.filter(
-      (record: any) => record.year === academicYear
-    ) || []
-    const classForYear = yearRecordsForClass.length > 0 ? yearRecordsForClass[0].class : student.class
+    // Get the academic record bucket for this year
+    const yearRecord = student.academicRecords[0]; // Should only be one per year
+    const classForYear = yearRecord?.class || student.class;
 
     // Get publish statuses for each term for the student's class in that academic year
     const publishStatuses = await prisma.reportPublish.findMany({
@@ -60,8 +65,8 @@ export async function GET(
     // Create a map of published terms
     const publishedTerms = new Set(publishStatuses.map(status => status.term))
 
-    // Process academic records for the specified year (already filtered above)
-    const yearRecords = yearRecordsForClass
+    // Get terms from the academic record bucket
+    const yearTerms = yearRecord?.terms || [];
 
     // Helper to calculate grade based on percentage
     const calculateGrade = (percentage: number): string => {
@@ -81,7 +86,7 @@ export async function GET(
     const terms = ['1st Unit Test', 'Mid Term', '2nd Unit Test', 'Final Term'];
 
     terms.forEach(term => {
-      const termRecord = yearRecords.find((r: any) => r.term === term);
+      const termRecord = yearTerms.find((t: any) => t.name === term);
       const isTermPublished = publishedTerms.has(term);
       
       // Always show data (removed publication filter)

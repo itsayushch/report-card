@@ -486,11 +486,11 @@ export default function MarksEntryPage() {
                     return (
                       <Card 
                         key={`${classData.class}-${subject.id}`}
-                        className="group relative overflow-hidden border-2 border-gray-100 bg-gradient-to-br from-white to-gray-50/30 hover:border-blue-300 hover:shadow-xl hover:shadow-blue-100/50 transition-all duration-300 cursor-pointer"
+                        className="group relative overflow-hidden border-2 border-gray-100 bg-linear-to-br from-white to-gray-50/30 hover:border-blue-300 hover:shadow-xl hover:shadow-blue-100/50 transition-all duration-300 cursor-pointer"
                         onClick={() => handleClassSelect(classData.class, selectedTerm, subject.id)}
                       >
                         {/* Top accent bar */}
-                        <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-blue-500 via-blue-600 to-indigo-600"></div>
+                        <div className="absolute top-0 left-0 right-0 h-1.5 bg-linear-to-r from-blue-500 via-blue-600 to-indigo-600"></div>
                         
                         <CardHeader className="pb-2.5 pt-4">
                           <div className="flex items-start justify-between gap-2">
@@ -502,7 +502,7 @@ export default function MarksEntryPage() {
                                 {subject.name}
                               </CardTitle>
                             </div>
-                            <div className="flex-shrink-0 w-9 h-9 rounded-lg bg-gradient-to-br from-blue-500 to-blue-600 group-hover:from-blue-600 group-hover:to-indigo-600 flex items-center justify-center transition-all duration-300 shadow-sm">
+                            <div className="shrink-0 w-9 h-9 rounded-lg bg-linear-to-br from-blue-500 to-blue-600 group-hover:from-blue-600 group-hover:to-indigo-600 flex items-center justify-center transition-all duration-300 shadow-sm">
                               <span className="text-sm font-bold text-white">{formatClass(classData.class)}</span>
                             </div>
                           </div>
@@ -510,7 +510,7 @@ export default function MarksEntryPage() {
                         
                         <CardContent className="space-y-2.5 pb-4">
                           {isNumeric ? (
-                            <div className="relative overflow-hidden rounded-lg bg-gradient-to-br from-gray-50 to-gray-100/80 border border-gray-200/60 p-2.5 group-hover:border-gray-300 transition-colors h-[68px]">
+                            <div className="relative overflow-hidden rounded-lg bg-linear-to-br from-gray-50 to-gray-100/80 border border-gray-200/60 p-2.5 group-hover:border-gray-300 transition-colors h-[68px]">
                               <div className="flex flex-col items-center justify-center h-full">
                                 <span className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide">Maximum Marks</span>
                                 <span className="text-2xl font-bold text-gray-900">{term.maxMarks}</span>
@@ -518,7 +518,7 @@ export default function MarksEntryPage() {
                               <div className="absolute -right-4 -top-4 w-16 h-16 rounded-full bg-gray-200/30 blur-xl"></div>
                             </div>
                           ) : (
-                            <div className="relative overflow-hidden rounded-lg bg-gradient-to-br from-purple-50 to-purple-100/60 border border-purple-200/60 p-2.5 group-hover:border-purple-300 transition-colors h-[68px]">
+                            <div className="relative overflow-hidden rounded-lg bg-linear-to-br from-purple-50 to-purple-100/60 border border-purple-200/60 p-2.5 group-hover:border-purple-300 transition-colors h-[68px]">
                               <div className="flex items-center justify-center gap-1.5 h-full">
                                 <div className="w-1.5 h-1.5 rounded-full bg-purple-500 animate-pulse"></div>
                                 <span className="text-[11px] font-bold text-purple-700 uppercase tracking-wide">Alphabetical Grading</span>
@@ -529,7 +529,7 @@ export default function MarksEntryPage() {
                           )}
                           
                           <Button 
-                            className="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-indigo-700 text-white shadow-sm hover:shadow-md font-semibold py-2 text-sm rounded-lg transition-all duration-300"
+                            className="w-full bg-linear-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-indigo-700 text-white shadow-sm hover:shadow-md font-semibold py-2 text-sm rounded-lg transition-all duration-300"
                           >
                             <span className="flex items-center justify-center gap-1.5">
                               Enter Marks

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
-import { prisma } from '@/lib/prisma'
+import { getClassSubjectMarks } from '@/lib/academic-records'
 
 export async function GET(request: NextRequest) {
   try {
@@ -23,39 +23,22 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    // Fetch all students in the class
-    const students = await prisma.student.findMany({
-      where: {
-        class: classParam,
-        academicYear: academicYear,
-        status: 'ACTIVE',
-      },
-      select: {
-        id: true,
-        academicRecords: true,
-      },
-    })
+    // Use the new helper function to get marks
+    const marksData = await getClassSubjectMarks(
+      classParam,
+      academicYear,
+      term,
+      subject
+    )
 
-    // Extract marks for the specific term and subject
-    const marks = students.flatMap(student => {
-      const record = student.academicRecords.find(
-        rec => rec.term === term && rec.year === academicYear
-      )
-      
-      if (!record) return []
-      
-      const subjectData = record.subjects.find(sub => sub.subjectCode === subject)
-      
-      if (!subjectData) return []
-      
-      return [{
-        studentId: student.id,
-        subjectId: subject,
-        marks: subjectData.marks,
-        grade: subjectData.grade || '', // Use stored grade for alphabetical subjects
-        teacherRemarks: null,
-      }]
-    })
+    // Transform to match expected format
+    const marks = marksData.map(data => ({
+      studentId: data?.studentId || '',
+      subjectId: subject,
+      marks: data?.marks || 0,
+      grade: data?.grade || '',
+      teacherRemarks: null,
+    }))
 
     return NextResponse.json(marks)
   } catch (error) {

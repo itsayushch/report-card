@@ -20,14 +20,17 @@ export async function DELETE(req: NextRequest) {
       )
     }
 
-    // TODO: Refactor to check Student.academicRecords for marks
-    // For now, allow deletion without checking marks
-    const studentsWithMarks: any[] = []
+    // Check if any students have academic records (using new collection)
+    const recordsCount = await prisma.academicRecord.count({
+      where: {
+        studentId: { in: studentIds }
+      }
+    })
 
-    if (studentsWithMarks.length > 0) {
+    if (recordsCount > 0) {
       return NextResponse.json(
         {
-          error: 'Cannot delete students with marks. Please mark them as inactive instead.',
+          error: 'Cannot delete students with academic records. Please mark them as inactive instead.',
         },
         { status: 400 }
       )

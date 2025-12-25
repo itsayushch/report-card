@@ -43,6 +43,13 @@ export async function GET(request: NextRequest) {
         academicYear,
         status: 'ACTIVE',
       },
+      include: {
+        academicRecords: {
+          where: {
+            academicYear,
+          },
+        },
+      },
       orderBy: {
         name: 'asc',
       },
@@ -54,20 +61,25 @@ export async function GET(request: NextRequest) {
       let totalMax = 0
       let hasMarks = false
 
-      // Get the Final Term record for this year
-      const finalTermRecord = student.academicRecords.find(
-        (record) => record.year === academicYear && record.term === 'Final Term' && record.status === 'published'
-      )
+      // Get the academic record bucket for this year
+      const yearRecord = student.academicRecords[0] // Should only be one per year
 
-      if (finalTermRecord && finalTermRecord.subjects.length > 0) {
-        hasMarks = true
-        finalTermRecord.subjects.forEach((subject) => {
-          // Skip alphabetical grading subjects from total calculation
-          if (!subject.grade || subject.grade === '') {
-            totalObtained += subject.marks
-            totalMax += subject.maxMarks
-          }
-        })
+      if (yearRecord) {
+        // Get the Final Term record
+        const finalTerm = yearRecord.terms.find(
+          (term) => term.name === 'Final Term' && term.published === true
+        )
+
+        if (finalTerm && finalTerm.subjects.length > 0) {
+          hasMarks = true
+          finalTerm.subjects.forEach((subject) => {
+            // Skip alphabetical grading subjects from total calculation
+            if (!subject.grade || subject.grade === '') {
+              totalObtained += subject.marks
+              totalMax += subject.maxMarks
+            }
+          })
+        }
       }
 
       const percentage = totalMax > 0 ? calculatePercentage(totalObtained, totalMax) : 0

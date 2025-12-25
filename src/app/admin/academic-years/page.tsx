@@ -25,6 +25,7 @@ export default function AcademicYearsPage() {
   const [formLoading, setFormLoading] = useState(false)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [yearToDelete, setYearToDelete] = useState<string | null>(null)
+  const [activatingYearId, setActivatingYearId] = useState<string | null>(null)
 
   const { register, handleSubmit, reset, formState: { errors } } = useForm<AcademicYearFormData>({
     resolver: zodResolver(academicYearSchema),
@@ -94,9 +95,10 @@ export default function AcademicYearsPage() {
     }
   }
 
-  const handleActivate = async (id: string) => {
+  const handleActivate = async (year: string) => {
     try {
-      const response = await fetch(`/api/academic-years/${id}/activate`, { method: 'PUT' })
+      setActivatingYearId(year)
+      const response = await fetch(`/api/academic-years/${year}/activate`, { method: 'PUT' })
       if (response.ok) {
         toast.success('Academic year activated successfully')
         fetchAcademicYears()
@@ -105,6 +107,8 @@ export default function AcademicYearsPage() {
       }
     } catch (error) {
       toast.error('Failed to activate academic year')
+    } finally {
+      setActivatingYearId(null)
     }
   }
 
@@ -227,8 +231,10 @@ export default function AcademicYearsPage() {
                               variant="outline"
                               size="sm"
                               onClick={() => handleActivate(year.id)}
+                              disabled={activatingYearId !== null}
                               className="h-7"
                             >
+                              {activatingYearId === year.id && <Loader2 className="mr-2 h-3 w-3 animate-spin" />}
                               Set Active
                             </Button>
                           )}
@@ -264,8 +270,8 @@ export default function AcademicYearsPage() {
 
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="year">Year (Format: YYYY-YYYY) *</Label>
-              <Input id="year" {...register('year')} placeholder="2024-2025" />
+              <Label htmlFor="year">Year (Format: YYYY) *</Label>
+              <Input id="year" {...register('year')} placeholder={new Date().getFullYear().toString()} />
               {errors.year && <p className="text-sm text-red-600">{errors.year.message}</p>}
             </div>
 

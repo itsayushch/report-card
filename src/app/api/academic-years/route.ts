@@ -64,37 +64,88 @@ export async function POST(request: NextRequest) {
       data,
     })
 
-    // Automatically promote all students marked as PROMOTED
+    // Only promote students if this new year is set as active AND is newer than previous years
     if (data.isActive) {
-      // Get all promoted students from previous year
-      const promotedStudents = await prisma.student.findMany({
+      // Get the previous active academic year (or most recent year)
+      const previousYears = await prisma.academicYear.findMany({
         where: {
-          promotionStatus: 'PROMOTED',
-          status: 'ACTIVE',
+          year: { not: data.year },
         },
-        select: {
-          id: true,
-          class: true,
-        },
+        orderBy: { year: 'desc' },
+        take: 1,
       })
 
-      // Promote students to next class
-      if (promotedStudents.length > 0) {
-        const promotionUpdates = promotedStudents.map(student => {
-          const currentClass = parseInt(student.class)
-          const nextClass = currentClass >= 10 ? 10 : currentClass + 1 // Max class is 10
-          
-          return prisma.student.update({
-            where: { id: student.id },
-            data: {
-              class: nextClass.toString(),
-              academicYear: data.year,
-              promotionStatus: 'PENDING', // Reset promotion status
-            },
-          })
+      const previousYear = previousYears[0]
+      const shouldPromote = !previousYear || parseInt(data.year) > parseInt(previousYear.year)
+
+      if (shouldPromote) {
+        // Get all active students
+        const activeStudents = await prisma.student.findMany({
+          where: {
+            status: 'ACTIVE',
+          },
+          select: {
+            id: true,
+            class: true,
+            promotionStatus: true,
+          },
         })
 
-        await Promise.all(promotionUpdates)
+        if (activeStudents.length > 0) {
+          // Separate students by promotion status
+          const promotedStudents = activeStudents.filter(s => s.promotionStatus === 'PROMOTED')
+          const otherStudents = activeStudents.filter(s => s.promotionStatus !== 'PROMOTED')
+
+          const updates = []
+
+          // Update PROMOTED students: increment class + update year + reset status
+          if (promotedStudents.length > 0) {
+            const promotedByClass = new Map<string, string[]>()
+            
+            promotedStudents.forEach(student => {
+              if (!promotedByClass.has(student.class)) {
+                promotedByClass.set(student.class, [])
+              }
+              promotedByClass.get(student.class)!.push(student.id)
+            })
+
+            promotedByClass.forEach((studentIds, currentClass) => {
+              const classNum = parseInt(currentClass)
+              const nextClass = classNum >= 12 ? 12 : classNum + 1
+              
+              updates.push(
+                prisma.student.updateMany({
+                  where: { id: { in: studentIds } },
+                  data: {
+                    class: nextClass.toString(),
+                    academicYear: data.year,
+                    promotionStatus: 'PENDING',
+                  },
+                })
+              )
+            })
+          }
+
+          // Update other students: just update year + reset status (keep same class)
+          if (otherStudents.length > 0) {
+            updates.push(
+              prisma.student.updateMany({
+                where: {
+                  id: { in: otherStudents.map(s => s.id) },
+                },
+                data: {
+                  academicYear: data.year,
+                  promotionStatus: 'PENDING',
+                },
+              })
+            )
+          }
+
+          const results = await Promise.all(updates)
+          const totalUpdated = results.reduce((sum, result) => sum + result.count, 0)
+          
+          console.log(`Updated ${totalUpdated} students (${promotedStudents.length} promoted to next class) for academic year ${data.year}`)
+        }
       }
     }
 

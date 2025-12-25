@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { getStudentYearRecords } from '@/lib/academic-records'
+import { calculateGrade } from '@/lib/calculations'
+import { getSubjectById } from '@/lib/subjects'
 
 export async function GET(request: NextRequest) {
   try {
@@ -47,17 +50,44 @@ export async function GET(request: NextRequest) {
 
     let latestTermSummary = null
 
-    // TODO: Refactor to calculate from Student.academicRecords
-    // For now, return basic data without marks calculation
+    // Calculate from academic records using new bucket structure
     if (publishStatus) {
-      latestTermSummary = {
-        term: publishStatus.term,
-        totalSubjects: 0,
-        totalObtained: 0,
-        totalMax: 0,
-        percentage: 0,
-        gpa: 0,
-        result: 'PENDING',
+      const yearRecord = await getStudentYearRecords(student.id, activeYear.year)
+      
+      if (yearRecord) {
+        const publishedTerm = yearRecord.terms.find(
+          t => t.name === publishStatus.term && t.published === true
+        )
+        
+        if (publishedTerm && publishedTerm.subjects.length > 0) {
+          // Filter out alphabetical grading subjects from totals
+          let totalObtained = 0
+          let totalMax = 0
+          
+          publishedTerm.subjects.forEach(subject => {
+            const subjectDetail = getSubjectById(student.class, subject.subjectCode)
+            
+            // Only include numeric subjects in total
+            if (subjectDetail && subjectDetail.dataType !== 'string') {
+              totalObtained += subject.marks
+              totalMax += subject.maxMarks
+            }
+          })
+          
+          const percentage = totalMax > 0 ? (totalObtained / totalMax) * 100 : 0
+          const grade = calculateGrade(percentage)
+          const result = percentage >= 33 ? 'PASS' : 'FAIL'
+          
+          latestTermSummary = {
+            term: publishStatus.term,
+            totalSubjects: publishedTerm.subjects.length,
+            totalObtained,
+            totalMax,
+            percentage,
+            grade,
+            result,
+          }
+        }
       }
     }
 

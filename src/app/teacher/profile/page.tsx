@@ -324,7 +324,7 @@ export default function TeacherProfilePage() {
                           e.currentTarget.style.display = 'none'
                         }}
                       />
-                      <AvatarFallback className="bg-gradient-to-br from-blue-500 to-purple-600 text-white text-4xl">
+                      <AvatarFallback className="bg-linear-to-br from-blue-500 to-purple-600 text-white text-4xl">
                         {profile.name.charAt(0).toUpperCase()}
                       </AvatarFallback>
                     </Avatar>

@@ -368,7 +368,7 @@ export default function ReportCardPage() {
                       ) : termReport.isPublished && termReport.termData ? (
                         <div className="space-y-3">
                           {/* Compact Score Display */}
-                          <div className="flex items-center justify-between py-3 px-3 bg-gradient-to-r from-indigo-50 to-purple-50 rounded-lg border border-indigo-100">
+                          <div className="flex items-center justify-between py-3 px-3 bg-linear-to-r from-indigo-50 to-purple-50 rounded-lg border border-indigo-100">
                             <div>
                               <p className="text-xs font-medium text-indigo-700 mb-0.5">Score</p>
                               <p className="text-2xl font-bold text-indigo-900">

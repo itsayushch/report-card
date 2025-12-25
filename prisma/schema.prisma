@@ -16,23 +16,41 @@ model Student {
   status          Status           @default(ACTIVE)
   academicYear    String
   promotionStatus PromotionStatus  @default(PENDING)
-  academicRecords AcademicRecord[]
   createdAt       String
   updatedAt       String
+
+  // Relations
+  academicRecords AcademicRecord[] // Relation to separate collection
 
   @@index([class])
   @@index([academicYear])
   @@map("students")
 }
 
-type AcademicRecord {
-  year       String
-  class      String
-  term       String
+// Bucket Pattern: One document per student per academic year
+model AcademicRecord {
+  id           String       @id @default(auto()) @map("_id") @db.ObjectId
+  studentId    String       @db.ObjectId
+  student      Student      @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  academicYear String
+  class        String
+  terms        TermRecord[] // Array of terms for this year
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+
+  @@unique([studentId, academicYear]) // One record per student per year
+  @@index([studentId])
+  @@index([academicYear])
+  @@index([class])
+  @@map("academic_records")
+}
+
+type TermRecord {
+  name       String        // e.g., "1st Unit Test", "Mid Term"
   subjects   SubjectMark[]
   enteredBy  String
   enteredAt  DateTime
-  status     String // "draft" or "published"
+  published  Boolean       @default(false)
 }
 
 type SubjectMark {

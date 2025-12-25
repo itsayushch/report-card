@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { auth } from '@/lib/auth'
+import { studentHasAnyRecords } from '@/lib/academic-records'
 // import { logAdminAction, AdminActions } from '@/lib/admin-log'
 
 interface RouteParams {
@@ -42,13 +43,10 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
       )
     }
 
-    // Get full student data to check for academic records
-    const studentWithRecords = await prisma.student.findUnique({
-      where: { id },
-    })
-
-    // Check if student has any academic records
-    if (studentWithRecords && studentWithRecords.academicRecords && studentWithRecords.academicRecords.length > 0) {
+    // Check if student has any academic records using the new collection
+    const hasRecords = await studentHasAnyRecords(id)
+    
+    if (hasRecords) {
       return NextResponse.json(
         { error: 'Cannot permanently delete student with academic records. Please delete all marks first.' },
         { status: 400 }

@@ -66,21 +66,23 @@ export async function GET(request: NextRequest) {
       0
     )
 
-    // Get recent marks entries from student academic records
-    const recentStudentsWithMarks = await prisma.student.findMany({
+    // Get recent marks entries from academic records
+    const recentRecordsWithMarks = await prisma.academicRecord.findMany({
       where: {
-        academicRecords: {
+        terms: {
           some: {
             enteredBy: teacher.id,
           },
         },
       },
-      select: {
-        name: true,
-        regNo: true,
-        class: true,
-        academicRecords: true,
-        updatedAt: true,
+      include: {
+        student: {
+          select: {
+            name: true,
+            regNo: true,
+            class: true,
+          },
+        },
       },
       orderBy: {
         updatedAt: 'desc',
@@ -89,20 +91,20 @@ export async function GET(request: NextRequest) {
     })
 
     // Transform to match expected format and flatten
-    const recentMarks = recentStudentsWithMarks
-      .flatMap(student =>
-        student.academicRecords
-          .filter(record => record.enteredBy === teacher.id)
-          .flatMap(record =>
-            record.subjects.map(subject => ({
-              id: `${student.regNo}-${record.term}-${subject.subjectCode}`,
+    const recentMarks = recentRecordsWithMarks
+      .flatMap(record =>
+        record.terms
+          .filter(term => term.enteredBy === teacher.id)
+          .flatMap(term =>
+            term.subjects.map(subject => ({
+              id: `${record.student.regNo}-${term.name}-${subject.subjectCode}`,
               marks: subject.marks,
-              term: record.term,
-              createdAt: record.enteredAt,
+              term: term.name,
+              createdAt: term.enteredAt,
               student: {
-                name: student.name,
-                regNo: student.regNo,
-                class: student.class,
+                name: record.student.name,
+                regNo: record.student.regNo,
+                class: record.student.class,
               },
               subject: {
                 name: subject.subjectCode,
