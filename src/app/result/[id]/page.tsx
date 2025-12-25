@@ -353,7 +353,7 @@ function PrintableReportCardContent() {
             {/* School Logo/Crest */}
             <div className="flex justify-center pt-4 pb-1 relative z-10 print:pt-2 print:pb-0.5">
               <img
-                src="https://www.schooldekho.org/storage/logo//epdo17blks0ss4sgcokg8kwsg448cco.png"
+                src={`${process.env.NEXT_PUBLIC_BASE_URL}/logo/small.png`}
                 alt="St. Helen's School Logo"
                 className="w-16 h-16 object-contain print:w-10 print:h-10"
               />
@@ -708,7 +708,7 @@ function PrintableReportCardContent() {
             {/* School Logo/Crest */}
             <div className="flex justify-center pt-6 pb-2 relative z-10 print:pt-2 print:pb-1">
               <img
-                src="https://www.schooldekho.org/storage/logo//epdo17blks0ss4sgcokg8kwsg448cco.png"
+                src={`${process.env.NEXT_PUBLIC_BASE_URL}/logo/small.png`}
                 alt="St. Helen's School Logo"
                 className="w-16 h-16 object-contain print:w-10 print:h-10"
               />

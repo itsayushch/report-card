@@ -94,7 +94,7 @@ function LoginForm() {
         <div className="relative z-10">
           <div className="flex flex-col items-center">
             <img 
-              src="https://sthelenskurseong.in/images/logo.png" 
+              src={`${process.env.NEXT_PUBLIC_BASE_URL}/logo/long.png`} 
               alt="St. Helen's School Logo" 
               className="h-32 object-contain"
             />
@@ -145,7 +145,7 @@ function LoginForm() {
           <div className="lg:hidden flex flex-col items-center mb-4 mt-2">
             <div className="bg-white rounded-full shadow-2xl p-4 mb-3">
               <img 
-                src="https://www.schooldekho.org/storage/logo/epdo17blks0ss4sgcokg8kwsg448cco.png" 
+                src={`${process.env.NEXT_PUBLIC_BASE_URL}/logo/small.png`} 
                 alt="St. Helen's School Logo" 
                 className="h-16 w-16 object-contain"
               />

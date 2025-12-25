@@ -60,13 +60,13 @@ export function AdminSidebar({ onClose }: AdminSidebarProps) {
     <div className="flex h-full flex-col bg-gray-900 text-white">
       {/* Logo */}
       <div className="p-6 border-b border-gray-800">
-        <h1 className="text-xl font-bold flex items-center gap-2">
-          <div className="p-2 bg-indigo-600 rounded-lg">
-            <GraduationCap className="h-5 w-5" />
+        <div className="flex items-center gap-3">
+          <img src="/logo/small.svg" alt="St. Helen's" className="h-10 w-10" />
+          <div>
+            <h1 className="text-xl font-bold">St. Helen&apos;s</h1>
+            <p className="text-sm text-gray-400 mt-1">Admin Panel</p>
           </div>
-          <span>St. Helen&apos;s</span>
-        </h1>
-        <p className="text-sm text-gray-400 mt-1">Admin Panel</p>
+        </div>
       </div>
 
       {/* Navigation */}
