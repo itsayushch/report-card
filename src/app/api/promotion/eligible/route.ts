@@ -21,17 +21,17 @@ export async function GET(req: NextRequest) {
       )
     }
 
-    // Fetch students with their final term marks
+    // Fetch students with their academic records
     const students = await prisma.student.findMany({
       where: {
         class: classParam,
         academicYear,
       },
       include: {
-        marks: {
+        academicRecords: {
           where: {
-            term: 'FINAL',
             academicYear,
+            class: classParam,
           },
         },
       },
@@ -40,11 +40,12 @@ export async function GET(req: NextRequest) {
       },
     })
 
-    // Calculate totals and percentages
+    // Calculate totals and percentages from Final Term
     const studentsWithResults = students.map((student) => {
-      const finalMarks = student.marks as any[]
+      const yearRecord = student.academicRecords[0]
+      const finalTerm = yearRecord?.terms.find((t: any) => t.name === 'Final Term')
 
-      if (finalMarks.length === 0) {
+      if (!finalTerm || !finalTerm.subjects || finalTerm.subjects.length === 0) {
         return {
           id: student.id,
           name: student.name,
@@ -59,11 +60,14 @@ export async function GET(req: NextRequest) {
         }
       }
 
-      const totalObtained = finalMarks.reduce(
-        (sum: number, mark: any) => sum + (mark.obtained || 0),
+      const totalObtained = finalTerm.subjects.reduce(
+        (sum: number, subject: any) => sum + (subject.marks || 0),
         0
       )
-      const totalMax = finalMarks.reduce((sum: number, mark: any) => sum + (mark.total || 0), 0)
+      const totalMax = finalTerm.subjects.reduce(
+        (sum: number, subject: any) => sum + (subject.maxMarks || 0),
+        0
+      )
       const percentage = totalMax > 0 ? (totalObtained / totalMax) * 100 : 0
 
       // Determine pass/fail (assuming 33% is passing)

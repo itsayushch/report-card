@@ -89,7 +89,6 @@ export async function POST(request: NextRequest) {
             status: 'ACTIVE',
             academicYear: activeYear?.year || new Date().getFullYear().toString(),
             promotionStatus: 'PENDING',
-            academicRecords: [],
             createdAt: new Date().toISOString(),
             updatedAt: new Date().toISOString(),
           },

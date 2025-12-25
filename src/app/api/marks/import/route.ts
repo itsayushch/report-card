@@ -66,13 +66,21 @@ export async function POST(request: NextRequest) {
         const existingTerm = yearRecord?.terms.find(t => t.name === term)
         const existingSubjects = existingTerm?.subjects || []
         
-        // Update or add the subject
-        const updatedSubjects = existingSubjects.filter(s => s.subjectCode !== subject)
+        // Update or add the subject - convert existing subjects to proper type
+        const updatedSubjects = existingSubjects
+          .filter(s => s.subjectCode !== subject)
+          .map(s => ({
+            subjectCode: s.subjectCode,
+            marks: s.marks,
+            maxMarks: s.maxMarks,
+            grade: s.grade || undefined,
+          }))
+        
         updatedSubjects.push({
           subjectCode: subject,
           marks: typeof row.marks === 'number' ? row.marks : 0,
           maxMarks: 100,
-          grade: row.grade,
+          grade: row.grade || undefined,
         })
 
         updates.push(

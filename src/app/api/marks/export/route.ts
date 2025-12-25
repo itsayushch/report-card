@@ -58,7 +58,7 @@ export async function GET(request: NextRequest) {
         marks: subjectData?.marks || '',
         maxMarks: subjectData?.maxMarks || 100,
         grade: subjectData?.grade || '',
-        status: termRecord?.status || 'not_entered',
+        status: termRecord ? (termRecord.published ? 'published' : 'not_entered') : 'not_entered',
       }
     })
 

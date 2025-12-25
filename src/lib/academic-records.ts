@@ -11,7 +11,7 @@ type TermRecord = {
     subjectCode: string;
     marks: number;
     maxMarks: number;
-    grade?: string | null;
+    grade?: string;
   }>;
   enteredBy: string;
   enteredAt: Date;
@@ -261,7 +261,7 @@ export async function getClassSubjectMarks(
       subjectCode,
       marks: subjectData.marks,
       maxMarks: subjectData.maxMarks,
-      grade: subjectData.grade,
+      grade: subjectData.grade || undefined,
     };
   }).filter(Boolean);
 }
