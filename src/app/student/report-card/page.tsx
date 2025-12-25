@@ -126,10 +126,15 @@ export default function ReportCardPage() {
     setLoading(true)
     
     // Get terms based on student's class
+    console.log('Student class:', studentClass)
     const classTerms = getTermsForClass(studentClass)
+    console.log('Class terms:', classTerms)
     const terms = classTerms.map(t => t.name)
+    console.log('Terms:', terms)
     
     if (terms.length === 0) {
+      console.warn('No terms found for class:', studentClass)
+      setTermReports([])
       setLoading(false)
       return
     }
@@ -143,32 +148,42 @@ export default function ReportCardPage() {
     }))
     setTermReports(initialReports)
 
-    // Fetch all reports in parallel
-    const reportPromises = terms.map(async (term: string, index: number) => {
-      try {
-        const response = await fetch(
-          `/api/reports/student/${studentId}?academicYear=${selectedYear}`
-        )
+    try {
+      // Fetch report data once for all terms
+      const response = await fetch(
+        `/api/reports/student/${studentId}?academicYear=${selectedYear}`
+      )
 
-        if (response.status === 403) {
-          return {
-            term,
-            termData: null,
-            isPublished: false,
-            loading: false,
-          }
-        }
+      if (response.status === 403) {
+        // Unauthorized - set all as unpublished
+        const unpublishedReports = terms.map((term: string) => ({
+          term,
+          termData: null,
+          isPublished: false,
+          loading: false,
+        }))
+        setTermReports(unpublishedReports)
+        setLoading(false)
+        return
+      }
 
-        if (!response.ok) {
-          return {
-            term,
-            termData: null,
-            isPublished: false,
-            loading: false,
-          }
-        }
+      if (!response.ok) {
+        console.error('Failed to fetch reports:', response.status)
+        const errorReports = terms.map((term: string) => ({
+          term,
+          termData: null,
+          isPublished: false,
+          loading: false,
+        }))
+        setTermReports(errorReports)
+        setLoading(false)
+        return
+      }
 
-        const data = await response.json()
+      const data = await response.json()
+      
+      // Map the fetched data to each term
+      const processedReports = terms.map((term: string) => {
         const termData = data.termReports?.[term] || null
         
         return {
@@ -177,33 +192,21 @@ export default function ReportCardPage() {
           isPublished: termData?.isPublished || false,
           loading: false,
         }
-      } catch (error) {
-        console.error(`Error fetching report for ${term}:`, error)
-        return {
-          term,
-          termData: null,
-          isPublished: false,
-          loading: false,
-        }
-      }
-    })
-
-    const results = await Promise.allSettled(reportPromises)
-    const processedResults = results.map((result, index) => {
-      if (result.status === 'fulfilled') {
-        return result.value
-      } else {
-        const termName = selectedYear ? academicYears.find(y => y.year === selectedYear)?.terms[index]?.name || '' : ''
-        return {
-          term: termName,
-          termData: null,
-          isPublished: false,
-          loading: false,
-        }
-      }
-    })
-    setTermReports(processedResults)
-    setLoading(false)
+      })
+      
+      setTermReports(processedReports)
+    } catch (error) {
+      console.error('Error fetching reports:', error)
+      const errorReports = terms.map((term: string) => ({
+        term,
+        termData: null,
+        isPublished: false,
+        loading: false,
+      }))
+      setTermReports(errorReports)
+    } finally {
+      setLoading(false)
+    }
   }
 
   const handleDownloadPDF = (term: string) => {

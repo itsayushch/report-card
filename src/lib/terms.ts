@@ -15,7 +15,13 @@ const termsListHigher = [
 ];
 
 export function getTermsForClass(classValue: string): { name: string; maxMarks: number }[] {
-    const numClass = parseInt(classValue);
+    // Extract numeric part from class value (handles "Class 1", "1", etc.)
+    const match = classValue.match(/\d+/);
+    if (!match) {
+        return [];
+    }
+    
+    const numClass = parseInt(match[0]);
     if (numClass >= 1 && numClass <= 5) {
         return termsList;
     } else if (numClass >= 6 && numClass <= 10) {

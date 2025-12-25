@@ -3,7 +3,7 @@ import { Printer } from "lucide-react";
 import { useEffect, useState, Suspense } from "react";
 import { useSearchParams, useParams } from "next/navigation";
 import { formatClass } from "@/lib/class-utils";
-import { getSubjectById, subjectsByClass } from "@/lib/subjects";
+import { getSubjectById, getSubjectsForClasses, subjectsByClass } from "@/lib/subjects";
 import { getTermsForClass } from "@/lib/terms";
 import { getSignatureUrl } from "@/lib/signatures";
 
@@ -137,15 +137,8 @@ function PrintableReportCardContent() {
     }
   });
 
-  // TEMPORARY: Add dummy subjects for testing (REMOVE LATER)
-  const dummySubjects = [
-    'PHYS', 'CHEM', 'BIO', 'ENG-LIT', 'ENG-LANG', 
-    'HINDI', 'SANS', 'COMP-SCI', 'INFO-TECH', 'ART',
-    'MUSIC', 'PE', 'GEO', 'ECO', 'POL-SCI',
-    'SOCIO', 'PSYCH'
-  ];
-  dummySubjects.forEach(sub => allSubjects.add(sub));
-  // END TEMPORARY
+    getSubjectsForClasses([data.student.class]).forEach((sub) => allSubjects.add(sub.id));
+
 
   const subjects = Array.from(allSubjects);
 
@@ -384,10 +377,10 @@ function PrintableReportCardContent() {
             </div>
 
             {/* Horizontal Line */}
-            <div className="border-t-2 border-blue-800 mx-6 my-2 relative z-10 print:mx-3 print:my-1"></div>
-
+            <div className="border-t-2 border-blue-800 mx-6 my-2 relative z-10 print:mx-3 print:mt-1"></div>
+ 
             {/* Student Information - Compact Two Column Layout */}
-            <div className="px-6 pb-2 my-2 relative z-10 print:px-3 print:pb-1 print:my-1">
+            <div className={`px-6 pb-2 my-2 relative z-10 print:px-3 print:pb-1 print:my-${getMargin(data.student.class)}`}>
               <div className="border-2 border-blue-800">
                 <div className="grid grid-cols-2">
                   <div className="flex border-r border-b border-blue-800 px-2 py-1">
@@ -515,7 +508,7 @@ function PrintableReportCardContent() {
                         key={subjectCode}
                         className="border-b border-blue-800"
                       >
-                        <td className="border-r border-blue-800 px-3 py-1.5 text-xs text-gray-900 print:px-2 print:py-1 print:text-[11px]">
+                        <td className="border-r border-blue-800 px-3 py-1.5 text-xs text-gray-900 font-semibold print:px-2 print:py-1 print:text-[11px]">
                           {getSubjectById(data.student.class, subjectCode)
                             ?.name || subjectCode}
                         </td>
@@ -926,4 +919,12 @@ export default function PrintableReportCard() {
       <PrintableReportCardContent />
     </Suspense>
   );
+}
+
+function getMargin(classAssigned: string) {
+  const classNum = parseInt(classAssigned, 10);
+  if (classNum >=1 && classNum <= 5) return 1;
+  if (classNum >= 6 && classNum <= 8) return 1;
+  if (classNum >= 9 && classNum <= 12) return 12;
+  return 4;
 }
