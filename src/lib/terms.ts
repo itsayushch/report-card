@@ -14,28 +14,33 @@ const termsListHigher = [
     { name: 'Final Term', maxMarks: 100 },
 ];
 
-export function getTermsForClass(classValue: string): { name: string; maxMarks: number }[] {
-    // Extract numeric part from class value (handles "Class 1", "1", etc.)
-    const match = classValue.match(/\d+/);
+export function getTermsForClass(classValue: string | number | null | undefined): { name: string; maxMarks: number }[] {
+    // Coerce to string so we can handle numbers or other types safely
+    const raw = classValue == null ? '' : String(classValue)
+
+    // Extract numeric part from class value (handles "Class 1", "1", "10A", etc.)
+    const match = raw.match(/\d+/)
     if (!match) {
-        return [];
-    }
-    
-    const numClass = parseInt(match[0]);
-    if (numClass >= 1 && numClass <= 5) {
-        return termsList;
-    } else if (numClass >= 6 && numClass <= 10) {
-        return termsListHigher;
+        return []
     }
 
-    return [];
-}  
+    const numClass = parseInt(match[0], 10)
+    if (Number.isNaN(numClass)) return []
+
+    if (numClass >= 1 && numClass <= 5) {
+        return termsList
+    } else if (numClass >= 6 && numClass <= 10) {
+        return termsListHigher
+    }
+
+    return []
+}
 
 export const allTerms = Array.from(new Set([...termsList, ...termsListHigher].map(term => term.name)));
 
-export function getTermMaxMarks(classValue: string, termName: string): number | null {
-    const terms = getTermsForClass(classValue);
-    const term = terms.find(t => t.name === termName);
-    return term ? term.maxMarks : null;
+export function getTermMaxMarks(classValue: string | number | null | undefined, termName: string): number | null {
+    const terms = getTermsForClass(classValue)
+    const term = terms.find((t) => t.name === termName)
+    return term ? term.maxMarks : null
 }
 

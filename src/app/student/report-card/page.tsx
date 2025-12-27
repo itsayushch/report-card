@@ -86,10 +86,11 @@ export default function ReportCardPage() {
   }, [])
 
   useEffect(() => {
-    if (selectedYear && studentId) {
+    if (selectedYear && studentId && studentClass) {
       fetchAllReports()
     }
-  }, [selectedYear, studentId])
+  }, [selectedYear, studentId, studentClass])
+
 
   const fetchInitialData = async () => {
     try {
@@ -129,14 +130,14 @@ export default function ReportCardPage() {
     console.log('Student class:', studentClass)
     const classTerms = getTermsForClass(studentClass)
     console.log('Class terms:', classTerms)
-    const terms = classTerms.map(t => t.name)
+    let terms = classTerms.map((t) => t.name)
     console.log('Terms:', terms)
-    
+
+    // If local mapping doesn't exist (e.g., student was previously in class 10 but now in 11),
+    // fall back to the default term sequence used server-side so we still fetch reports.
     if (terms.length === 0) {
-      console.warn('No terms found for class:', studentClass)
-      setTermReports([])
-      setLoading(false)
-      return
+      console.warn('No terms found for class:', studentClass, '-- falling back to default term list')
+      terms = ['1st Unit Test', 'Mid Term', '2nd Unit Test', 'Final Term']
     }
     
     // Initialize term reports

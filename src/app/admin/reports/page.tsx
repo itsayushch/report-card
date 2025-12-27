@@ -22,7 +22,7 @@ import { Badge } from '@/components/ui/badge'
 import { toast } from 'sonner'
 import { CheckCircle2, XCircle, Loader2 } from 'lucide-react'
 import { formatClass } from '@/lib/class-utils'
-import { getTermsForClass } from '@/lib/semesters'
+import { getTermsForClass } from '@/lib/terms'
 
 interface AcademicYear {
   id: string

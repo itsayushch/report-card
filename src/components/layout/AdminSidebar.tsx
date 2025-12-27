@@ -61,7 +61,7 @@ export function AdminSidebar({ onClose }: AdminSidebarProps) {
       {/* Logo */}
       <div className="p-6 border-b border-gray-800">
         <div className="flex items-center gap-3">
-          <img src="/logo/small.svg" alt="St. Helen's" className="h-10 w-10" />
+          <img src="/logo/small.png" alt="St. Helen's" className="h-10 w-10" />
           <div>
             <h1 className="text-xl font-bold">St. Helen&apos;s</h1>
             <p className="text-sm text-gray-400 mt-1">Admin Panel</p>
