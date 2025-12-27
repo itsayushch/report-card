@@ -7,11 +7,10 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { toast } from 'sonner'
-import { Loader2, User, Mail, Lock, Upload, Camera, X } from 'lucide-react'
-import { Separator } from '@/components/ui/separator'
+import { Loader2, User, Mail, Lock } from 'lucide-react'
+// Separator removed (not used)
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
-import { ImageCropper } from '@/components/ui/image-cropper'
 import { getSubjectById } from '@/lib/subjects'
 
 interface TeacherProfile {
@@ -31,12 +30,7 @@ export default function TeacherProfilePage() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [changingPassword, setChangingPassword] = useState(false)
-  const [uploadingImage, setUploadingImage] = useState(false)
-  const [selectedFile, setSelectedFile] = useState<File | null>(null)
-  const [previewImage, setPreviewImage] = useState<string | null>(null)
-  const [showCropper, setShowCropper] = useState(false)
-  const [imageToCrop, setImageToCrop] = useState<string | null>(null)
-  const [croppedBlob, setCroppedBlob] = useState<Blob | null>(null)
+  // Image upload removed: profile pictures are shown but cannot be changed from UI
 
   const [formData, setFormData] = useState({
     name: '',
@@ -62,10 +56,7 @@ export default function TeacherProfilePage() {
       }
 
       setProfile(data.teacher)
-      setFormData({
-        name: data.teacher.name,
-      })
-      setPreviewImage(data.teacher.profilePicture)
+      setFormData({ name: data.teacher.name })
     } catch (error: any) {
       toast.error(error.message || 'Failed to load profile')
     } finally {
@@ -152,110 +143,7 @@ export default function TeacherProfilePage() {
     }
   }
 
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file) return
-
-    // Validate file type
-    const validTypes = ['image/jpeg', 'image/png', 'image/webp']
-    if (!validTypes.includes(file.type)) {
-      toast.error('Please select a valid image file (JPG, PNG, or WebP)')
-      return
-    }
-
-    // Validate file size (5MB)
-    const maxSize = 5 * 1024 * 1024
-    if (file.size > maxSize) {
-      toast.error('File size must be less than 5MB')
-      return
-    }
-
-    // Read the file and show cropper
-    const reader = new FileReader()
-    reader.onloadend = () => {
-      setImageToCrop(reader.result as string)
-      setShowCropper(true)
-    }
-    reader.readAsDataURL(file)
-  }
-
-  const handleCropComplete = (croppedImage: Blob) => {
-    setCroppedBlob(croppedImage)
-    
-    // Create preview URL from blob
-    const previewUrl = URL.createObjectURL(croppedImage)
-    setPreviewImage(previewUrl)
-    
-    // Create a File from the Blob
-    const file = new File([croppedImage], 'profile-picture.jpg', { type: 'image/jpeg' })
-    setSelectedFile(file)
-  }
-
-  const handleUploadProfilePicture = async () => {
-    if (!selectedFile || !profile) return
-
-    const formData = new FormData()
-    formData.append('file', selectedFile)
-
-    setUploadingImage(true)
-    try {
-      const response = await fetch(`/api/teachers/${profile.id}/profile-picture`, {
-        method: 'POST',
-        body: formData,
-      })
-
-      if (!response.ok) {
-        const error = await response.json()
-        throw new Error(error.error || 'Failed to upload profile picture')
-      }
-
-      const data = await response.json()
-      setProfile({ ...profile, profilePicture: data.teacher.profilePicture })
-      setPreviewImage(data.teacher.profilePicture)
-      setSelectedFile(null)
-      toast.success('Profile picture updated successfully')
-    } catch (error: any) {
-      toast.error(error.message)
-    } finally {
-      setUploadingImage(false)
-    }
-  }
-
-  const handleDeleteProfilePicture = async () => {
-    if (!profile) return
-
-    setUploadingImage(true)
-    try {
-      const response = await fetch(`/api/teachers/${profile.id}/profile-picture`, {
-        method: 'DELETE',
-      })
-
-      if (!response.ok) {
-        const error = await response.json()
-        throw new Error(error.error || 'Failed to delete profile picture')
-      }
-
-      setProfile({ ...profile, profilePicture: null })
-      setPreviewImage(null)
-      setSelectedFile(null)
-      toast.success('Profile picture removed successfully')
-    } catch (error: any) {
-      toast.error(error.message)
-    } finally {
-      setUploadingImage(false)
-    }
-  }
-
-  const cancelImageSelection = () => {
-    setSelectedFile(null)
-    setCroppedBlob(null)
-    setPreviewImage(profile?.profilePicture || null)
-    
-    // Clean up preview URL if it was created from blob
-    if (previewImage && previewImage.startsWith('blob:')) {
-      URL.revokeObjectURL(previewImage)
-    }
-  }
+  // Image upload removed: no client-side upload handlers
 
   if (loading) {
     return (
@@ -316,11 +204,11 @@ export default function TeacherProfilePage() {
                 <div className="shrink-0">
                   <div className="relative">
                     <Avatar className="h-32 w-32 border-4 border-white shadow-xl">
-                      <AvatarImage 
-                        src={previewImage || profile.profilePicture || undefined} 
+                      <AvatarImage
+                        src={profile.profilePicture || undefined}
                         alt={profile.name}
                         onError={(e) => {
-                          console.error('Failed to load profile picture:', previewImage || profile.profilePicture)
+                          console.error('Failed to load profile picture:', profile.profilePicture)
                           e.currentTarget.style.display = 'none'
                         }}
                       />
@@ -328,68 +216,7 @@ export default function TeacherProfilePage() {
                         {profile.name.charAt(0).toUpperCase()}
                       </AvatarFallback>
                     </Avatar>
-                    <button
-                      onClick={() => document.getElementById('profile-picture-input')?.click()}
-                      className="absolute bottom-0 right-0 bg-blue-600 hover:bg-blue-700 text-white p-3 rounded-full shadow-lg transition-colors"
-                      disabled={uploadingImage}
-                    >
-                      <Camera className="h-5 w-5" />
-                    </button>
-                    <input
-                      id="profile-picture-input"
-                      type="file"
-                      accept="image/jpeg,image/png,image/webp"
-                      onChange={handleFileSelect}
-                      className="hidden"
-                    />
                   </div>
-                  
-                  {selectedFile && (
-                    <div className="mt-4 flex gap-2">
-                      <Button
-                        size="sm"
-                        onClick={handleUploadProfilePicture}
-                        disabled={uploadingImage}
-                        className="flex-1"
-                      >
-                        {uploadingImage ? (
-                          <>
-                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                            Uploading...
-                          </>
-                        ) : (
-                          <>
-                            <Upload className="h-4 w-4 mr-2" />
-                            Save
-                          </>
-                        )}
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={cancelImageSelection}
-                        disabled={uploadingImage}
-                      >
-                        <X className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  )}
-                  
-                  {!selectedFile && previewImage && (
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="mt-4 w-full text-red-600 hover:text-red-700 hover:bg-red-50"
-                      onClick={handleDeleteProfilePicture}
-                      disabled={uploadingImage}
-                    >
-                      Remove Photo
-                    </Button>
-                  )}
-                  
-                  <p className="text-xs text-gray-500 text-center mt-3">
-                    JPG, PNG or WebP<br />Max 5MB
-                  </p>
                 </div>
 
                 {/* Profile Info */}
@@ -557,13 +384,7 @@ export default function TeacherProfilePage() {
         </div>
       </div>
 
-      {/* Image Cropper Dialog */}
-      <ImageCropper
-        open={showCropper}
-        onOpenChange={setShowCropper}
-        imageSrc={imageToCrop || ''}
-        onCropComplete={handleCropComplete}
-      />
+      {/* Image upload removed; profile pictures managed by admins/server */}
     </div>
   )
 }
