@@ -3,9 +3,10 @@
   publish = ".next"
 
 [build.environment]
-  # Exclude Next.js public environment variables from secrets scanning
-  # These are intentionally exposed to the browser
-  SECRETS_SCAN_OMIT_KEYS = "NEXT_PUBLIC_BASE_URL"
+  # Exclude environment variables from secrets scanning
+  # NEXT_PUBLIC_* variables are intentionally exposed to the browser in Next.js
+  # NEXTAUTH_URL, DATABASE_URL, SUPABASE_URL are URLs that may appear in build output
+  SECRETS_SCAN_OMIT_KEYS = "NEXT_PUBLIC_BASE_URL,NEXTAUTH_URL,DATABASE_URL,SUPABASE_URL"
 
 [[plugins]]
   package = "@netlify/plugin-nextjs"
