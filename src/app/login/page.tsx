@@ -129,7 +129,10 @@ function LoginForm() {
         </div>
 
         <div className="relative z-10 text-blue-100 text-sm">
-          © {new Date().getFullYear()} St. Helen&apos;s School. All rights reserved.
+          © {new Date().getFullYear()} St. Helen&apos;s School. All rights reserved. <br /> 
+          {/* add hyperlink to weblyx studio website */}
+          <p className="text-blue-100 ml-3.5">Developed by <a href="https://www.weblyx.site/" target="_blank" rel="noopener noreferrer" className="text-white font-bold hover:text-blue-200 transition-colors duration-200 ease-in-out">Weblyx Studio</a></p>
+          
         </div>
       </div>
 
@@ -151,7 +154,7 @@ function LoginForm() {
               />
             </div>
             <div className="text-center px-6 pb-3">
-              <h1 className="text-white text-2xl font-bold tracking-wide">
+              <h1 className="text-white text-xl font-bold tracking-wide">
                 ST. HELEN&apos;S SECONDARY SCHOOL
               </h1>
               <h2 className="text-white text-xl font-bold tracking-wider">
@@ -260,6 +263,22 @@ function LoginForm() {
               </Button>
             </form>
 
+          </div>
+
+          {/* Mobile Footer */}
+          <div className="lg:hidden mt-6 text-center text-sm text-gray-600 px-6">
+            <p>© {new Date().getFullYear()} St. Helen&apos;s School. All rights reserved.</p>
+            <p className="mt-1">
+              Developed by{' '}
+              <a
+                href="https://www.weblyx.site/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-gray-400 font-bold hover:text-black transition-colors duration-200 ease-in-out"
+              >
+                Weblyx Studio
+              </a>
+            </p>
           </div>
         </div>
       </div>
