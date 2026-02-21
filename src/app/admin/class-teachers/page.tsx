@@ -229,7 +229,7 @@ export default function ClassTeachersPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {classTeachers.map((ct) => (
+                  {classTeachers.sort((a, b) => Number(a.class) - Number(b.class)).map((ct) => (
                     <TableRow key={ct.id}>
                       <TableCell>
                         <Badge variant="outline">{formatClass(ct.class)}</Badge>

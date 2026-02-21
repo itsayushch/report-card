@@ -15,7 +15,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
     const { studentIds, action, academicYear } = body as {
       studentIds: string[]
-      action: 'PROMOTE' | 'DETAIN'
+      action: 'PROMOTE' | 'DETAIN' | 'UNPROMOTE'
       academicYear: string
     }
 
@@ -26,7 +26,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    if (action !== 'PROMOTE' && action !== 'DETAIN') {
+    if (action !== 'PROMOTE' && action !== 'DETAIN' && action !== 'UNPROMOTE') {
       return NextResponse.json({ error: 'Invalid action' }, { status: 400 })
     }
 
@@ -83,7 +83,7 @@ export async function POST(request: NextRequest) {
         }
 
         const updateData: any = {
-          promotionStatus: action === 'PROMOTE' ? 'PROMOTED' : 'DETAINED',
+          promotionStatus: action === 'PROMOTE' ? 'PROMOTED' : action === 'DETAIN' ? 'DETAINED' : 'PENDING',
         }
 
         // Don't automatically change class - just mark the promotion status
@@ -104,11 +104,11 @@ export async function POST(request: NextRequest) {
 
     const successCount = results.filter((r) => r.success).length
 
+    const actionMessage = action === 'PROMOTE' ? 'promoted' : action === 'DETAIN' ? 'detained' : 'moved back to pending'
+
     return NextResponse.json({
       success: true,
-      message: `${successCount} student(s) ${
-        action === 'PROMOTE' ? 'promoted' : 'detained'
-      } successfully`,
+      message: `${successCount} student(s) ${actionMessage} successfully`,
       results,
     })
   } catch (error) {

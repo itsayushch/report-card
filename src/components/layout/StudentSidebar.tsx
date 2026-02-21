@@ -41,10 +41,10 @@ export function StudentSidebar() {
   return (
     <div className="flex h-full flex-col bg-gray-900">
       {/* Logo */}
-      <div className="flex h-16 items-center border-b border-gray-800 px-6">
+      <div className="flex h-16 items-center border-b border-gray-800 px-2">
         <div className="flex items-center gap-3">
           <img src="/logo/small.png" alt="St. Helen's" className="h-8 w-8" />
-          <h1 className="text-xl font-bold text-white">St. Helen&apos;s</h1>
+          <h1 className="text-xl font-bold text-white">St. Helen&apos;s School</h1>
         </div>
       </div>
 

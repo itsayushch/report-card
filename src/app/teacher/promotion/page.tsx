@@ -53,7 +53,7 @@ export default function TeacherPromotionPage() {
   const [loading, setLoading] = useState(true)
   const [processing, setProcessing] = useState(false)
   const [showConfirmDialog, setShowConfirmDialog] = useState(false)
-  const [confirmAction, setConfirmAction] = useState<'PROMOTE' | 'DETAIN'>('PROMOTE')
+  const [confirmAction, setConfirmAction] = useState<'PROMOTE' | 'DETAIN' | 'UNPROMOTE'>('PROMOTE')
   const [activeTab, setActiveTab] = useState('not-promoted')
 
   useEffect(() => {
@@ -155,6 +155,15 @@ export default function TeacherPromotionPage() {
       return
     }
     setConfirmAction('DETAIN')
+    setShowConfirmDialog(true)
+  }
+
+  const handleUnpromote = () => {
+    if (selectedStudents.size === 0) {
+      toast.error('Please select at least one student')
+      return
+    }
+    setConfirmAction('UNPROMOTE')
     setShowConfirmDialog(true)
   }
 
@@ -390,6 +399,18 @@ export default function TeacherPromotionPage() {
                     These students will be automatically moved to the next class when a new academic year is created
                   </p>
                 </div>
+                {promotedStudents.length > 0 && (
+                  <Button
+                    variant="outline"
+                    onClick={handleUnpromote}
+                    disabled={selectedStudents.size === 0 || processing}
+                    className="w-full sm:w-auto text-sm"
+                    size="sm"
+                  >
+                    <TrendingDown className="mr-2 h-4 w-4" />
+                    Un-promote Selected
+                  </Button>
+                )}
               </div>
               {promotedStudents.length === 0 ? (
                 <div className="text-center py-8 text-muted-foreground">
@@ -401,6 +422,12 @@ export default function TeacherPromotionPage() {
                   <Table>
                     <TableHeader>
                       <TableRow>
+                        <TableHead className="w-12">
+                          <Checkbox
+                            checked={promotedStudents.length > 0 && promotedStudents.every(s => selectedStudents.has(s.id))}
+                            onCheckedChange={() => toggleAll(promotedStudents)}
+                          />
+                        </TableHead>
                         <TableHead className="min-w-[100px]">Reg No</TableHead>
                         <TableHead className="min-w-[150px]">Name</TableHead>
                         <TableHead className="min-w-[80px]">Class</TableHead>
@@ -413,6 +440,12 @@ export default function TeacherPromotionPage() {
                     <TableBody>
                       {promotedStudents.map((student) => (
                         <TableRow key={student.id}>
+                          <TableCell>
+                            <Checkbox
+                              checked={selectedStudents.has(student.id)}
+                              onCheckedChange={() => toggleStudent(student.id)}
+                            />
+                          </TableCell>
                           <TableCell className="font-medium">{student.regNo}</TableCell>
                           <TableCell>{student.name}</TableCell>
                           <TableCell>
@@ -457,7 +490,7 @@ export default function TeacherPromotionPage() {
               )}
             </TabsContent>
 
-            {/* Promoted Tab */}
+            {/* Detained Tab */}
             <TabsContent value="detained" className="mt-4 md:mt-6">
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
                 <div>
@@ -466,6 +499,18 @@ export default function TeacherPromotionPage() {
                     These students will remain in the same class
                   </p>
                 </div>
+                {detainedStudents.length > 0 && (
+                  <Button
+                    variant="outline"
+                    onClick={handleUnpromote}
+                    disabled={selectedStudents.size === 0 || processing}
+                    className="w-full sm:w-auto text-sm"
+                    size="sm"
+                  >
+                    <TrendingUp className="mr-2 h-4 w-4" />
+                    Un-detain Selected
+                  </Button>
+                )}
               </div>
               {detainedStudents.length === 0 ? (
                 <div className="text-center py-8 text-muted-foreground">
@@ -477,6 +522,12 @@ export default function TeacherPromotionPage() {
                   <Table>
                     <TableHeader>
                       <TableRow>
+                        <TableHead className="w-12">
+                          <Checkbox
+                            checked={detainedStudents.length > 0 && detainedStudents.every(s => selectedStudents.has(s.id))}
+                            onCheckedChange={() => toggleAll(detainedStudents)}
+                          />
+                        </TableHead>
                         <TableHead className="min-w-[100px]">Reg No</TableHead>
                         <TableHead className="min-w-[150px]">Name</TableHead>
                         <TableHead className="min-w-[80px]">Class</TableHead>
@@ -489,9 +540,17 @@ export default function TeacherPromotionPage() {
                     <TableBody>
                       {detainedStudents.map((student) => (
                         <TableRow key={student.id}>
+                          <TableCell>
+                            <Checkbox
+                              checked={selectedStudents.has(student.id)}
+                              onCheckedChange={() => toggleStudent(student.id)}
+                            />
+                          </TableCell>
                           <TableCell className="font-medium">{student.regNo}</TableCell>
                           <TableCell className="font-medium">{student.name}</TableCell>
-                          <TableCell>{formatClass(student.class)}</TableCell>
+                          <TableCell>
+                            <Badge variant="outline" className="text-xs">{formatClass(student.class)}</Badge>
+                          </TableCell>
                           <TableCell className="hidden md:table-cell">
                             {student.hasMarks ? (
                               <span className="text-sm">
@@ -538,10 +597,10 @@ export default function TeacherPromotionPage() {
         <DialogContent className="w-[95vw] max-w-md mx-auto">
           <DialogHeader>
             <DialogTitle className="text-lg md:text-xl">
-              Confirm {confirmAction === 'PROMOTE' ? 'Promotion' : 'Detention'}
+              Confirm {confirmAction === 'PROMOTE' ? 'Promotion' : confirmAction === 'DETAIN' ? 'Detention' : 'Status Change'}
             </DialogTitle>
             <DialogDescription className="text-sm">
-              Are you sure you want to {confirmAction === 'PROMOTE' ? 'promote' : 'detain'}{' '}
+              Are you sure you want to {confirmAction === 'PROMOTE' ? 'promote' : confirmAction === 'DETAIN' ? 'detain' : 'move back to pending'}{' '}
               {selectedStudents.size} student(s)?
               {confirmAction === 'PROMOTE' && (
                 <span className="block mt-2 font-medium">
@@ -551,6 +610,11 @@ export default function TeacherPromotionPage() {
               {confirmAction === 'DETAIN' && (
                 <span className="block mt-2 font-medium">
                   Students will remain in the same class.
+                </span>
+              )}
+              {confirmAction === 'UNPROMOTE' && (
+                <span className="block mt-2 font-medium">
+                  Students will be moved back to pending status and can be promoted or detained again.
                 </span>
               )}
             </DialogDescription>

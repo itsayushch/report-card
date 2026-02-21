@@ -45,7 +45,7 @@ export default function TeacherDashboardPage() {
   const [loading, setLoading] = useState(true)
   const [stats, setStats] = useState<TeacherStats | null>(null)
   const [subjects, setSubjects] = useState<Subject[]>([])
-  const [recentMarks, setRecentMarks] = useState<RecentMark[]>([])
+  // const [recentMarks, setRecentMarks] = useState<RecentMark[]>([])
   const [activeYear, setActiveYear] = useState<string>('')
 
   useEffect(() => {
@@ -61,7 +61,7 @@ export default function TeacherDashboardPage() {
       const data = await response.json()
       setStats(data.stats)
       setSubjects(data.teacher.subjects || [])
-      setRecentMarks(data.recentMarks)
+      // setRecentMarks(data.recentMarks)
       setActiveYear(data.activeYear?.year || '')
     } catch (error) {
       toast.error('Failed to load dashboard data')
@@ -190,9 +190,6 @@ export default function TeacherDashboardPage() {
               Enter Marks
             </Link>
           </Button>
-          <Button asChild variant="outline">
-            <Link href="/teacher/analytics">View Analytics</Link>
-          </Button>
         </CardContent>
       </Card>
 
@@ -239,7 +236,7 @@ export default function TeacherDashboardPage() {
         </CardContent>
       </Card>
 
-      {/* Recent Marks Entries */}
+      {/* Recent Marks Entries
       <Card>
         <CardHeader>
           <CardTitle>Recent Marks Entries</CardTitle>
@@ -277,7 +274,7 @@ export default function TeacherDashboardPage() {
             </p>
           )}
         </CardContent>
-      </Card>
+      </Card> */}
     </div>
   )
 }

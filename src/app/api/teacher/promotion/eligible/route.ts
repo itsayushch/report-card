@@ -36,6 +36,19 @@ export async function GET(request: NextRequest) {
       )
     }
 
+    // Check if Final Term is published for this class
+    const finalTermPublished = await prisma.reportPublish.findUnique({
+      where: {
+        class_term_academicYear: {
+          class: classTeacherAssignment.class,
+          term: 'Final Term',
+          academicYear,
+        },
+      },
+    })
+
+    const isFinalTermPublished = finalTermPublished?.isPublished || false
+
     // Fetch students from the assigned class
     const students = await prisma.student.findMany({
       where: {
@@ -64,10 +77,10 @@ export async function GET(request: NextRequest) {
       // Get the academic record bucket for this year
       const yearRecord = student.academicRecords[0] // Should only be one per year
 
-      if (yearRecord) {
+      if (yearRecord && isFinalTermPublished) {
         // Get the Final Term record
         const finalTerm = yearRecord.terms.find(
-          (term) => term.name === 'Final Term' && term.published === true
+          (term) => term.name === 'Final Term'
         )
 
         if (finalTerm && finalTerm.subjects.length > 0) {
