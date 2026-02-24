@@ -22,9 +22,11 @@ function LoginForm() {
   
   const [error, setError] = useState<string>('')
   const [isLoading, setIsLoading] = useState(false)
+  const [isRedirecting, setIsRedirecting] = useState(false)
 
   useEffect(() => {
     if (status === 'authenticated' && session?.user) {
+      setIsRedirecting(true)
       const role = (session.user as any).role
       const redirectUrl = 
         role === 'ADMIN' ? '/admin/dashboard' :
@@ -67,6 +69,9 @@ function LoginForm() {
           ? 'Invalid credentials. Please check your registration number.'
           : 'Invalid credentials. Please check your email and password.')
       } else {
+        // Show redirecting state
+        setIsRedirecting(true)
+        
         // Redirect based on role
         const redirectUrl = 
           data.role === 'ADMIN' ? '/admin/dashboard' :
@@ -85,6 +90,21 @@ function LoginForm() {
 
   return (
     <div className="min-h-screen flex">
+      {/* Full Screen Loading Overlay */}
+      {isRedirecting && (
+        <div className="fixed inset-0 bg-white z-50 flex flex-col items-center justify-center">
+          <div className="flex flex-col items-center gap-4">
+            <div className="relative">
+              <div className="w-16 h-16 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin"></div>
+            </div>
+            <div className="text-center">
+              <p className="text-lg font-semibold text-gray-900">Loading Dashboard...</p>
+              <p className="text-sm text-gray-500 mt-1">Please wait</p>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Left Side - Branding */}
       <div className="hidden lg:flex lg:w-1/2 bg-linear-to-br from-blue-600 via-blue-700 to-blue-900 p-12 flex-col justify-between relative overflow-hidden">
         {/* Decorative circles */}

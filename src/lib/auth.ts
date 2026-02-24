@@ -69,6 +69,12 @@ export const authOptions = {
 
         console.log('Student not found, checking teacher');
 
+        // If role is STUDENT but no student found, don't check teacher
+        if (role === 'STUDENT') {
+          console.log('No student found with this registration number');
+          return null
+        }
+
         // Check for regular user (teacher/admin)
         const user = await prisma.teacher.findUnique({
           where: { email: credentials.email as string },

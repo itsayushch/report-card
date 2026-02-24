@@ -52,6 +52,17 @@ export default function StudentDashboard() {
 
       // Fetch fresh data
       const response = await fetch('/api/student/dashboard')
+      
+      if (response.status === 404) {
+        setData(null)
+        setLoading(false)
+        return
+      }
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch dashboard data')
+      }
+      
       const result = await response.json()
       setData(result)
       
@@ -60,6 +71,7 @@ export default function StudentDashboard() {
       sessionStorage.setItem('student-dashboard-timestamp', Date.now().toString())
     } catch (error) {
       console.error('Failed to fetch dashboard data:', error)
+      setData(null)
     } finally {
       setLoading(false)
     }
@@ -89,8 +101,15 @@ export default function StudentDashboard() {
     return (
       <div className="p-6 max-w-7xl mx-auto">
         <Card>
-          <CardContent className="pt-6 text-center text-gray-500">
-            <p>Failed to load dashboard data. Please refresh the page.</p>
+          <CardContent className="pt-6 text-center">
+            <div className="flex flex-col items-center justify-center gap-4 py-8">
+              <User className="h-16 w-16 text-gray-300" />
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900">No Student Found</h3>
+                <p className="text-sm text-gray-500 mt-1">No student record exists for this account.</p>
+                <p className="text-sm text-gray-500">Please contact your administrator for assistance.</p>
+              </div>
+            </div>
           </CardContent>
         </Card>
       </div>
