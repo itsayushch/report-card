@@ -153,7 +153,7 @@ function LoginForm() {
                 className="h-16 w-16 object-contain"
               />
             </div>
-            <div className="text-center px-6 pb-3">
+            <div className="text-center px-2 pb-3">
               <h1 className="text-white text-xl font-bold tracking-wide">
                 ST. HELEN&apos;S SECONDARY SCHOOL
               </h1>

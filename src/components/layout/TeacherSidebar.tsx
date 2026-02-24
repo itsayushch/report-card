@@ -111,6 +111,7 @@ export function TeacherSidebar() {
             </Link>
           )
         })}
+        
       </nav>
 
       {/* Footer */}

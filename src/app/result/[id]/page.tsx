@@ -361,17 +361,17 @@ function PrintableReportCardContent() {
 
             {/* School Name Header */}
             <div className="text-center px-6 pb-2 print:px-3 print:pb-1">
-              <h1 className="text-red-700 text-2xl font-bold tracking-wide print:text-xl">
+              <h1 className="text-black text-2xl font-black tracking-wide print:text-xl">
                 ST. HELEN&apos;S SECONDARY SCHOOL
               </h1>
-              <h2 className="text-red-700 text-xl font-bold tracking-wider print:text-lg">
+              <h2 className="text-black text-xl font-black tracking-wider print:text-lg">
                 KURSEONG
               </h2>
             </div>
 
             {/* Title Section */}
             <div className="text-center pb-1 print:pb-0.5">
-              <h3 className="text-blue-800 text-lg font-bold tracking-wide print:text-base">
+              <h3 className="text-black text-lg font-bold tracking-wide print:text-base">
                 STATEMENT OF MARKS
               </h3>
             </div>
@@ -608,7 +608,7 @@ function PrintableReportCardContent() {
                     <td className="px-4 py-2 text-sm font-bold text-gray-900 bg-gray-50 print:px-2 print:py-1 print:text-xs">
                       PERCENTAGE
                     </td>
-                    <td className="px-4 py-2 text-center text-lg font-bold text-blue-800 print:px-2 print:py-1 print:text-base">
+                    <td className="px-4 py-2 text-center text-lg font-bold text-black print:px-2 print:py-1 print:text-base">
                       {data.overallPercentage.toFixed(0)} %
                     </td>
                   </tr>
@@ -617,9 +617,7 @@ function PrintableReportCardContent() {
                       <td className="px-4 py-2 text-sm font-bold text-gray-900 bg-gray-50 print:px-2 print:py-1 print:text-xs">
                         PROMOTIONAL STATUS
                       </td>
-                      <td className={`px-4 py-2 text-center text-lg font-bold print:px-2 print:py-1 print:text-base ${
-                        data.promotionStatus === "PROMOTED" ? "text-green-700" : "text-red-700"
-                      }`}>
+                      <td className={`px-4 py-2 text-center text-lg font-bold print:px-2 print:py-1 print:text-base text-black`}>
                         {data.promotionStatus}
                       </td>
                     </tr>
@@ -716,20 +714,20 @@ function PrintableReportCardContent() {
 
             {/* School Name Header */}
             <div className="text-center px-6 pb-2 relative z-10 print:px-3 print:pb-1">
-              <h1 className="text-red-700 text-2xl font-bold tracking-wide print:text-lg">
+              <h1 className="text-black text-2xl font-black tracking-wide print:text-lg">
                 ST. HELEN&apos;S SECONDARY SCHOOL
               </h1>
-              <h2 className="text-red-700 text-xl font-bold tracking-wider print:text-base">
+              <h2 className="text-black text-xl font-black tracking-wider print:text-base">
                 KURSEONG
               </h2>
             </div>
 
             {/* Title Section */}
             <div className="text-center pb-2 relative z-10 print:pb-1">
-              <h3 className="text-blue-800 text-lg font-bold tracking-wide print:text-sm">
+              <h3 className="text-black text-lg font-bold tracking-wide print:text-sm">
                 GRADING SYSTEM
               </h3>
-              <p className="text-blue-700 text-sm font-semibold mt-1 print:text-xs print:mt-0">
+              <p className="text-black text-sm font-semibold mt-1 print:text-xs print:mt-0">
                 Academic Year {data.academicYear}
               </p>
             </div>
@@ -742,7 +740,7 @@ function PrintableReportCardContent() {
               {/* Grading Table */}
               <div className="px-6 pb-4 mt-14 relative z-10 print:px-3 print:pb-3">
                 <div className="border-2 border-blue-800 p-6 bg-white mx-auto print:p-3">
-                  <h3 className="text-center text-blue-800 font-bold text-lg mb-4 underline underline-offset-4 print:text-base print:mb-2">
+                  <h3 className="text-center text-black font-bold text-lg mb-4 underline underline-offset-4 print:text-base print:mb-2">
                     GRADES
                   </h3>
                   <table className="w-full">
@@ -854,7 +852,7 @@ function PrintableReportCardContent() {
 
               {/* A Word to Parents */}
               <div className="px-6 pb-2 mt-12 relative z-10 print:px-3 print:pb-2">
-                <h3 className="text-blue-800 underline underline-offset-4 mb-1.5 text-center text-lg font-bold tracking-wide print:text-base">
+                <h3 className="text-black underline underline-offset-4 mb-1.5 text-center text-lg font-bold tracking-wide print:text-base">
                   A WORD TO PARENTS
                 </h3>
                 <ol className="space-y-2 text-lg text-gray-700  list-decimal list-inside print:space-y-0.5 print:text-lg">
@@ -866,11 +864,11 @@ function PrintableReportCardContent() {
                     Promotion is decided on the whole year's performance & not
                     on the final examination only.
                   </li>
-                  <li className="italic">
+                  <li>
                     Promotion will not be granted to any student obtaining less
                     than 40% in any compulsory subject.
                   </li>
-                  <li className="font-semibold">Pass Marks - 45%</li>
+                  <li className="font-semibold">Pass Marks - 40%</li>
                   <li>
                     Parents and students should bear in mind that results once
                     published is final and will not be changed.
