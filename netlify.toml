@@ -10,3 +10,9 @@
 
 [[plugins]]
   package = "@netlify/plugin-nextjs"
+
+[[redirects]]
+  from = "https://st-helens-report-card.netlify.app/*"
+  to = "https://result.sthelenskurseong.in/:splat"
+  status = 301
+  force = true
