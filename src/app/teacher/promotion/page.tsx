@@ -229,8 +229,19 @@ export default function TeacherPromotionPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      <div className="flex items-center justify-center min-h-[600px]">
+        <div className="text-center space-y-4">
+          <div className="relative">
+            <div className="w-20 h-20 border-4 border-blue-200 rounded-full animate-pulse mx-auto"></div>
+            <Loader2 className="h-12 w-12 animate-spin text-blue-600 absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2" />
+          </div>
+          <div className="space-y-2">
+            <h3 className="text-lg font-semibold text-gray-900">Loading Promotion Data</h3>
+            <p className="text-sm text-muted-foreground">
+              Fetching student records and calculating marks...
+            </p>
+          </div>
+        </div>
       </div>
     )
   }
@@ -283,7 +294,7 @@ export default function TeacherPromotionPage() {
                 <div>
                   <h3 className="text-base md:text-lg font-semibold">Students Pending Promotion</h3>
                   <p className="text-xs md:text-sm text-muted-foreground">
-                    {selectedStudents.size} of {notPromotedStudents.length} selected
+                    {selectedStudents.size} of {notPromotedStudents.length} selected • Marks shown are average of all 4 terms
                   </p>
                 </div>
                 <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
@@ -331,8 +342,8 @@ export default function TeacherPromotionPage() {
                         <TableHead className="min-w-[100px]">Reg No</TableHead>
                         <TableHead className="min-w-[150px]">Name</TableHead>
                         <TableHead className="min-w-[80px]">Class</TableHead>
-                        <TableHead className="min-w-[100px] hidden md:table-cell">Final Term Marks</TableHead>
-                        <TableHead className="min-w-[100px]">Percentage</TableHead>
+                        <TableHead className="min-w-[100px] hidden md:table-cell">Total Marks</TableHead>
+                        <TableHead className="min-w-[100px]">Overall Percentage</TableHead>
                         <TableHead className="min-w-[120px]">Action</TableHead>
                         <TableHead className="min-w-[100px]">Status</TableHead>
                       </TableRow>
@@ -371,7 +382,7 @@ export default function TeacherPromotionPage() {
                           </TableCell>
                           <TableCell>
                             {student.hasMarks ? (
-                              <Link href={`/result/${student.id}`} target="_blank">
+                              <Link href={`/result/${student.id}?year=${activeAcademicYear}&term=Final%20Term`} target="_blank">
                                 <Button variant="outline" size="sm" className="gap-1">
                                   <ExternalLink className="h-3 w-3" />
                                   View Result
@@ -396,7 +407,7 @@ export default function TeacherPromotionPage() {
                 <div>
                   <h3 className="text-base md:text-lg font-semibold">Promoted Students</h3>
                   <p className="text-xs md:text-sm text-muted-foreground">
-                    These students will be automatically moved to the next class when a new academic year is created
+                    These students will be automatically moved to the next class when a new academic year is created • Marks shown are average of all 4 terms
                   </p>
                 </div>
                 {promotedStudents.length > 0 && (
@@ -431,8 +442,8 @@ export default function TeacherPromotionPage() {
                         <TableHead className="min-w-[100px]">Reg No</TableHead>
                         <TableHead className="min-w-[150px]">Name</TableHead>
                         <TableHead className="min-w-[80px]">Class</TableHead>
-                        <TableHead className="min-w-[100px] hidden md:table-cell">Final Term Marks</TableHead>
-                        <TableHead className="min-w-[100px]">Percentage</TableHead>
+                        <TableHead className="min-w-[100px] hidden md:table-cell">Total Marks</TableHead>
+                        <TableHead className="min-w-[100px]">Overall Percentage</TableHead>
                         <TableHead className="min-w-[120px]">Action</TableHead>
                         <TableHead className="min-w-[100px]">Status</TableHead>
                       </TableRow>
@@ -471,7 +482,7 @@ export default function TeacherPromotionPage() {
                           </TableCell>
                           <TableCell>
                             {student.hasMarks ? (
-                              <Link href={`/result/${student.id}`} target="_blank">
+                              <Link href={`/result/${student.id}?year=${activeAcademicYear}&term=Final%20Term`} target="_blank">
                                 <Button variant="outline" size="sm" className="gap-1 text-xs">
                                   <ExternalLink className="h-3 w-3" />
                                   View Result
@@ -496,7 +507,7 @@ export default function TeacherPromotionPage() {
                 <div>
                   <h3 className="text-base md:text-lg font-semibold">Detained Students</h3>
                   <p className="text-xs md:text-sm text-muted-foreground">
-                    These students will remain in the same class
+                    These students will remain in the same class • Marks shown are average of all 4 terms
                   </p>
                 </div>
                 {detainedStudents.length > 0 && (
@@ -531,8 +542,8 @@ export default function TeacherPromotionPage() {
                         <TableHead className="min-w-[100px]">Reg No</TableHead>
                         <TableHead className="min-w-[150px]">Name</TableHead>
                         <TableHead className="min-w-[80px]">Class</TableHead>
-                        <TableHead className="min-w-[100px] hidden md:table-cell">Final Term Marks</TableHead>
-                        <TableHead className="min-w-[100px]">Percentage</TableHead>
+                        <TableHead className="min-w-[100px] hidden md:table-cell">Total Marks (All Terms)</TableHead>
+                        <TableHead className="min-w-[100px]">Overall Percentage</TableHead>
                         <TableHead className="min-w-[120px]">Action</TableHead>
                         <TableHead className="min-w-[100px]">Status</TableHead>
                       </TableRow>
@@ -571,7 +582,7 @@ export default function TeacherPromotionPage() {
                           </TableCell>
                           <TableCell>
                             {student.hasMarks ? (
-                              <Link href={`/result/${student.id}`} target="_blank">
+                              <Link href={`/result/${student.id}?year=${activeAcademicYear}&term=Final%20Term`} target="_blank">
                                 <Button variant="outline" size="sm" className="gap-1 text-xs">
                                   <ExternalLink className="h-3 w-3" />
                                   View Result

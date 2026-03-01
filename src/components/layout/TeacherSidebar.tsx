@@ -12,6 +12,7 @@ import {
   User,
   LogOut,
   TrendingUp,
+  MessageSquare,
 } from 'lucide-react'
 
 const menuItems = [
@@ -65,11 +66,16 @@ export function TeacherSidebar() {
     }
   }
 
-  // Add promotion to menu items if teacher is a class teacher
+  // Add promotion and class remarks to menu items if teacher is a class teacher
   const dynamicMenuItems = [
     ...menuItems,
     ...(isClassTeacher
       ? [
+          {
+            title: 'Class Remarks',
+            href: '/teacher/class-remarks',
+            icon: MessageSquare,
+          },
           {
             title: 'Promotions',
             href: '/teacher/promotion',

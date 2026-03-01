@@ -3,6 +3,7 @@ import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { calculateResult } from '@/lib/calculations'
 import { getSubjectById } from '@/lib/subjects'
+import { getTermsForClass } from '@/lib/terms'
 
 export async function GET(
   request: NextRequest,
@@ -65,6 +66,9 @@ export async function GET(
     // Create a map of published terms
     const publishedTerms = new Set(publishStatuses.map(status => status.term))
 
+    // Check if user is a teacher - they can see unpublished reports
+    const isTeacher = session && session.user.role === 'TEACHER'
+
     // Get terms from the academic record bucket
     const yearTerms = yearRecord?.terms || [];
 
@@ -85,62 +89,60 @@ export async function GET(
     const termReports: any = {};
     const terms = ['1st Unit Test', 'Mid Term', '2nd Unit Test', 'Final Term'];
 
+    // Get the correct maxMarks per term from the class config (source of truth)
+    const termConfigs = getTermsForClass(classForYear);
+    const termMaxMarksMap = new Map(termConfigs.map(t => [t.name, t.maxMarks]));
+
     terms.forEach(term => {
       const termRecord = yearTerms.find((t: any) => t.name === term);
       const isTermPublished = publishedTerms.has(term);
+      // Use the class config maxMarks, not the stored value (stored value may be stale)
+      const correctMaxMarks = termMaxMarksMap.get(term) || 100;
       
-      // Always show data (removed publication filter)
-      if (termRecord && termRecord.subjects && termRecord.subjects.length > 0) {
+      // Show data if: no session (direct URL access), OR teacher, OR published (for logged-in students)
+      if (termRecord && termRecord.subjects && termRecord.subjects.length > 0 && (!session || isTeacher || isTermPublished)) {
         const subjects = termRecord.subjects.map((s: any) => ({
           subjectCode: s.subjectCode,
           marks: s.marks,
-          maxMarks: s.maxMarks,
+          maxMarks: correctMaxMarks, // Always use term config value
           grade: s.grade !== undefined && s.grade !== null && s.grade !== '' 
             ? s.grade 
-            : calculateGrade((s.marks / s.maxMarks) * 100), // Use stored grade if available, otherwise calculate
+            : calculateGrade((s.marks / correctMaxMarks) * 100),
         }));
 
         // Only include numeric subjects (those without alphabetical grading) in totals
         const totalObtained = termRecord.subjects.reduce((sum: number, s: any) => {
-          // Check if subject has alphabetical grading based on subject definition
           const subjectDetail = getSubjectById(classForYear, s.subjectCode);
-          
-          // If we can't find the subject or if it's alphabetical, skip it
-          if (!subjectDetail || subjectDetail.dataType === 'string') {
-            return sum;
-          }
+          if (!subjectDetail || subjectDetail.dataType === 'string') return sum;
           return sum + s.marks;
         }, 0);
         
         const totalMax = termRecord.subjects.reduce((sum: number, s: any) => {
-          // Check if subject has alphabetical grading based on subject definition
           const subjectDetail = getSubjectById(classForYear, s.subjectCode);
-          
-          // If we can't find the subject or if it's alphabetical, skip it
-          if (!subjectDetail || subjectDetail.dataType === 'string') {
-            return sum;
-          }
-          return sum + s.maxMarks;
+          if (!subjectDetail || subjectDetail.dataType === 'string') return sum;
+          return sum + correctMaxMarks; // Use correct maxMarks from config
         }, 0);
         
         const percentage = totalMax > 0 ? (totalObtained / totalMax) * 100 : 0;
 
+        console.log(`[reports] term=${term}, teacherRemarks=${JSON.stringify(termRecord.teacherRemarks)}`);
         termReports[term] = {
           subjects,
           totalObtained,
           totalMax,
           percentage,
           isPublished: isTermPublished,
+          teacherRemarks: termRecord.teacherRemarks || null,
         };
       }
     });
 
-    // Calculate overall statistics (only from published terms)
+    // Calculate overall statistics (no session or teachers see all terms, students see only published)
     let overallObtained = 0;
     let overallMax = 0;
 
     Object.values(termReports).forEach((termData: any) => {
-      if (termData && termData.isPublished) {
+      if (termData && (!session || isTeacher || termData.isPublished)) {
         overallObtained += termData.totalObtained;
         overallMax += termData.totalMax;
       }

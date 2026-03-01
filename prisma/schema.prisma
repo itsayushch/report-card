@@ -46,11 +46,12 @@ model AcademicRecord {
 }
 
 type TermRecord {
-  name       String        // e.g., "1st Unit Test", "Mid Term"
-  subjects   SubjectMark[]
-  enteredBy  String
-  enteredAt  DateTime
-  published  Boolean       @default(false)
+  name            String        // e.g., "1st Unit Test", "Mid Term"
+  subjects        SubjectMark[]
+  enteredBy       String
+  enteredAt       DateTime
+  published       Boolean       @default(false)
+  teacherRemarks  String?       // Class teacher remarks (only for first 3 terms)
 }
 
 type SubjectMark {

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { calculatePercentage, calculateResult } from '@/lib/calculations'
+import { getSubjectsForClass, getSubjectById } from '@/lib/subjects'
 
 // GET - Fetch eligible students for promotion (for the class teacher's assigned class)
 export async function GET(request: NextRequest) {
@@ -36,19 +37,6 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    // Check if Final Term is published for this class
-    const finalTermPublished = await prisma.reportPublish.findUnique({
-      where: {
-        class_term_academicYear: {
-          class: classTeacherAssignment.class,
-          term: 'Final Term',
-          academicYear,
-        },
-      },
-    })
-
-    const isFinalTermPublished = finalTermPublished?.isPublished || false
-
     // Fetch students from the assigned class
     const students = await prisma.student.findMany({
       where: {
@@ -68,33 +56,76 @@ export async function GET(request: NextRequest) {
       },
     })
 
-    // Calculate marks and determine eligibility based on Final Term
+    // Calculate marks and determine eligibility based on average of all 4 terms
     const studentsWithMarks = students.map((student) => {
-      let totalObtained = 0
-      let totalMax = 0
+      let totalAveragePercentage = 0
+      let numericSubjectCount = 0
       let hasMarks = false
 
       // Get the academic record bucket for this year
       const yearRecord = student.academicRecords[0] // Should only be one per year
 
-      if (yearRecord && isFinalTermPublished) {
-        // Get the Final Term record
-        const finalTerm = yearRecord.terms.find(
-          (term) => term.name === 'Final Term'
-        )
+      if (yearRecord) {
+        // Get all unique subjects across all terms AND from class definition
+        const allSubjects = new Set<string>()
+        const allTerms = ['1st Unit Test', 'Mid Term', '2nd Unit Test', 'Final Term']
+        
+        // Add subjects from terms that have marks
+        allTerms.forEach(termName => {
+          const term = yearRecord.terms.find((t) => t.name === termName)
+          if (term) {
+            term.subjects.forEach((subject) => {
+              allSubjects.add(subject.subjectCode)
+            })
+          }
+        })
 
-        if (finalTerm && finalTerm.subjects.length > 0) {
-          hasMarks = true
-          finalTerm.subjects.forEach((subject) => {
-            // Skip alphabetical grading subjects from total calculation
-            if (!subject.grade || subject.grade === '') {
-              totalObtained += subject.marks
-              totalMax += subject.maxMarks
+        // Also add all subjects from class definition (to show subjects with no marks)
+        const classSubjects = getSubjectsForClass(student.class)
+        classSubjects.forEach((subject) => {
+          allSubjects.add(subject.id)
+        })
+
+        // For each subject, calculate average percentage across all terms
+        allSubjects.forEach(subjectCode => {
+          let subjectTotalObtained = 0
+          let subjectTotalMax = 0
+          let isAlphabetical = false
+          let hasSubjectMarks = false
+
+          // Check if this subject is alphabetical from definition
+          const subjectDetail = getSubjectById(student.class, subjectCode)
+          if (subjectDetail?.dataType === 'string') {
+            isAlphabetical = true
+          }
+
+          if (!isAlphabetical) {
+            allTerms.forEach(termName => {
+              const term = yearRecord.terms.find((t) => t.name === termName)
+              if (term) {
+                const subject = term.subjects.find((s) => s.subjectCode === subjectCode)
+                if (subject) {
+                  subjectTotalObtained += subject.marks
+                  subjectTotalMax += subject.maxMarks
+                  hasMarks = true
+                  hasSubjectMarks = true
+                }
+              }
+            })
+
+            // Calculate average percentage for this subject
+            if (subjectTotalMax > 0) {
+              const subjectAveragePercentage = (subjectTotalObtained / subjectTotalMax) * 100
+              totalAveragePercentage += subjectAveragePercentage
+              numericSubjectCount++
             }
-          })
-        }
+          }
+        })
       }
 
+      // Total marks out of (numericSubjectCount * 100)
+      const totalObtained = Math.round(totalAveragePercentage)
+      const totalMax = numericSubjectCount * 100
       const percentage = totalMax > 0 ? calculatePercentage(totalObtained, totalMax) : 0
       const result = hasMarks ? (percentage >= 45 ? 'PASS' : 'FAIL') : 'NO_MARKS'
 

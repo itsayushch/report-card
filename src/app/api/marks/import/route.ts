@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { upsertTermMarks } from '@/lib/academic-records'
 import { prisma } from '@/lib/prisma'
+import { getTermsForClass } from '@/lib/terms'
 
 interface ImportRow {
   regNo: string
@@ -51,6 +52,11 @@ export async function POST(request: NextRequest) {
         continue
       }
 
+      // Get the correct maxMarks for this term and class
+      const termsForClass = getTermsForClass(student.class)
+      const termConfig = termsForClass.find(t => t.name === term)
+      const maxMarksForTerm = termConfig?.maxMarks || 100 // Fallback to 100 if not found
+
       try {
         // Get existing term data or create new
         const yearRecord = await prisma.academicRecord.findUnique({
@@ -79,7 +85,7 @@ export async function POST(request: NextRequest) {
         updatedSubjects.push({
           subjectCode: subject,
           marks: typeof row.marks === 'number' ? row.marks : 0,
-          maxMarks: 100,
+          maxMarks: maxMarksForTerm, // Use correct maxMarks from term definition
           grade: row.grade || undefined,
         })
 

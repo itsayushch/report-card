@@ -76,6 +76,7 @@ export default function MarksEntryPage() {
   const [selectedClass, setSelectedClass] = useState<string>('')
   const [selectedSubject, setSelectedSubject] = useState<string>('')
   const [marksData, setMarksData] = useState<Map<string, MarkEntry>>(new Map())
+  const [changedStudents, setChangedStudents] = useState<Set<string>>(new Set())
   const [loading, setLoading] = useState(false)
   const [saving, setSaving] = useState(false)
   const [teacherData, setTeacherData] = useState<any>(null)
@@ -224,6 +225,7 @@ export default function MarksEntryPage() {
 
       setMarksData(newMarksMap)
       setHasChanges(false) // Reset changes flag when fetching fresh data
+      setChangedStudents(new Set()) // Reset changed students on fresh fetch
     } catch (error) {
       toast.error('Failed to fetch students and marks')
     } finally {
@@ -266,6 +268,7 @@ export default function MarksEntryPage() {
       
       newMarksMap.set(studentId, entry)
       setMarksData(newMarksMap)
+      setChangedStudents(prev => new Set(prev).add(studentId))
       setHasChanges(true) // Mark that changes have been made
     }
   }
@@ -276,14 +279,17 @@ export default function MarksEntryPage() {
       return
     }
 
-    const marksArray = Array.from(marksData.values()).map((entry) => ({
-      ...entry,
-      term: selectedTerm,
-      academicYear: selectedYear,
-    }))
+    // Only send marks for students whose marks were actually changed
+    const marksArray = Array.from(marksData.entries())
+      .filter(([studentId]) => changedStudents.has(studentId))
+      .map(([, entry]) => ({
+        ...entry,
+        term: selectedTerm,
+        academicYear: selectedYear,
+      }))
 
     if (marksArray.length === 0) {
-      toast.error('No marks to save')
+      toast.error('No changes to save')
       return
     }
 
@@ -304,6 +310,7 @@ export default function MarksEntryPage() {
       toast.success(data.message || 'Marks saved successfully!')
       fetchStudentsAndMarks() // Refresh data
       setHasChanges(false) // Reset changes flag after successful save
+      setChangedStudents(new Set()) // Clear changed students after save
     } catch (error: any) {
       toast.error(error.message || 'Failed to save marks')
     } finally {
@@ -557,41 +564,75 @@ export default function MarksEntryPage() {
           {/* Show marks entry table when class is selected */}
           {selectedClass && selectedTerm && selectedSubject && (
         <div className="space-y-4">
-          <Card className="border-blue-200 shadow-sm">
-            <CardContent className="py-4">
-              <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
-                <div className="space-y-3">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 font-medium">
-                      Class {formatClass(selectedClass)}
-                    </Badge>
-                    <Badge variant="outline" className="bg-purple-50 text-purple-700 border-purple-200 font-medium">
-                      {selectedTerm}
-                    </Badge>
-                    <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 font-medium">
-                      {subjects.find(s => s.id === selectedSubject)?.name}
-                    </Badge>
-                  </div>
-                  {isNumericSubject && (
-                    <div className="text-sm text-gray-600">
-                      <p className="flex items-center gap-2">
-                        <span className="font-semibold text-gray-700">Maximum Marks:</span>
-                        <span className="text-blue-600 font-medium">{maxMarks}</span>
-                      </p>
+          <Card className="border-2 border-blue-100 shadow-lg bg-linear-to-br from-white via-blue-50/30 to-indigo-50/20">
+            <CardContent className="py-6">
+              <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
+                {/* Left side - Subject highlight and details */}
+                <div className="flex-1 space-y-4">
+                  {/* Subject name - prominently displayed */}
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-3">
+                      <div className="w-1 h-12 bg-linear-to-b from-blue-500 to-indigo-600 rounded-full"></div>
+                      <div>
+                        <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Subject</p>
+                        <h2 className="text-3xl font-black text-transparent bg-clip-text bg-linear-to-r from-blue-600 to-indigo-600">
+                          {subjects.find(s => s.id === selectedSubject)?.name || 'Subject Name'}
+                        </h2>
+                      </div>
                     </div>
-                  )}
+                  </div>
+                  
+                  {/* Details row */}
+                  <div className="flex flex-wrap items-center gap-3">
+                    <div className="flex items-center gap-2 px-3 py-1.5 bg-white/80 backdrop-blur-sm border border-blue-200 rounded-full shadow-sm">
+                      <div className="w-2 h-2 rounded-full bg-blue-500 animate-pulse"></div>
+                      <span className="text-xs font-semibold text-gray-600">Class</span>
+                      <span className="text-sm font-bold text-blue-700">{formatClass(selectedClass)}</span>
+                    </div>
+                    
+                    <div className="flex items-center gap-2 px-3 py-1.5 bg-white/80 backdrop-blur-sm border border-purple-200 rounded-full shadow-sm">
+                      <div className="w-2 h-2 rounded-full bg-purple-500 animate-pulse"></div>
+                      <span className="text-xs font-semibold text-gray-600">Term</span>
+                      <span className="text-sm font-bold text-purple-700">{selectedTerm}</span>
+                    </div>
+                    
+                    {isNumericSubject && (
+                      <div className="flex items-center gap-2 px-3 py-1.5 bg-linear-to-r from-green-50 to-emerald-50 border border-green-200 rounded-full shadow-sm">
+                        <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
+                        <span className="text-xs font-semibold text-gray-600">Max Marks</span>
+                        <span className="text-sm font-bold text-green-700">{maxMarks}</span>
+                      </div>
+                    )}
+                    
+                    {!isNumericSubject && (
+                      <div className="flex items-center gap-2 px-3 py-1.5 bg-linear-to-r from-amber-50 to-orange-50 border border-amber-200 rounded-full shadow-sm">
+                        <div className="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></div>
+                        <span className="text-xs font-bold text-amber-700">Alphabetical Grading</span>
+                      </div>
+                    )}
+                  </div>
                 </div>
-                <Button 
-                  variant="outline" 
-                  onClick={() => {
-                    setSelectedClass('')
-                    setSelectedTerm('')
-                    setSelectedSubject('')
-                  }}
-                  className="w-full sm:w-auto hover:bg-gray-100"
-                >
-                  Change Class/Subject
-                </Button>
+                
+                {/* Right side - Change button */}
+                <div className="flex items-center justify-end lg:justify-start">
+                  <Button 
+                    variant="outline" 
+                    onClick={() => {
+                      setSelectedClass('')
+                      setSelectedTerm('')
+                      setSelectedSubject('')
+                    }}
+                    className="group relative overflow-hidden bg-white border-2 border-gray-200 hover:border-blue-400 hover:bg-blue-50 text-gray-700 hover:text-blue-700 font-semibold px-6 py-5 rounded-xl shadow-md hover:shadow-lg transition-all duration-300"
+                  >
+                    <span className="relative z-10 flex items-center gap-2">
+                      <svg className="w-5 h-5 transition-transform group-hover:rotate-180 duration-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                      </svg>
+                      Change Class/Subject
+                    </span>
+                    <div className="absolute inset-0 bg-linear-to-r from-blue-500/0 via-blue-500/10 to-blue-500/0 -translate-x-full group-hover:translate-x-full transition-transform duration-700"></div>
+                  </Button>
+                </div>
               </div>
             </CardContent>
           </Card>
@@ -639,7 +680,7 @@ export default function MarksEntryPage() {
                       ) : (
                         <>
                           <Save className="h-4 w-4" />
-                          Save All Marks
+                          Save Changes{changedStudents.size > 0 ? ` (${changedStudents.size})` : ''}
                         </>
                       )}
                     </Button>

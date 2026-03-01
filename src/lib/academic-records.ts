@@ -16,6 +16,7 @@ type TermRecord = {
   enteredBy: string;
   enteredAt: Date;
   published: boolean;
+  teacherRemarks?: string | null;
 };
 
 /**
@@ -71,22 +72,33 @@ export async function upsertTermMarks(
   // Check if term already exists
   const existingTermIndex = (bucket.terms as TermRecord[]).findIndex((t: TermRecord) => t.name === termName);
 
-  const newTermData = {
-    name: termName,
-    subjects,
-    enteredBy,
-    enteredAt: new Date(),
-    published: false,
-  };
-
   let updatedTerms: TermRecord[];
   if (existingTermIndex >= 0) {
-    // Update existing term
+    // Merge incoming subjects into the existing term (don't wipe other subjects)
     updatedTerms = [...(bucket.terms as TermRecord[])];
-    updatedTerms[existingTermIndex] = newTermData;
+    const existingTerm = updatedTerms[existingTermIndex];
+    const incomingCodes = new Set(subjects.map(s => s.subjectCode));
+    const mergedSubjects = [
+      ...existingTerm.subjects.filter(s => !incomingCodes.has(s.subjectCode)),
+      ...subjects,
+    ];
+    updatedTerms[existingTermIndex] = {
+      name: existingTerm.name,
+      subjects: mergedSubjects,
+      enteredBy,
+      enteredAt: new Date(),
+      published: existingTerm.published, // preserve published status
+      teacherRemarks: existingTerm.teacherRemarks, // preserve remarks
+    };
   } else {
     // Add new term
-    updatedTerms = [...(bucket.terms as TermRecord[]), newTermData];
+    updatedTerms = [...(bucket.terms as TermRecord[]), {
+      name: termName,
+      subjects,
+      enteredBy,
+      enteredAt: new Date(),
+      published: false,
+    }];
   }
 
   // Update the bucket

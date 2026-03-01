@@ -25,6 +25,7 @@ interface ReportData {
       totalObtained: number;
       totalMax: number;
       percentage: number;
+      teacherRemarks?: string | null;
     };
     "Mid Term"?: {
       subjects: Array<{
@@ -36,6 +37,7 @@ interface ReportData {
       totalObtained: number;
       totalMax: number;
       percentage: number;
+      teacherRemarks?: string | null;
     };
     "2nd Unit Test"?: {
       subjects: Array<{
@@ -47,6 +49,7 @@ interface ReportData {
       totalObtained: number;
       totalMax: number;
       percentage: number;
+      teacherRemarks?: string | null;
     };
     "Final Term"?: {
       subjects: Array<{
@@ -58,6 +61,7 @@ interface ReportData {
       totalObtained: number;
       totalMax: number;
       percentage: number;
+      teacherRemarks?: string | null;
     };
   };
   overallPercentage: number;
@@ -78,10 +82,16 @@ function PrintableReportCardContent() {
     const fetchReport = async () => {
       try {
         const studentId = params.id as string;
-        const academicYear = searchParams.get("year") || "2025";
+        const academicYear = searchParams.get("year");
+        const term = searchParams.get("term");
+
+        // Validate required query parameters
+        if (!academicYear || !term) {
+          throw new Error("Both academic year and term parameters are required. Please provide ?year=YYYY&term=TERM in the URL.");
+        }
 
         const response = await fetch(
-          `/api/reports/student/${studentId}?academicYear=${academicYear}`
+          `/api/reports/student/${studentId}?academicYear=${academicYear}&term=${term}`
         );
 
         if (!response.ok) {
@@ -100,6 +110,9 @@ function PrintableReportCardContent() {
 
     if (params.id) {
       fetchReport();
+    } else {
+      setError("Student ID is required");
+      setLoading(false);
     }
   }, [params.id, searchParams]);
 
@@ -116,11 +129,48 @@ function PrintableReportCardContent() {
 
   if (error || !data) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50 px-4">
-        <div className="text-center max-w-md">
-          <div className="text-red-600 text-5xl mb-4">⚠️</div>
-          <h2 className="text-2xl font-bold text-slate-800 mb-2">Error</h2>
-          <p className="text-slate-600">{error || "Report not found"}</p>
+      <div className="min-h-screen flex items-center justify-center bg-linear-to-br from-blue-50 to-slate-100 px-4">
+        <div className="text-center max-w-2xl">
+          <div className="mb-8">
+            <h1 className="text-9xl font-black text-blue-600 mb-4">404</h1>
+            <h2 className="text-3xl font-bold text-slate-800 mb-3">
+              {error?.includes("parameter") ? "Invalid URL" : "Page Not Found"}
+            </h2>
+            <p className="text-lg text-slate-600 mb-6">
+              {error?.includes("parameter")
+                ? "The report card URL is missing required parameters."
+                : error || "The report you're looking for doesn't exist."}
+            </p>
+          </div>
+
+          {error?.includes("parameter") && (
+            <div className="bg-white border-2 border-blue-200 rounded-xl p-6 shadow-lg text-left mb-6">
+              <h3 className="font-bold text-slate-800 mb-3 text-lg">📋 Required URL Format:</h3>
+              <div className="bg-slate-50 rounded-lg p-4 mb-4">
+                <code className="text-sm text-blue-700 font-mono break-all">
+                  /result/[studentId]?year=[academicYear]&term=[termName]
+                </code>
+              </div>
+              <div className="space-y-2 text-sm text-slate-700">
+                <p><span className="font-semibold">Example:</span></p>
+                <code className="block bg-blue-50 text-blue-800 px-3 py-2 rounded font-mono text-xs break-all">
+                  /result/abc123?year=2025&term=Final%20Term
+                </code>
+              </div>
+              <div className="mt-4 pt-4 border-t border-slate-200">
+                <p className="text-sm text-slate-600">
+                  <span className="font-semibold">Note:</span> Both the academic year and term are required to view the report card.
+                </p>
+              </div>
+            </div>
+          )}
+
+          <button
+            onClick={() => window.history.back()}
+            className="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-8 py-3 rounded-lg shadow-lg transition-all hover:shadow-xl"
+          >
+            ← Go Back
+          </button>
         </div>
       </div>
     );
@@ -137,7 +187,7 @@ function PrintableReportCardContent() {
     }
   });
 
-    getSubjectsForClasses([data.student.class]).forEach((sub) => allSubjects.add(sub.id));
+  getSubjectsForClasses([data.student.class]).forEach((sub) => allSubjects.add(sub.id));
 
 
   const subjects = Array.from(allSubjects);
@@ -148,6 +198,8 @@ function PrintableReportCardContent() {
     if (!termData) return null;
     return termData.subjects.find((s) => s.subjectCode === subjectCode);
   };
+
+  const currentTerm = searchParams.get("term");
 
   // Calculate cumulative marks up to each term
   const getCumulativeMarks = (subjectCode: string, upToTerm: string) => {
@@ -213,8 +265,6 @@ function PrintableReportCardContent() {
     };
     return gradeMap[letterGrade] || letterGrade;
   };
-
-  console.log("Report Data:", data); // Debugging log
 
   return (
     <>
@@ -335,7 +385,7 @@ function PrintableReportCardContent() {
           style={{ width: "100%", maxWidth: "800px" }}
         >
           {/* Main Border Container - PAGE 1 */}
-          <div className="border-[5px] border-double border-blue-800 m-4 print:m-1 print:mobile-compact-border min-h-[calc(100vh-4rem)] relative print-page flex flex-col">
+          <div className="border-[5px] border-double border-blue-800 m-4 print:my-0 print:mobile-compact-border min-h-[calc(100vh-4rem)] relative print-page flex flex-col">
             {/* Watermark */}
             <div className="watermark">
               <div className="watermark-text">ST. HELEN&apos;S SCHOOL</div>
@@ -378,13 +428,13 @@ function PrintableReportCardContent() {
 
             {/* Horizontal Line */}
             <div className="border-t-2 border-blue-800 mx-6 my-2 relative z-10 print:mx-3 print:mt-1"></div>
- 
+
             {/* Student Information - Compact Two Column Layout */}
             <div className={`px-6 pb-2 my-2 relative z-10 print:px-3 print:pb-1 print:my-${getMargin(data.student.class)}`}>
               <div className="border-2 border-blue-800">
                 <div className="grid grid-cols-2">
                   <div className="flex border-r border-b border-blue-800 px-2 py-1">
-                    <span className="font-bold text-gray-900 text-xs min-w-[100px]">
+                    <span className="font-bold text-gray-900 text-xs min-w-25">
                       NAME:
                     </span>
                     <span className="text-gray-900 uppercase font-semibold text-xs">
@@ -392,7 +442,7 @@ function PrintableReportCardContent() {
                     </span>
                   </div>
                   <div className="flex border-r border-b border-blue-800 px-2 py-1">
-                    <span className="font-bold text-gray-900 text-xs min-w-[140px]">
+                    <span className="font-bold text-gray-900 text-xs min-w-35">
                       REG. NO:
                     </span>
                     <span className="text-gray-900 font-semibold text-xs">
@@ -400,7 +450,7 @@ function PrintableReportCardContent() {
                     </span>
                   </div>
                   <div className="flex border-r border-blue-800 px-2 py-1">
-                    <span className="font-bold text-gray-900 text-xs min-w-[100px]">
+                    <span className="font-bold text-gray-900 text-xs min-w-25">
                       CLASS:
                     </span>
                     <span className="text-gray-900 font-semibold text-xs">
@@ -408,7 +458,7 @@ function PrintableReportCardContent() {
                     </span>
                   </div>
                   <div className="flex px-2 py-1">
-                    <span className="font-bold text-gray-900 text-xs min-w-[140px]">
+                    <span className="font-bold text-gray-900 text-xs min-w-35">
                       ACADEMIC YEAR:
                     </span>
                     <span className="text-gray-900 font-semibold text-xs">
@@ -478,17 +528,17 @@ function PrintableReportCardContent() {
                     const term2 = getMarksForTerm(subjectCode, "Mid Term");
                     const term3 = getMarksForTerm(subjectCode, "2nd Unit Test");
                     const term4 = getMarksForTerm(subjectCode, "Final Term");
-                    
+
                     // Check if this is an alphabetical grading subject
                     const subjectDetail = getSubjectById(data.student.class, subjectCode);
                     const isAlphabetical = subjectDetail?.dataType === 'string';
-                    
+
                     // Calculate average percentage for numeric subjects
                     let totalObtained = 0;
                     let totalMax = 0;
                     let hasMarks = false;
                     let averagePercentage = 0;
-                    
+
                     if (!isAlphabetical) {
                       [term1, term2, term3, term4].forEach((term) => {
                         if (term && term.marks !== undefined) {
@@ -497,7 +547,7 @@ function PrintableReportCardContent() {
                           hasMarks = true;
                         }
                       });
-                      
+
                       if (totalMax > 0) {
                         averagePercentage = (totalObtained / totalMax) * 100;
                       }
@@ -534,7 +584,7 @@ function PrintableReportCardContent() {
                   })}
 
                   {/* Total Row */}
-                  <tr className="border-b-2 border-blue-800 bg-gray-50">
+                  <tr className="border-b border-blue-800 bg-gray-50">
                     <td className="border-r border-blue-800 px-3 py-2 text-sm font-bold text-gray-900 print:px-2 print:py-1.5 print:text-xs">
                       TOTAL
                     </td>
@@ -562,27 +612,27 @@ function PrintableReportCardContent() {
                       {(() => {
                         let totalAverage = 0;
                         let subjectCount = 0;
-                        
+
                         subjects.forEach((subjectCode) => {
                           const subjectDetail = getSubjectById(data.student.class, subjectCode);
                           const isAlphabetical = subjectDetail?.dataType === 'string';
-                          
+
                           if (!isAlphabetical) {
                             let totalObtained = 0;
                             let totalMax = 0;
-                            
+
                             const term1 = getMarksForTerm(subjectCode, "1st Unit Test");
                             const term2 = getMarksForTerm(subjectCode, "Mid Term");
                             const term3 = getMarksForTerm(subjectCode, "2nd Unit Test");
                             const term4 = getMarksForTerm(subjectCode, "Final Term");
-                            
+
                             [term1, term2, term3, term4].forEach((term) => {
                               if (term && term.marks !== undefined) {
                                 totalObtained += term.marks;
                                 totalMax += term.maxMarks;
                               }
                             });
-                            
+
                             if (totalMax > 0) {
                               const percentage = (totalObtained / totalMax) * 100;
                               totalAverage += percentage;
@@ -590,10 +640,42 @@ function PrintableReportCardContent() {
                             }
                           }
                         });
-                        
+
                         const maxPossible = subjectCount * 100;
                         return subjectCount > 0 ? `${totalAverage.toFixed(0)} / ${maxPossible}` : "-";
                       })()}
+                    </td>
+                  </tr>
+
+                  {/* Percentage Row */}
+                  <tr className="border-b-2 border-blue-800 bg-blue-50">
+                    <td className="border-r border-blue-800 px-3 py-2 text-sm font-bold text-gray-900 print:px-2 print:py-1.5 print:text-xs">
+                      PERCENTAGE
+                    </td>
+                    <td className="border-r border-blue-800 px-2 py-2 text-center text-sm font-semibold text-gray-700 print:px-1.5 print:py-1.5 print:text-xs">
+                      {data.termReports["1st Unit Test"]
+                        ? `${data.termReports["1st Unit Test"].percentage.toFixed(0)} %`
+                        : "-"}
+                    </td>
+                    <td className="border-r border-blue-800 px-2 py-2 text-center text-sm font-semibold text-gray-700 print:px-1.5 print:py-1.5 print:text-xs">
+                      {data.termReports["Mid Term"]
+                        ? `${data.termReports["Mid Term"].percentage.toFixed(0)} %`
+                        : "-"}
+                    </td>
+                    <td className="border-r border-blue-800 px-2 py-2 text-center text-sm font-semibold text-gray-700 print:px-1.5 print:py-1.5 print:text-xs">
+                      {data.termReports["2nd Unit Test"]
+                        ? `${data.termReports["2nd Unit Test"].percentage.toFixed(0)} %`
+                        : "-"}
+                    </td>
+                    <td className="border-r border-blue-800 px-2 py-2 text-center text-sm font-semibold text-gray-700 print:px-1.5 print:py-1.5 print:text-xs">
+                      {data.termReports["Final Term"]
+                        ? `${data.termReports["Final Term"].percentage.toFixed(0)} %`
+                        : "-"}
+                    </td>
+                    <td className="border-r border-blue-800 px-2 py-2 text-center print:px-1.5 print:py-1.5">
+                      <span className="inline-block font-black text-base px-3 py-0.5 rounded print:text-sm print:px-2">
+                        {data.overallPercentage.toFixed(0)} %
+                      </span>
                     </td>
                   </tr>
                 </tbody>
@@ -601,42 +683,65 @@ function PrintableReportCardContent() {
             </div>
 
             {/* Summary Section */}
-            <div className="px-6 pb-0 relative z-10 print:px-3">
-              <table className="w-full border-2 border-blue-800">
-                <tbody>
-                  <tr>
-                    <td className="px-4 py-2 text-sm font-bold text-gray-900 bg-gray-50 print:px-2 print:py-1 print:text-xs">
-                      PERCENTAGE
-                    </td>
-                    <td className="px-4 py-2 text-center text-lg font-bold text-black print:px-2 print:py-1 print:text-base">
-                      {data.overallPercentage.toFixed(0)} %
-                    </td>
-                  </tr>
-                  {data.promotionStatus && data.promotionStatus !== "PENDING" && (
+            {currentTerm === 'Final Term' && data.promotionStatus && data.promotionStatus !== "PENDING" && (
+              <div className="px-6 pb-0 relative z-10 print:px-3">
+                <table className="w-full border-2 border-blue-800">
+                  <tbody>
                     <tr>
                       <td className="px-4 py-2 text-sm font-bold text-gray-900 bg-gray-50 print:px-2 print:py-1 print:text-xs">
-                        PROMOTIONAL STATUS
+                        {data.student.class === "10" ? "REMARKS" : "PROMOTIONAL STATUS"}
                       </td>
-                      <td className={`px-4 py-2 text-center text-lg font-bold print:px-2 print:py-1 print:text-base text-black`}>
-                        {data.promotionStatus}
+                      <td className="px-4 py-2 text-center text-lg font-bold print:px-2 print:py-1 print:text-base text-black">
+                        {data.student.class === "10"
+                          ? (data.promotionStatus === "PROMOTED" ? "ELIGIBLE FOR ICSE" : "NOT ELIGIBLE FOR ICSE")
+                          : data.promotionStatus}
                       </td>
                     </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
+                  </tbody>
+                </table>
+              </div>
+            )}
 
+            {/* Teacher Remarks Section - Only for first 3 terms */}
+            {(() => {
+              const remarksTerms = ["1st Unit Test", "Mid Term", "2nd Unit Test"];
+
+              if (currentTerm && remarksTerms.includes(currentTerm)) {
+                const termData = data.termReports[currentTerm as keyof typeof data.termReports];
+                const remarks = termData?.teacherRemarks;
+
+                if (true) {
+                  return (
+                    <div className="px-6 pb-2 pt-3 relative z-10 print:px-3 print:pt-2">
+                      <div className="border-2 border-blue-800 bg-gray-50">
+                        <div className="px-4 py-2 bg-blue-800 print:px-2 print:py-1">
+                          <h4 className="text-sm font-bold text-white print:text-xs">CLASS TEACHER&apos;S REMARKS</h4>
+                        </div>
+                        <div className="px-4 py-3 print:px-2 print:py-2">
+                          {remarks ? (
+                            <p className="text-sm text-gray-900 leading-relaxed print:text-xs">{remarks}</p>
+                          ) : (
+                            <p className="text-sm text-gray-500 leading-relaxed print:text-xs">No remarks available for this term.</p>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                }
+              }
+              return null;
+            })()}
 
             {/* Spacer to push signatures to bottom */}
             <div className="grow"></div>
 
             {/* Signatures */}
-            <div className="px-6 pb-4 mt-4 mb-8 relative z-10 page-break-avoid print:px-3 print:pb-2 print:pt-1 print:mt-0">
+            <div className="px-6 pb-4 mt-4 mb-2 relative z-10 page-break-avoid print:px-3 print:pb-2 print:pt-1 print:mt-0">
               <div className="grid grid-cols-2 gap-12 mt-4 print:gap-3 print:mt-0">
                 <div className="text-center">
                   <div className="h-24 flex items-end justify-center mb-2 print:h-12 print:mb-1">
-                    <img 
-                    
+                    <img
+
                       src={getSignatureUrl(data.student.class)}
                       alt="Class Teacher Signature"
                       onError={(e) => {
@@ -653,7 +758,7 @@ function PrintableReportCardContent() {
                 </div>
                 <div className="text-center">
                   <div className="h-24 flex items-end justify-center mb-2 print:h-12 print:mb-1">
-                    <img 
+                    <img
                       src={getSignatureUrl('principal')}
                       alt="Principal Signature"
                       className="h-20 object-contain w-60 print:h-20 border border-gray-800"
@@ -688,7 +793,7 @@ function PrintableReportCardContent() {
           </div>
 
           {/* PAGE 2 - Grading System */}
-          <div className="border-[5px] border-double border-blue-800 m-4 print:m-1 print:mobile-compact-border min-h-[calc(100vh-4rem)] relative print-page flex flex-col">
+          <div className="border-[5px] border-double border-blue-800 m-4 print:my-0 print:mobile-compact-border min-h-[calc(100vh-4rem)] relative print-page flex flex-col">
             {/* Watermark */}
             <div className="watermark">
               <div className="watermark-text">ST. HELEN&apos;S SCHOOL</div>
@@ -921,7 +1026,7 @@ export default function PrintableReportCard() {
 
 function getMargin(classAssigned: string) {
   const classNum = parseInt(classAssigned, 10);
-  if (classNum >=1 && classNum <= 5) return 1;
+  if (classNum >= 1 && classNum <= 5) return 1;
   if (classNum >= 6 && classNum <= 8) return 1;
   if (classNum >= 9 && classNum <= 12) return 12;
   return 4;

@@ -103,4 +103,8 @@ export function getSubjectById(classAssigned: string, subjectId: string): { id: 
   return subjects.find(subj => subj.id === subjectId) || null;
 }
 
+// Helper function to get subjects for a single class
+export function getSubjectsForClass(classValue: string): Array<{ id: string; name: string; dataType: string }> {
+  return subjectsByClass[classValue] || [];
+}
 

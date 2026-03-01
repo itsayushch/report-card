@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { upsertTermMarks } from '@/lib/academic-records'
 import { prisma } from '@/lib/prisma'
+import { getTermsForClass } from '@/lib/terms'
 
 interface MarkInput {
   studentId: string
@@ -80,11 +81,16 @@ export async function POST(request: NextRequest) {
         continue
       }
 
+      // Get the correct maxMarks for this term and class
+      const termsForClass = getTermsForClass(student.class)
+      const termConfig = termsForClass.find(t => t.name === term)
+      const maxMarksForTerm = termConfig?.maxMarks || 100 // Fallback to 100 if not found
+
       // Transform marks to subject format
       const subjects = studentMarks.map(mark => ({
         subjectCode: mark.subjectId,
         marks: typeof mark.marks === 'string' ? 0 : mark.marks, // For alphabetical grading
-        maxMarks: 100, // This should come from subject definition
+        maxMarks: maxMarksForTerm, // Use correct maxMarks from term definition
         grade: mark.grade || undefined,
       }))
 
