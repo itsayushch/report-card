@@ -66,10 +66,14 @@ export async function GET(request: NextRequest) {
       0
     )
 
-    // Get recent marks entries from academic records
+    // Get recent marks entries from academic records (embedded terms array)
     const recentRecordsWithMarks = await prisma.academicRecord.findMany({
       where: {
-        'terms.enteredBy': teacher.id,
+        terms: {
+          some: {
+            enteredBy: teacher.id,
+          },
+        },
       },
       include: {
         student: {
