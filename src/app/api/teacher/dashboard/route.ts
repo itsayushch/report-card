@@ -66,7 +66,7 @@ export async function GET(request: NextRequest) {
       0
     )
 
-    // Get recent marks entries from academic records (embedded terms array)
+    // Get recent marks entries safely: fetch records and then join students manually to avoid null relation issues
     const recentRecordsWithMarks = await prisma.academicRecord.findMany({
       where: {
         terms: {
@@ -75,43 +75,57 @@ export async function GET(request: NextRequest) {
           },
         },
       },
-      include: {
-        student: {
-          select: {
-            name: true,
-            regNo: true,
-            class: true,
-          },
-        },
+      select: {
+        studentId: true,
+        terms: true,
+        updatedAt: true,
       },
       orderBy: {
         updatedAt: 'desc',
       },
-      take: 10,
+      take: 20,
     })
+
+    const studentIds = Array.from(
+      new Set(
+        recentRecordsWithMarks
+          .map(record => record.studentId)
+          .filter((id): id is string => Boolean(id))
+      )
+    )
+
+    const students = await prisma.student.findMany({
+      where: { id: { in: studentIds } },
+      select: { id: true, name: true, regNo: true, class: true },
+    })
+
+    const studentMap = new Map(students.map(s => [s.id, s]))
 
     // Transform to match expected format and flatten
     const recentMarks = recentRecordsWithMarks
-      .flatMap(record =>
-        record.terms
+      .flatMap(record => {
+        const student = studentMap.get(record.studentId)
+        if (!student) return []
+
+        return record.terms
           .filter(term => term.enteredBy === teacher.id)
           .flatMap(term =>
             term.subjects.map(subject => ({
-              id: `${record.student.regNo}-${term.name}-${subject.subjectCode}`,
+              id: `${student.regNo}-${term.name}-${subject.subjectCode}`,
               marks: subject.marks,
               term: term.name,
               createdAt: term.enteredAt,
               student: {
-                name: record.student.name,
-                regNo: record.student.regNo,
-                class: record.student.class,
+                name: student.name,
+                regNo: student.regNo,
+                class: student.class,
               },
               subject: {
                 name: subject.subjectCode,
               },
             }))
           )
-      )
+      })
       .slice(0, 5)
 
     return NextResponse.json({

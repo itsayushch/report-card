@@ -127,65 +127,69 @@ export default function TeacherDashboardPage() {
   }
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="min-h-screen bg-slate-50 p-6 space-y-6">
       <div>
-        <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
-        <p className="text-gray-500 mt-1">
-          Academic Year: {activeYear || 'Not set'}
-        </p>
+        <h1 className="text-3xl font-semibold text-slate-900">Teacher Dashboard</h1>
+        <p className="text-slate-500 mt-1">Academic Year: {activeYear || 'Not set'}</p>
       </div>
 
       {/* Stats Cards */}
-      <div className="grid gap-3 grid-cols-3">
-        <Card>
+      <div className="grid gap-4 grid-cols-1 md:grid-cols-3">
+        <Card className="border-slate-200 shadow-sm">
           <CardContent className="p-4 py-3">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-muted-foreground">TOTAL STUDENTS</p>
-                <p className="text-3xl font-bold mt-1">{stats?.totalStudents || 0}</p>
-                <p className="text-xs text-muted-foreground mt-1">Across classes assigned</p>
+                <p className="text-sm font-medium text-slate-500">TOTAL STUDENTS</p>
+                <p className="text-3xl font-semibold mt-1 text-slate-900">{stats?.totalStudents || 0}</p>
+                <p className="text-xs text-slate-500 mt-1">Across classes assigned</p>
               </div>
-              <Users className="h-8 w-8 text-blue-500" />
+              <div className="h-10 w-10 rounded-full bg-slate-100 flex items-center justify-center">
+                <Users className="h-6 w-6 text-slate-600" />
+              </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="border-slate-200 shadow-sm">
           <CardContent className="p-4 py-3">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-muted-foreground">CLASSES</p>
-                <p className="text-3xl font-bold mt-1">{stats?.totalClasses || 0}</p>
-                <p className="text-xs text-muted-foreground mt-1">Assigned to you</p>
+                <p className="text-sm font-medium text-slate-500">CLASSES</p>
+                <p className="text-3xl font-semibold mt-1 text-slate-900">{stats?.totalClasses || 0}</p>
+                <p className="text-xs text-slate-500 mt-1">Assigned to you</p>
               </div>
-              <GraduationCap className="h-8 w-8 text-green-500" />
+              <div className="h-10 w-10 rounded-full bg-slate-100 flex items-center justify-center">
+                <GraduationCap className="h-6 w-6 text-slate-600" />
+              </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="border-slate-200 shadow-sm">
           <CardContent className="p-4 py-3">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-muted-foreground">SUBJECTS</p>
-                <p className="text-3xl font-bold mt-1">{stats?.totalSubjects || 0}</p>
-                <p className="text-xs text-muted-foreground mt-1">You are teaching</p>
+                <p className="text-sm font-medium text-slate-500">SUBJECTS</p>
+                <p className="text-3xl font-semibold mt-1 text-slate-900">{stats?.totalSubjects || 0}</p>
+                <p className="text-xs text-slate-500 mt-1">You are teaching</p>
               </div>
-              <BookOpen className="h-8 w-8 text-purple-500" />
+              <div className="h-10 w-10 rounded-full bg-slate-100 flex items-center justify-center">
+                <BookOpen className="h-6 w-6 text-slate-600" />
+              </div>
             </div>
           </CardContent>
         </Card>
       </div>
 
       {/* Quick Actions */}
-      <Card>
+      <Card className="border-slate-200 shadow-sm">
         <CardHeader>
-          <CardTitle>Quick Actions</CardTitle>
+          <CardTitle className="text-slate-900">Quick Actions</CardTitle>
         </CardHeader>
         <CardContent className="flex flex-wrap gap-3">
-          <Button asChild>
+          <Button asChild variant="secondary" className="gap-2 bg-white text-slate-900 border-slate-200 hover:bg-slate-100">
             <Link href="/teacher/marks-entry">
-              <ClipboardEdit className="mr-2 h-4 w-4" />
+              <ClipboardEdit className="h-4 w-4" />
               Enter Marks
             </Link>
           </Button>
@@ -193,20 +197,20 @@ export default function TeacherDashboardPage() {
       </Card>
 
       {/* Assigned Classes */}
-      <Card>
+      <Card className="border-slate-200 shadow-sm">
         <CardHeader>
-          <CardTitle>Assigned Classes</CardTitle>
+          <CardTitle className="text-slate-900">Assigned Classes</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
             {stats?.studentCounts.map((item) => (
               <div
                 key={item.class}
-                className="flex items-center justify-between p-4 border rounded-lg"
+                className="flex items-center justify-between p-4 border border-slate-200 rounded-lg bg-white"
               >
                 <div>
-                  <p className="font-medium">Class {formatClass(item.class)}</p>
-                  <p className="text-sm text-gray-500">{item.count} students</p>
+                  <p className="font-medium text-slate-900">Class {formatClass(item.class)}</p>
+                  <p className="text-sm text-slate-500">{item.count} students</p>
                 </div>
               </div>
             ))}
@@ -215,19 +219,19 @@ export default function TeacherDashboardPage() {
       </Card>
 
       {/* Subjects */}
-      <Card>
+      <Card className="border-slate-200 shadow-sm">
         <CardHeader>
-          <CardTitle>Your Subjects</CardTitle>
+          <CardTitle className="text-slate-900">Your Subjects</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
             {subjects.map((subject) => (
               <div
                 key={subject.id}
-                className="flex items-center justify-between p-4 border rounded-lg"
+                className="flex items-center justify-between p-4 border border-slate-200 rounded-lg bg-white"
               >
                 <div>
-                  <p className="font-medium">{subject.name}</p>
+                  <p className="font-medium text-slate-900">{subject.name}</p>
                 </div>
               </div>
             ))}

@@ -417,7 +417,7 @@ export default function MarksEntryPage() {
   
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="min-h-screen bg-slate-50 p-6 space-y-6">
       {initialLoading ? (
         <>
           {/* Loading Header */}
@@ -454,8 +454,8 @@ export default function MarksEntryPage() {
       ) : (
         <>
           <div className="mb-8">
-            <h1 className="text-3xl font-semibold text-gray-900">Marks Entry</h1>
-            <p className="text-sm text-gray-500 mt-1.5">
+            <h1 className="text-3xl font-semibold text-slate-900">Marks Entry</h1>
+            <p className="text-sm text-slate-600 mt-1.5">
               {activeYear ? `Academic Year: ${activeYear.year}` : 'No active academic year'}
             </p>
           </div>
@@ -471,8 +471,8 @@ export default function MarksEntryPage() {
                     variant={selectedTerm === term.name ? "default" : "outline"}
                     onClick={() => setSelectedTerm(term.name)}
                     className={selectedTerm === term.name 
-                      ? "bg-blue-600 hover:bg-blue-700 text-white" 
-                      : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"}
+                      ? "bg-slate-900 hover:bg-slate-800 text-white border-slate-900"
+                      : "text-slate-700 border-slate-200 hover:bg-slate-100"}
                   >
                     {term.name}
                   </Button>
@@ -493,54 +493,42 @@ export default function MarksEntryPage() {
                     return (
                       <Card 
                         key={`${classData.class}-${subject.id}`}
-                        className="group relative overflow-hidden border-2 border-gray-100 bg-linear-to-br from-white to-gray-50/30 hover:border-blue-300 hover:shadow-xl hover:shadow-blue-100/50 transition-all duration-300 cursor-pointer"
+                        className="group relative overflow-hidden border border-slate-200 bg-white hover:border-slate-300 hover:shadow-md transition-all duration-200 cursor-pointer"
                         onClick={() => handleClassSelect(classData.class, selectedTerm, subject.id)}
                       >
-                        {/* Top accent bar */}
-                        <div className="absolute top-0 left-0 right-0 h-1.5 bg-linear-to-r from-blue-500 via-blue-600 to-indigo-600"></div>
-                        
                         <CardHeader className="pb-2.5 pt-4">
                           <div className="flex items-start justify-between gap-2">
                             <div className="flex-1 min-w-0">
-                              <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 font-semibold px-2 py-0.5 text-xs mb-1.5">
+                              <Badge variant="outline" className="bg-slate-100 text-slate-700 border-slate-200 font-medium px-2 py-0.5 text-xs mb-1.5">
                                 Class {formatClass(classData.class)}
                               </Badge>
-                              <CardTitle className="text-sm font-bold text-gray-800 group-hover:text-blue-700 transition-colors leading-tight">
+                              <CardTitle className="text-sm font-semibold text-slate-900 leading-tight">
                                 {subject.name}
                               </CardTitle>
                             </div>
-                            <div className="shrink-0 w-9 h-9 rounded-lg bg-linear-to-br from-blue-500 to-blue-600 group-hover:from-blue-600 group-hover:to-indigo-600 flex items-center justify-center transition-all duration-300 shadow-sm">
-                              <span className="text-sm font-bold text-white">{formatClass(classData.class)}</span>
+                            <div className="shrink-0 w-9 h-9 rounded-lg bg-slate-100 flex items-center justify-center border border-slate-200">
+                              <span className="text-sm font-semibold text-slate-800">{formatClass(classData.class)}</span>
                             </div>
                           </div>
                         </CardHeader>
-                        
+
                         <CardContent className="space-y-2.5 pb-4">
                           {isNumeric ? (
-                            <div className="relative overflow-hidden rounded-lg bg-linear-to-br from-gray-50 to-gray-100/80 border border-gray-200/60 p-2.5 group-hover:border-gray-300 transition-colors h-[68px]">
-                              <div className="flex flex-col items-center justify-center h-full">
-                                <span className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide">Maximum Marks</span>
-                                <span className="text-2xl font-bold text-gray-900">{term.maxMarks}</span>
-                              </div>
-                              <div className="absolute -right-4 -top-4 w-16 h-16 rounded-full bg-gray-200/30 blur-xl"></div>
+                            <div className="rounded-lg bg-slate-50 border border-slate-200 p-3 h-[68px] flex flex-col items-center justify-center">
+                              <span className="text-[10px] font-medium text-slate-500 uppercase tracking-wide">Maximum Marks</span>
+                              <span className="text-2xl font-semibold text-slate-900">{term.maxMarks}</span>
                             </div>
                           ) : (
-                            <div className="relative overflow-hidden rounded-lg bg-linear-to-br from-purple-50 to-purple-100/60 border border-purple-200/60 p-2.5 group-hover:border-purple-300 transition-colors h-[68px]">
-                              <div className="flex items-center justify-center gap-1.5 h-full">
-                                <div className="w-1.5 h-1.5 rounded-full bg-purple-500 animate-pulse"></div>
-                                <span className="text-[11px] font-bold text-purple-700 uppercase tracking-wide">Alphabetical Grading</span>
-                                <div className="w-1.5 h-1.5 rounded-full bg-purple-500 animate-pulse"></div>
-                              </div>
-                              <div className="absolute -right-4 -top-4 w-16 h-16 rounded-full bg-purple-300/20 blur-xl"></div>
+                            <div className="rounded-lg bg-amber-50 border border-amber-100 p-3 h-[68px] flex items-center justify-center">
+                              <span className="text-[11px] font-semibold text-amber-800 uppercase tracking-wide">Alphabetical Grading</span>
                             </div>
                           )}
                           
                           <Button 
-                            className="w-full bg-linear-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-indigo-700 text-white shadow-sm hover:shadow-md font-semibold py-2 text-sm rounded-lg transition-all duration-300"
+                            className="w-full bg-slate-900 text-white hover:bg-slate-800 font-semibold py-2 text-sm rounded-lg"
                           >
                             <span className="flex items-center justify-center gap-1.5">
                               Enter Marks
-                              <span className="group-hover:translate-x-1 transition-transform duration-300 text-xs">→</span>
                             </span>
                           </Button>
                         </CardContent>
@@ -564,7 +552,7 @@ export default function MarksEntryPage() {
           {/* Show marks entry table when class is selected */}
           {selectedClass && selectedTerm && selectedSubject && (
         <div className="space-y-4">
-          <Card className="border-2 border-blue-100 shadow-lg bg-linear-to-br from-white via-blue-50/30 to-indigo-50/20">
+          <Card className="border border-slate-200 shadow-sm bg-white">
             <CardContent className="py-6">
               <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
                 {/* Left side - Subject highlight and details */}
@@ -572,10 +560,10 @@ export default function MarksEntryPage() {
                   {/* Subject name - prominently displayed */}
                   <div className="space-y-2">
                     <div className="flex items-center gap-3">
-                      <div className="w-1 h-12 bg-linear-to-b from-blue-500 to-indigo-600 rounded-full"></div>
+                      <div className="w-1 h-12 bg-slate-900 rounded-full"></div>
                       <div>
-                        <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Subject</p>
-                        <h2 className="text-3xl font-black text-transparent bg-clip-text bg-linear-to-r from-blue-600 to-indigo-600">
+                        <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Subject</p>
+                        <h2 className="text-3xl font-semibold text-slate-900">
                           {subjects.find(s => s.id === selectedSubject)?.name || 'Subject Name'}
                         </h2>
                       </div>
@@ -584,30 +572,26 @@ export default function MarksEntryPage() {
                   
                   {/* Details row */}
                   <div className="flex flex-wrap items-center gap-3">
-                    <div className="flex items-center gap-2 px-3 py-1.5 bg-white/80 backdrop-blur-sm border border-blue-200 rounded-full shadow-sm">
-                      <div className="w-2 h-2 rounded-full bg-blue-500 animate-pulse"></div>
-                      <span className="text-xs font-semibold text-gray-600">Class</span>
-                      <span className="text-sm font-bold text-blue-700">{formatClass(selectedClass)}</span>
+                    <div className="flex items-center gap-2 px-3 py-1.5 bg-slate-100 border border-slate-200 rounded-full">
+                      <span className="text-xs font-semibold text-slate-600">Class</span>
+                      <span className="text-sm font-semibold text-slate-900">{formatClass(selectedClass)}</span>
                     </div>
                     
-                    <div className="flex items-center gap-2 px-3 py-1.5 bg-white/80 backdrop-blur-sm border border-purple-200 rounded-full shadow-sm">
-                      <div className="w-2 h-2 rounded-full bg-purple-500 animate-pulse"></div>
-                      <span className="text-xs font-semibold text-gray-600">Term</span>
-                      <span className="text-sm font-bold text-purple-700">{selectedTerm}</span>
+                    <div className="flex items-center gap-2 px-3 py-1.5 bg-slate-100 border border-slate-200 rounded-full">
+                      <span className="text-xs font-semibold text-slate-600">Term</span>
+                      <span className="text-sm font-semibold text-slate-900">{selectedTerm}</span>
                     </div>
                     
                     {isNumericSubject && (
-                      <div className="flex items-center gap-2 px-3 py-1.5 bg-linear-to-r from-green-50 to-emerald-50 border border-green-200 rounded-full shadow-sm">
-                        <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
-                        <span className="text-xs font-semibold text-gray-600">Max Marks</span>
-                        <span className="text-sm font-bold text-green-700">{maxMarks}</span>
+                      <div className="flex items-center gap-2 px-3 py-1.5 bg-slate-100 border border-slate-200 rounded-full">
+                        <span className="text-xs font-semibold text-slate-600">Max Marks</span>
+                        <span className="text-sm font-semibold text-slate-900">{maxMarks}</span>
                       </div>
                     )}
                     
                     {!isNumericSubject && (
-                      <div className="flex items-center gap-2 px-3 py-1.5 bg-linear-to-r from-amber-50 to-orange-50 border border-amber-200 rounded-full shadow-sm">
-                        <div className="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></div>
-                        <span className="text-xs font-bold text-amber-700">Alphabetical Grading</span>
+                      <div className="flex items-center gap-2 px-3 py-1.5 bg-amber-50 border border-amber-100 rounded-full">
+                        <span className="text-xs font-semibold text-amber-800">Alphabetical Grading</span>
                       </div>
                     )}
                   </div>
@@ -622,15 +606,14 @@ export default function MarksEntryPage() {
                       setSelectedTerm('')
                       setSelectedSubject('')
                     }}
-                    className="group relative overflow-hidden bg-white border-2 border-gray-200 hover:border-blue-400 hover:bg-blue-50 text-gray-700 hover:text-blue-700 font-semibold px-6 py-5 rounded-xl shadow-md hover:shadow-lg transition-all duration-300"
+                    className="bg-white border border-slate-200 text-slate-700 hover:bg-slate-100 font-semibold px-6 py-5 rounded-xl shadow-sm"
                   >
-                    <span className="relative z-10 flex items-center gap-2">
-                      <svg className="w-5 h-5 transition-transform group-hover:rotate-180 duration-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <span className="flex items-center gap-2">
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                       </svg>
                       Change Class/Subject
                     </span>
-                    <div className="absolute inset-0 bg-linear-to-r from-blue-500/0 via-blue-500/10 to-blue-500/0 -translate-x-full group-hover:translate-x-full transition-transform duration-700"></div>
                   </Button>
                 </div>
               </div>
