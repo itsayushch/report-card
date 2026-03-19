@@ -8,8 +8,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import Link from 'next/link'
 import { toast } from 'sonner'
 import { formatClass } from '@/lib/class-utils'
-import { getSubjectById } from '@/lib/subjects'
-import { getTermsForClass } from '@/lib/terms'
+
 
 interface TeacherStats {
   totalStudents: number
