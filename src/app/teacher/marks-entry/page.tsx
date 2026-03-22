@@ -483,8 +483,9 @@ export default function MarksEntryPage() {
               <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
                 {classSubjectMap.flatMap((classData) => 
                   classData.subjects.map((subject) => {
-                    const term = termsForClass.find(t => t.name === selectedTerm)
-                    if (!term) return null
+                    const classTerms = getTermsForClass(classData.class)
+                    const termForCard = classTerms.find(t => t.name === selectedTerm) || classTerms[0]
+                    if (!termForCard) return null
                     
                     // Check if this subject is numeric
                     const subjectDetail = getSubjectById(classData.class, subject.id)
@@ -494,7 +495,7 @@ export default function MarksEntryPage() {
                       <Card 
                         key={`${classData.class}-${subject.id}`}
                         className="group relative overflow-hidden border border-slate-200 bg-white hover:border-slate-300 hover:shadow-md transition-all duration-200 cursor-pointer"
-                        onClick={() => handleClassSelect(classData.class, selectedTerm, subject.id)}
+                        onClick={() => handleClassSelect(classData.class, termForCard.name, subject.id)}
                       >
                         <CardHeader className="pb-2.5 pt-4">
                           <div className="flex items-start justify-between gap-2">
@@ -516,7 +517,7 @@ export default function MarksEntryPage() {
                           {isNumeric ? (
                             <div className="rounded-lg bg-slate-50 border border-slate-200 p-3 h-[68px] flex flex-col items-center justify-center">
                               <span className="text-[10px] font-medium text-slate-500 uppercase tracking-wide">Maximum Marks</span>
-                              <span className="text-2xl font-semibold text-slate-900">{term.maxMarks}</span>
+                              <span className="text-2xl font-semibold text-slate-900">{termForCard.maxMarks}</span>
                             </div>
                           ) : (
                             <div className="rounded-lg bg-amber-50 border border-amber-100 p-3 h-[68px] flex items-center justify-center">
@@ -603,7 +604,6 @@ export default function MarksEntryPage() {
                     variant="outline" 
                     onClick={() => {
                       setSelectedClass('')
-                      setSelectedTerm('')
                       setSelectedSubject('')
                     }}
                     className="bg-white border border-slate-200 text-slate-700 hover:bg-slate-100 font-semibold px-6 py-5 rounded-xl shadow-sm"

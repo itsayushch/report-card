@@ -1,12 +1,12 @@
-// For Class 1-5
+// For Class 1-4
 const termsList = [
     { name: '1st Unit Test', maxMarks: 50 },
     { name: 'Mid Term', maxMarks: 50 },
     { name: '2nd Unit Test', maxMarks: 50 },
-    { name: 'Final Term', maxMarks: 100 },
+    { name: 'Final Term', maxMarks: 50 },
 ];
 
-// For Class 6-10
+// For Class 5-10
 const termsListHigher = [
     { name: '1st Unit Test', maxMarks: 50},
     { name: 'Mid Term', maxMarks: 100 },
@@ -27,9 +27,9 @@ export function getTermsForClass(classValue: string | number | null | undefined)
     const numClass = parseInt(match[0], 10)
     if (Number.isNaN(numClass)) return []
 
-    if (numClass >= 1 && numClass <= 5) {
+    if (numClass >= 1 && numClass <= 4) {
         return termsList
-    } else if (numClass >= 6 && numClass <= 10) {
+    } else if (numClass >= 5 && numClass <= 10) {
         return termsListHigher
     }
 
