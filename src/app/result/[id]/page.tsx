@@ -188,9 +188,23 @@ function PrintableReportCardContent() {
   });
 
   getSubjectsForClasses([data.student.class]).forEach((sub) => allSubjects.add(sub.id));
+  // Preserve subject order as defined in the subject list for the student's class
+  const classSubjects = subjectsByClass[data.student.class] || [];
+  const subjectOrderMap = new Map<string, number>();
+  classSubjects.forEach((sub, idx) => {
+    const orderValue = typeof (sub as any).order === "number" ? (sub as any).order : idx;
+    subjectOrderMap.set(sub.id, orderValue);
+  });
 
+  const subjects = Array.from(allSubjects).sort((a, b) => {
+    const orderA = subjectOrderMap.get(a);
+    const orderB = subjectOrderMap.get(b);
 
-  const subjects = Array.from(allSubjects);
+    if (orderA == null && orderB == null) return a.localeCompare(b);
+    if (orderA == null) return 1;
+    if (orderB == null) return -1;
+    return orderA - orderB;
+  });
 
   // Helper to get marks for a subject in a specific term
   const getMarksForTerm = (subjectCode: string, termKey: string) => {

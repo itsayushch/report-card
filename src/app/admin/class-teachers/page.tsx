@@ -31,6 +31,7 @@ import { toast } from 'sonner'
 import { Loader2, Plus, Pencil, Trash2, GraduationCap } from 'lucide-react'
 import { formatClass } from '@/lib/class-utils'
 import { Label } from '@/components/ui/label'
+import { getSignatureUrl } from '@/lib/signatures'
 
 const CLASSES = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10"];
 
@@ -224,6 +225,7 @@ export default function ClassTeachersPage() {
                   <TableRow>
                     <TableHead className="min-w-[80px]">Class</TableHead>
                     <TableHead className="min-w-[150px]">Teacher Name</TableHead>
+                    <TableHead className="min-w-[120px] hidden sm:table-cell">Signature</TableHead>
                     <TableHead className="min-w-[200px] hidden sm:table-cell">Email</TableHead>
                     <TableHead className="text-right min-w-[100px]">Actions</TableHead>
                   </TableRow>
@@ -235,6 +237,15 @@ export default function ClassTeachersPage() {
                         <Badge variant="outline">{formatClass(ct.class)}</Badge>
                       </TableCell>
                       <TableCell className="font-medium">{ct.teacher.name}</TableCell>
+                      <TableCell className="hidden sm:table-cell align-middle">
+                        <div className="flex items-center">
+                          <img
+                            src={getSignatureUrl(ct.class)}
+                            alt={`${ct.teacher.name} signature`}
+                            className="h-10 object-contain max-w-[120px]"
+                          />
+                        </div>
+                      </TableCell>
                       <TableCell className="text-muted-foreground hidden sm:table-cell">
                         {ct.teacher.email}
                       </TableCell>
