@@ -3,6 +3,7 @@ import { Manrope, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "@/components/ui/sonner";
 import SessionProvider from "@/components/providers/SessionProvider";
+import ServiceWorkerProvider from "@/components/providers/ServiceWorkerProvider";
 
 const manrope = Manrope({
   variable: "--font-manrope",
@@ -49,6 +50,7 @@ export default function RootLayout({
             <main className="flex-1">{children}</main>
           </div>
         </SessionProvider>
+        <ServiceWorkerProvider />
         <Toaster />
       </body>
     </html>

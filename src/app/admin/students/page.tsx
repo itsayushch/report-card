@@ -8,12 +8,14 @@ import { StudentTable } from '@/components/admin/students/StudentTable'
 import { StudentForm } from '@/components/admin/students/StudentForm'
 import { StudentFilters } from '@/components/admin/students/StudentFilters'
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog'
-import { Plus, ChevronLeft, ChevronRight, Download, Upload, Loader2 } from 'lucide-react'
+import { Plus, ChevronLeft, ChevronRight, Download, Upload, Loader2, ChevronsLeft, ChevronsRight } from 'lucide-react'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { toast } from 'sonner'
 import Papa from 'papaparse'
 import Link from 'next/link'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Input } from '@/components/ui/input'
 
 interface PaginationData {
   total: number
@@ -39,6 +41,7 @@ export default function StudentsPage() {
     limit: 10,
     totalPages: 0,
   })
+  const [pageInput, setPageInput] = useState('1')
 
   // Filters
   const [search, setSearch] = useState('')
@@ -58,12 +61,18 @@ export default function StudentsPage() {
       if (statusFilter && statusFilter !== 'all') params.append('status', statusFilter)
 
       const response = await fetch(`/api/students?${params}`)
+      if (!response.ok) {
+        throw new Error('Failed to fetch students')
+      }
+
       const data = await response.json()
 
-      setStudents(data.students)
-      setPagination(data.pagination)
+      setStudents(data.students || [])
+      setPagination(data.pagination || { total: 0, page: 1, limit: pagination.limit, totalPages: 0 })
     } catch (error) {
       console.error('Failed to fetch students:', error)
+      setStudents([])
+      setPagination(prev => ({ ...prev, total: 0, totalPages: 0 }))
     } finally {
       setIsLoading(false)
     }
@@ -72,6 +81,10 @@ export default function StudentsPage() {
   useEffect(() => {
     fetchStudents()
   }, [fetchStudents])
+
+  useEffect(() => {
+    setPageInput(pagination.page.toString())
+  }, [pagination.page])
 
   const handleEdit = (student: Student) => {
     setSelectedStudent(student)
@@ -196,6 +209,29 @@ export default function StudentsPage() {
     }
   }
 
+  const handlePageChange = (nextPage: number) => {
+    setPagination(prev => {
+      const safeTotal = prev.totalPages || 1
+      const clamped = Math.min(Math.max(1, nextPage), safeTotal)
+      return { ...prev, page: clamped }
+    })
+  }
+
+  const handleLimitChange = (value: string) => {
+    const numeric = Number(value)
+    if (!Number.isFinite(numeric) || numeric <= 0) return
+    setPagination(prev => ({ ...prev, limit: numeric, page: 1 }))
+  }
+
+  const handlePageInputSubmit = () => {
+    const numeric = Number(pageInput)
+    if (!Number.isFinite(numeric)) return
+    handlePageChange(numeric)
+  }
+
+  const pageStart = pagination.total === 0 ? 0 : (pagination.page - 1) * pagination.limit + 1
+  const pageEnd = Math.min(pagination.page * pagination.limit, pagination.total)
+
   const handleSelectStudent = (id: string) => {
     setSelectedStudents(prev => 
       prev.includes(id) 
@@ -239,7 +275,7 @@ export default function StudentsPage() {
           <p className="text-gray-600 mt-1">Manage student records</p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Button onClick={handleExport} variant="outline" size="sm">
+          {/* <Button onClick={handleExport} variant="outline" size="sm">
             <Download className="mr-2 h-4 w-4" />
             Export CSV
           </Button>
@@ -248,7 +284,7 @@ export default function StudentsPage() {
               <Upload className="mr-2 h-4 w-4" />
               Import CSV
             </Button>
-          </Link>
+          </Link> */}
           <Button onClick={handleAddNew} className="bg-indigo-600 hover:bg-indigo-700" size="sm">
             <Plus className="mr-2 h-4 w-4" />
             Add Student
@@ -356,29 +392,87 @@ export default function StudentsPage() {
               />
 
               {/* Pagination */}
-              <div className="flex items-center justify-between mt-4">
-                <p className="text-sm text-gray-600">
-                  Page {pagination.page} of {pagination.totalPages}
-                </p>
-                <div className="flex gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setPagination(prev => ({ ...prev, page: prev.page - 1 }))}
-                    disabled={pagination.page === 1}
-                  >
-                    <ChevronLeft className="h-4 w-4" />
-                    Previous
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setPagination(prev => ({ ...prev, page: prev.page + 1 }))}
-                    disabled={pagination.page === pagination.totalPages}
-                  >
-                    Next
-                    <ChevronRight className="h-4 w-4" />
-                  </Button>
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mt-4">
+                <div className="flex flex-wrap items-center gap-3 text-sm text-gray-600">
+                  <span>
+                    Showing {pageStart === 0 ? 0 : `${pageStart}-${pageEnd}`} of {pagination.total}
+                  </span>
+                  <div className="flex items-center gap-2">
+                    <span>Rows per page</span>
+                    <Select
+                      value={pagination.limit.toString()}
+                      onValueChange={handleLimitChange}
+                    >
+                      <SelectTrigger className="h-9 w-24">
+                        <SelectValue placeholder="10" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {[10, 25, 50, 100].map(size => (
+                          <SelectItem key={size} value={size.toString()}>
+                            {size}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                <div className="flex flex-wrap items-center gap-2">
+                  <div className="flex items-center gap-2 text-sm text-gray-600">
+                    <span>Page</span>
+                    <Input
+                      value={pageInput}
+                      onChange={(e) => setPageInput(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          handlePageInputSubmit()
+                        }
+                      }}
+                      className="w-16 h-9"
+                      inputMode="numeric"
+                    />
+                    <span>of {pagination.totalPages || 1}</span>
+                    <Button variant="outline" size="sm" onClick={handlePageInputSubmit}>
+                      Go
+                    </Button>
+                  </div>
+
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handlePageChange(1)}
+                      disabled={pagination.page === 1}
+                    >
+                      <ChevronsLeft className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handlePageChange(pagination.page - 1)}
+                      disabled={pagination.page === 1}
+                    >
+                      <ChevronLeft className="h-4 w-4" />
+                      Previous
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handlePageChange(pagination.page + 1)}
+                      disabled={pagination.page >= pagination.totalPages}
+                    >
+                      Next
+                      <ChevronRight className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handlePageChange(pagination.totalPages)}
+                      disabled={pagination.page >= pagination.totalPages}
+                    >
+                      <ChevronsRight className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </div>
               </div>
             </>

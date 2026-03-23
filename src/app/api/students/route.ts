@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import type { Student } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { studentSchema } from '@/lib/validations'
 import { auth } from '@/lib/auth'
@@ -32,15 +33,70 @@ export async function GET(request: NextRequest) {
       where.status = statusFilter
     }
 
-    const [students, total] = await Promise.all([
-      prisma.student.findMany({
-        where,
-        skip,
-        take: limit,
-        orderBy: { createdAt: 'desc' },
-      }),
+    const matchStage: any = {}
+
+    if (search) {
+      matchStage.$or = [
+        { name: { $regex: search, $options: 'i' } },
+        { regNo: { $regex: search, $options: 'i' } },
+      ]
+    }
+
+    if (classFilter) {
+      matchStage.class = classFilter
+    }
+
+    if (statusFilter) {
+      matchStage.status = statusFilter
+    }
+
+    const pipeline: any[] = []
+    if (Object.keys(matchStage).length > 0) {
+      pipeline.push({ $match: matchStage })
+    }
+
+    // Derive a numeric class for correct ordering (handles numeric strings; non-numeric drop to -Infinity)
+    pipeline.push({
+      $addFields: {
+        numericClass: {
+          $cond: [
+            { $regexMatch: { input: '$class', regex: '^[0-9]+$' } },
+            { $toInt: '$class' },
+            { $literal: -999999 },
+          ],
+        },
+      },
+    })
+
+    pipeline.push({
+      $sort: {
+        numericClass: -1,
+        name: 1,
+        _id: 1,
+      },
+    })
+
+    pipeline.push({ $skip: skip })
+    pipeline.push({ $limit: limit })
+
+    const [rawStudents, total] = await Promise.all([
+      prisma.student.aggregateRaw({ pipeline }),
       prisma.student.count({ where }),
     ])
+
+    const students = (rawStudents as unknown as any[]).map((doc) => {
+      const { _id, numericClass, ...rest } = doc
+      const id =
+        typeof _id === 'string'
+          ? _id
+          : _id?.$oid
+            ? _id.$oid
+            : _id?.toString?.() ?? String(_id ?? '')
+      return {
+        ...rest,
+        id,
+      }
+    }) as Student[]
 
     return NextResponse.json({
       students,
