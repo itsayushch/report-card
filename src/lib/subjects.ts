@@ -3,7 +3,7 @@ const subjectsList1 = [
   {
     id: "VAL-EDU-1",
     name: "Faith / Value Education",
-    dataType: "number",
+    dataType: "string",
     order: 0
   },
   {
@@ -169,7 +169,7 @@ const subjectsList2 = [
   {
     id: "VAL-EDU-2",
     name: "Value/Faith Education",
-    dataType: "number",
+    dataType: "string",
     order: 9
   },
   {
@@ -221,7 +221,7 @@ const subjectsList3 = [
   {
     id: "VAL-EDU-3",
     name: "Faith / Value Education",
-    dataType: "number",
+    dataType: "string",
     order: 0
   },
   {
@@ -327,7 +327,7 @@ const subjectsList4 = [
   {
     id: "VAL-EDU-4",
     name: "Faith / Value Education",
-    dataType: "number",
+    dataType: "string",
     order: 0
   },
   {
@@ -434,7 +434,7 @@ const subjectsList5 = [
   {
     id: "VAL-EDU-5",
     name: "Faith / Value Education",
-    dataType: "number",
+    dataType: "string",
     order: 0
   },
   {
@@ -546,7 +546,7 @@ const subjectsList6 = [
     {
         id: "VAL-EDU-6",
         name: "Value Education",
-        dataType: "number",
+        dataType: "string",
         order: 0
     },
     {
@@ -640,7 +640,7 @@ const subjectsList7 = [
     {
         id: "VAL-EDU-7",
         name: "Value Education",
-        dataType: "number",
+        dataType: "string",
         order: 0
     },
     {
@@ -734,7 +734,7 @@ const subjectsList8 = [
     {
         id: "VAL-EDU-8",
         name: "Faith / Value Education",
-        dataType: "number",
+        dataType: "string",
         order: 0
     },
     {
@@ -828,7 +828,7 @@ const subjectsList9 = [
     {
         id: "VAL-EDU-9",
         name: "Faith / Value Edu.",
-        dataType: "number",
+        dataType: "string",
         order: 0
     },
     {
@@ -910,7 +910,7 @@ const subjectsList10 = [
     {
         id: "VAL-EDU-10",
         name: "Faith / Value Edu.",
-        dataType: "number",
+        dataType: "string",
         order: 0
     },
     {
