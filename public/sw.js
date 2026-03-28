@@ -1,6 +1,5 @@
-const CACHE_NAME = "rcs-cache-v1";
+const CACHE_NAME = "rcs-cache-v2";
 const ASSET_CACHE = [
-  "/",
   "/site.webmanifest",
   "/favicon-32x32.png",
   "/favicon-16x16.png",
@@ -33,10 +32,16 @@ self.addEventListener("fetch", (event) => {
   const { origin } = self.location;
   if (!event.request.url.startsWith(origin)) return;
 
+  const requestUrl = new URL(event.request.url);
+  // Never cache API requests so auth tokens and dynamic JSON are always fresh.
+  if (requestUrl.pathname.startsWith("/api/")) return;
+  if (event.request.mode === "navigate") return;
+
   event.respondWith(
     caches.match(event.request).then((cached) => {
       const networkFetch = fetch(event.request)
         .then((response) => {
+          if (!response.ok) return response;
           const clone = response.clone();
           caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
           return response;
