@@ -32,6 +32,7 @@ import { Loader2, Plus, Pencil, Trash2, GraduationCap } from 'lucide-react'
 import { formatClass } from '@/lib/class-utils'
 import { Label } from '@/components/ui/label'
 import { getSignatureUrl } from '@/lib/signatures'
+import Image from 'next/image'
 
 const CLASSES = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10"];
 
@@ -55,8 +56,6 @@ interface ClassTeacher {
 }
 
 export default function ClassTeachersPage() {
-  const [academicYears, setAcademicYears] = useState<any[]>([])
-  const [selectedYear, setSelectedYear] = useState('')
   const [classTeachers, setClassTeachers] = useState<ClassTeacher[]>([])
   const [teachers, setTeachers] = useState<Teacher[]>([])
   const [loading, setLoading] = useState(false)
@@ -77,7 +76,7 @@ export default function ClassTeachersPage() {
       const response = await fetch('/api/teachers')
       const data = await response.json()
       setTeachers(data.teachers || [])
-    } catch (error) {
+    } catch {
       toast.error('Failed to fetch teachers')
     }
   }
@@ -88,7 +87,7 @@ export default function ClassTeachersPage() {
       const response = await fetch('/api/admin/class-teachers')
       const data = await response.json()
       setClassTeachers(data.classTeachers || [])
-    } catch (error) {
+    } catch {
       toast.error('Failed to fetch class teachers')
     } finally {
       setLoading(false)
@@ -152,8 +151,8 @@ export default function ClassTeachersPage() {
       )
       handleCloseDialog()
       fetchClassTeachers()
-    } catch (error: any) {
-      toast.error(error.message || 'Failed to save class teacher')
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to save class teacher')
     }
   }
 
@@ -173,8 +172,8 @@ export default function ClassTeachersPage() {
 
       toast.success('Class teacher assignment removed successfully')
       fetchClassTeachers()
-    } catch (error: any) {
-      toast.error(error.message || 'Failed to delete class teacher')
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to delete class teacher')
     }
   }
 
@@ -239,9 +238,11 @@ export default function ClassTeachersPage() {
                       <TableCell className="font-medium">{ct.teacher.name}</TableCell>
                       <TableCell className="hidden sm:table-cell align-middle">
                         <div className="flex items-center">
-                          <img
+                          <Image
                             src={getSignatureUrl(ct.class)}
                             alt={`${ct.teacher.name} signature`}
+                            width={120}
+                            height={40}
                             className="h-10 object-contain max-w-[120px]"
                           />
                         </div>

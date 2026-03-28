@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect } from 'react'
 import { Student } from '@prisma/client'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -8,25 +8,28 @@ import { StudentTable } from '@/components/admin/students/StudentTable'
 import { StudentForm } from '@/components/admin/students/StudentForm'
 import { StudentFilters } from '@/components/admin/students/StudentFilters'
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog'
-import { Plus, ChevronLeft, ChevronRight, Download, Upload, Loader2, ChevronsLeft, ChevronsRight } from 'lucide-react'
+import { Plus, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react'
 import { Skeleton } from '@/components/ui/skeleton'
-import { Alert, AlertDescription } from '@/components/ui/alert'
 import { toast } from 'sonner'
 import Papa from 'papaparse'
-import Link from 'next/link'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Input } from '@/components/ui/input'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 
-interface PaginationData {
+interface PaginationInfo {
   total: number
   page: number
   limit: number
   totalPages: number
 }
 
+interface StudentsResponse {
+  students: Student[]
+  pagination: PaginationInfo
+}
+
 // Fetcher function for students
-const fetchStudentsData = async (params: { page: number, limit: number, search: string, classFilter: string, statusFilter: string }) => {
+const fetchStudentsData = async (params: { page: number, limit: number, search: string, classFilter: string, statusFilter: string }): Promise<StudentsResponse> => {
   const urlParams = new URLSearchParams({
     page: params.page.toString(),
     limit: params.limit.toString(),
@@ -38,7 +41,7 @@ const fetchStudentsData = async (params: { page: number, limit: number, search: 
 
   const response = await fetch(`/api/students?${urlParams}`)
   if (!response.ok) throw new Error('Failed to fetch students')
-  return response.json()
+  return response.json() as Promise<StudentsResponse>
 }
 
 export default function StudentsPage() {
@@ -52,7 +55,7 @@ export default function StudentsPage() {
   const [studentToDelete, setStudentToDelete] = useState<string | null>(null)
   const [studentToPermanentDelete, setStudentToPermanentDelete] = useState<string | null>(null)
   
-  const [paginationState, setPaginationState] = useState({
+  const [paginationParams, setPagination] = useState({
     page: 1,
     limit: 10,
   })
@@ -65,23 +68,23 @@ export default function StudentsPage() {
   const [statusFilter, setStatusFilter] = useState('')
 
   // useQuery implementation for caching and automatic re-fetching
-  const { data, isLoading, isError, refetch } = useQuery({
-    queryKey: ['students', paginationState.page, paginationState.limit, search, classFilter, statusFilter],
+  const { data, isLoading } = useQuery<StudentsResponse>({
+    queryKey: ['students', paginationParams.page, paginationParams.limit, search, classFilter, statusFilter],
     queryFn: () => fetchStudentsData({ 
-      page: paginationState.page, 
-      limit: paginationState.limit, 
+      page: paginationParams.page, 
+      limit: paginationParams.limit, 
       search, 
       classFilter, 
       statusFilter 
     }),
   })
 
-  const students = data?.students || []
-  const pagination = data?.pagination || { total: 0, page: 1, limit: 10, totalPages: 0 }
+  const students: Student[] = data?.students ?? []
+  const pagination: PaginationInfo = data?.pagination ?? { total: 0, page: 1, limit: 10, totalPages: 0 }
 
   useEffect(() => {
-    setPageInput(paginationState.page.toString())
-  }, [paginationState.page])
+    setPageInput(paginationParams.page.toString())
+  }, [paginationParams.page])
 
   const handleEdit = (student: Student) => {
     setSelectedStudent(student)
@@ -107,7 +110,7 @@ export default function StudentsPage() {
       } else {
         toast.error('Failed to delete student')
       }
-    } catch (error) {
+    } catch {
       toast.error('Failed to delete student')
     } finally {
       setDeleteDialogOpen(false)
@@ -202,13 +205,13 @@ export default function StudentsPage() {
     if (selectedStudents.length === students.length) {
       setSelectedStudents([])
     } else {
-      setSelectedStudents(students.map(s => s.id))
+      setSelectedStudents(students.map((student) => student.id))
     }
   }
 
   const handlePageChange = (nextPage: number) => {
     setPagination(prev => {
-      const safeTotal = prev.totalPages || 1
+      const safeTotal = pagination.totalPages || 1
       const clamped = Math.min(Math.max(1, nextPage), safeTotal)
       return { ...prev, page: clamped }
     })
@@ -299,8 +302,8 @@ export default function StudentsPage() {
               </CardDescription>
             </div>
             {selectedStudents.length > 0 && (() => {
-              const selectedStudentObjects = students.filter(s => selectedStudents.includes(s.id))
-              const inactiveCount = selectedStudentObjects.filter(s => s.status === 'INACTIVE').length
+              const selectedStudentObjects = students.filter((student) => selectedStudents.includes(student.id))
+              const inactiveCount = selectedStudentObjects.filter((student) => student.status === 'INACTIVE').length
               
               return inactiveCount > 0 ? (
                 <Button 
@@ -506,7 +509,7 @@ export default function StudentsPage() {
           <AlertDialogHeader>
             <AlertDialogTitle>Restore Students?</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to restore {selectedStudents.filter(id => students.find(s => s.id === id)?.status === 'INACTIVE').length} inactive student(s) to active status?
+              Are you sure you want to restore {selectedStudents.filter((id) => students.find((student) => student.id === id)?.status === 'INACTIVE').length} inactive student(s) to active status?
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

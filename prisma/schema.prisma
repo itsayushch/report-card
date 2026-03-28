@@ -80,7 +80,7 @@ model Teacher {
   name               String
   email              String                  @unique
   password           String                  // Email ID (same as email, to be reset on first login)
-  profilePicture     String?                 // Supabase storage URL
+  profilePicture     String?                 // Profile image path or URL
   classSubjectPairs  ClassSubjectPair[]
   isAdmin            Boolean                 @default(false)
   isSuperAdmin       Boolean                 @default(false) // Only one superadmin allowed

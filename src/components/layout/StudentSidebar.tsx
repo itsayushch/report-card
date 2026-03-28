@@ -7,7 +7,6 @@ import { cn } from '@/lib/utils'
 import { signOut } from 'next-auth/react'
 import {
   LayoutDashboard,
-  FileText,
   TrendingUp,
   User,
   LogOut,
@@ -18,11 +17,6 @@ const menuItems = [
     title: 'Dashboard',
     href: '/student/dashboard',
     icon: LayoutDashboard,
-  },
-  {
-    title: 'Report Card',
-    href: '/student/report-card',
-    icon: FileText,
   },
   // {
   //   title: 'Performance',

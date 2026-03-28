@@ -5,8 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
-import Link from 'next/link'
-import { FileText, TrendingUp, User, GraduationCap, BookOpen, Calendar } from 'lucide-react'
+import { User, Calendar } from 'lucide-react'
 import { Skeleton } from '@/components/ui/skeleton'
 import { formatClass } from '@/lib/class-utils'
 
@@ -169,75 +168,10 @@ export default function StudentDashboard() {
               </div>
             </div>
 
-            <Link href="/student/report-card">
-              <Button className="w-full md:w-auto">
-                <FileText className="mr-2 h-4 w-4" />
-                View Report Card
-              </Button>
-            </Link>
           </div>
         </CardContent>
       </Card>
 
-      {/* Quick Actions */}
-      <div>
-        <h2 className="text-xl font-semibold text-gray-900 mb-4">Quick Actions</h2>
-        <div className="grid gap-4 md:grid-cols-3">
-          <Link href="/student/report-card">
-            <Card className="hover:shadow-lg transition-shadow cursor-pointer h-full">
-              <CardContent className="pt-6">
-                <div className="flex flex-col items-center text-center space-y-3">
-                  <div className="h-12 w-12 rounded-lg bg-indigo-100 flex items-center justify-center">
-                    <FileText className="h-6 w-6 text-indigo-600" />
-                  </div>
-                  <div>
-                    <h3 className="font-semibold text-gray-900">Report Cards</h3>
-                    <p className="text-sm text-gray-500 mt-1">
-                      View your academic reports
-                    </p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </Link>
-
-          {/* <Link href="/student/performance">
-            <Card className="hover:shadow-lg transition-shadow cursor-pointer h-full">
-              <CardContent className="pt-6">
-                <div className="flex flex-col items-center text-center space-y-3">
-                  <div className="h-12 w-12 rounded-lg bg-green-100 flex items-center justify-center">
-                    <TrendingUp className="h-6 w-6 text-green-600" />
-                  </div>
-                  <div>
-                    <h3 className="font-semibold text-gray-900">Performance</h3>
-                    <p className="text-sm text-gray-500 mt-1">
-                      Track your progress
-                    </p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </Link> */}
-{/* 
-          <Link href="/student/profile">
-            <Card className="hover:shadow-lg transition-shadow cursor-pointer h-full">
-              <CardContent className="pt-6">
-                <div className="flex flex-col items-center text-center space-y-3">
-                  <div className="h-12 w-12 rounded-lg bg-purple-100 flex items-center justify-center">
-                    <User className="h-6 w-6 text-purple-600" />
-                  </div>
-                  <div>
-                    <h3 className="font-semibold text-gray-900">My Profile</h3>
-                    <p className="text-sm text-gray-500 mt-1">
-                      Manage your information
-                    </p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </Link> */}
-        </div>
-      </div>
     </div>
   )
 }

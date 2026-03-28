@@ -43,10 +43,6 @@ export function TeacherSidebar() {
   const pathname = usePathname()
   const [isClassTeacher, setIsClassTeacher] = useState(false)
 
-  useEffect(() => {
-    checkClassTeacherStatus()
-  }, [])
-
   const checkClassTeacherStatus = async () => {
     try {
       // Get active academic year
@@ -66,6 +62,10 @@ export function TeacherSidebar() {
       console.error('Error checking class teacher status:', error)
     }
   }
+
+  useEffect(() => {
+    checkClassTeacherStatus()
+  }, [])
 
   // Add promotion and class remarks to menu items if teacher is a class teacher
   const dynamicMenuItems = [

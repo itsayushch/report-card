@@ -13,7 +13,7 @@ import { academicYearSchema, type AcademicYearFormData } from '@/lib/validations
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
-import { Plus, Edit, Trash2, Loader2, CheckCircle2 } from 'lucide-react'
+import { Plus, Edit, Trash2, Loader2 } from 'lucide-react'
 import { Skeleton } from '@/components/ui/skeleton'
 import { toast } from 'sonner'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
@@ -82,7 +82,7 @@ export default function AcademicYearsPage() {
       } else {
         toast.error('Failed to delete academic year')
       }
-    } catch (error) {
+    } catch {
       toast.error('Failed to delete academic year')
     } finally {
       setDeleteDialogOpen(false)
@@ -100,7 +100,7 @@ export default function AcademicYearsPage() {
       } else {
         toast.error('Failed to activate academic year')
       }
-    } catch (error) {
+    } catch {
       toast.error('Failed to activate academic year')
     } finally {
       setActivatingYearId(null)
@@ -125,16 +125,16 @@ export default function AcademicYearsPage() {
       })
 
       if (!response.ok) {
-        const error = await response.json()
-        throw new Error(error.error || 'Failed to save academic year')
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Failed to save academic year')
       }
 
       toast.success(selectedYear ? 'Academic year updated successfully' : 'Academic year created successfully')
       queryClient.invalidateQueries({ queryKey: ['academic-years'] })
       setIsFormOpen(false)
       setSelectedYear(null)
-    } catch (error: any) {
-      toast.error(error.message)
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'An unknown error occurred')
     } finally {
       setFormLoading(false)
     }

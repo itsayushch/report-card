@@ -59,6 +59,20 @@ export default function ReportPublishPage() {
   // Fetch published reports when year changes
   useEffect(() => {
     if (selectedYear) {
+      const fetchPublishedReports = async () => {
+        setLoading(true)
+        try {
+          const response = await fetch(
+            `/api/reports/publish?academicYear=${selectedYear}`
+          )
+          const data = await response.json()
+          setPublishedReports(data)
+        } catch {
+          toast.error('Failed to fetch published reports')
+        } finally {
+          setLoading(false)
+        }
+      }
       fetchPublishedReports()
     }
   }, [selectedYear])
@@ -78,7 +92,7 @@ export default function ReportPublishPage() {
       if (activeYear) {
         setSelectedYear(activeYear.year)
       }
-    } catch (error) {
+    } catch {
       toast.error('Failed to fetch academic years')
     }
   }
@@ -91,7 +105,7 @@ export default function ReportPublishPage() {
       )
       const data = await response.json()
       setPublishedReports(data)
-    } catch (error) {
+    } catch {
       toast.error('Failed to fetch published reports')
     } finally {
       setLoading(false)
@@ -124,8 +138,8 @@ export default function ReportPublishPage() {
 
       toast.success(`Reports published for ${className}, ${term}`)
       fetchPublishedReports()
-    } catch (error: any) {
-      toast.error(error.message || 'Failed to publish reports')
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to publish reports')
     } finally {
       setPublishing(null)
     }
@@ -152,8 +166,8 @@ export default function ReportPublishPage() {
 
       toast.success(`Reports unpublished for ${className}, ${term}`)
       fetchPublishedReports()
-    } catch (error: any) {
-      toast.error(error.message || 'Failed to unpublish reports')
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to unpublish reports')
     } finally {
       setPublishing(null)
     }
@@ -170,7 +184,7 @@ export default function ReportPublishPage() {
     let failCount = 0
 
     for (const classKey of selectedClasses) {
-      const [className, term] = classKey.split('-')
+      const className = classKey
       try {
         const response = await fetch('/api/reports/publish', {
           method: 'POST',
@@ -187,7 +201,7 @@ export default function ReportPublishPage() {
         } else {
           failCount++
         }
-      } catch (error) {
+      } catch {
         failCount++
       }
     }
@@ -229,7 +243,7 @@ export default function ReportPublishPage() {
         } else {
           failCount++
         }
-      } catch (error) {
+      } catch {
         failCount++
       }
     }
@@ -270,8 +284,6 @@ export default function ReportPublishPage() {
     setSelectAll(newSelected.size === classes.length)
   }
 
-  const selectedYearData = academicYears.find((y) => y.year === selectedYear)
-  
   // Get unique classes
   const classes = [
     '1', '2', '3', '4', '5', '6', '7', '8', '9', '10'

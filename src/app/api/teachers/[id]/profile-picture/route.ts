@@ -1,7 +1,74 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
-import { uploadTeacherProfilePicture, deleteTeacherProfilePicture } from '@/lib/supabase'
+import { randomUUID } from 'crypto'
+import { promises as fs } from 'fs'
+import path from 'path'
+
+export const runtime = 'nodejs'
+
+const TEACHER_UPLOAD_DIR = path.join(process.cwd(), 'public', 'uploads', 'teachers')
+const PUBLIC_UPLOAD_PREFIX = '/uploads/teachers/'
+
+function getExtensionFromMimeType(mimeType: string): string | null {
+  const map: Record<string, string> = {
+    'image/jpeg': 'jpg',
+    'image/jpg': 'jpg',
+    'image/png': 'png',
+    'image/webp': 'webp',
+  }
+  return map[mimeType] ?? null
+}
+
+function extractStoredFileName(profilePicture: string): string | null {
+  if (!profilePicture) return null
+
+  if (profilePicture.startsWith(PUBLIC_UPLOAD_PREFIX)) {
+    return path.basename(profilePicture)
+  }
+
+  if (profilePicture.startsWith('http://') || profilePicture.startsWith('https://')) {
+    try {
+      const url = new URL(profilePicture)
+      if (url.pathname.startsWith(PUBLIC_UPLOAD_PREFIX)) {
+        return path.basename(url.pathname)
+      }
+    } catch {
+      return null
+    }
+  }
+
+  return null
+}
+
+async function deleteStoredTeacherProfilePicture(profilePicture: string): Promise<void> {
+  const fileName = extractStoredFileName(profilePicture)
+  if (!fileName) return
+
+  const filePath = path.join(TEACHER_UPLOAD_DIR, fileName)
+  try {
+    await fs.unlink(filePath)
+  } catch {
+    // Ignore missing files; DB state remains source of truth.
+  }
+}
+
+async function saveTeacherProfilePicture(file: File, teacherId: string): Promise<string> {
+  const extension = getExtensionFromMimeType(file.type)
+  if (!extension) {
+    throw new Error('Invalid file type. Only JPEG, PNG, and WebP are allowed')
+  }
+
+  await fs.mkdir(TEACHER_UPLOAD_DIR, { recursive: true })
+
+  const fileName = `${teacherId}-${Date.now()}-${randomUUID()}.${extension}`
+  const outputPath = path.join(TEACHER_UPLOAD_DIR, fileName)
+  const buffer = Buffer.from(await file.arrayBuffer())
+
+  await fs.writeFile(outputPath, buffer)
+
+  return `${PUBLIC_UPLOAD_PREFIX}${fileName}`
+}
 
 interface RouteParams {
   params: Promise<{ id: string }>
@@ -59,11 +126,11 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
 
     // Delete old profile picture if exists
     if (teacher.profilePicture) {
-      await deleteTeacherProfilePicture(teacher.profilePicture)
+      await deleteStoredTeacherProfilePicture(teacher.profilePicture)
     }
 
-    // Upload new profile picture
-    const publicUrl = await uploadTeacherProfilePicture(file, id)
+    // Save new profile picture to local storage
+    const publicUrl = await saveTeacherProfilePicture(file, id)
 
     // Update teacher record
     const updatedTeacher = await prisma.teacher.update({
@@ -81,10 +148,10 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       message: 'Profile picture uploaded successfully',
       teacher: updatedTeacher,
     })
-  } catch (error: any) {
+  } catch (error) {
     console.error('Upload profile picture error:', error)
     return NextResponse.json(
-      { error: error.message || 'Failed to upload profile picture' },
+      { error: error instanceof Error ? error.message : 'Failed to upload profile picture' },
       { status: 500 }
     )
   }
@@ -119,8 +186,8 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
       return NextResponse.json({ error: 'No profile picture to delete' }, { status: 404 })
     }
 
-    // Delete from Supabase
-    await deleteTeacherProfilePicture(teacher.profilePicture)
+    // Delete from local storage
+    await deleteStoredTeacherProfilePicture(teacher.profilePicture)
 
     // Update teacher record
     await prisma.teacher.update({
@@ -129,10 +196,10 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
     })
 
     return NextResponse.json({ message: 'Profile picture deleted successfully' })
-  } catch (error: any) {
+  } catch (error) {
     console.error('Delete profile picture error:', error)
     return NextResponse.json(
-      { error: error.message || 'Failed to delete profile picture' },
+      { error: error instanceof Error ? error.message : 'Failed to delete profile picture' },
       { status: 500 }
     )
   }
