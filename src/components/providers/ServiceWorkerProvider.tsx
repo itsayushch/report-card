@@ -9,7 +9,7 @@ export default function ServiceWorkerProvider() {
     if (!("serviceWorker" in navigator)) return;
     if (process.env.NODE_ENV !== "production") return;
 
-    let timeoutId: number | undefined;
+    let timeoutId: ReturnType<typeof setTimeout> | undefined;
     let idleId: number | undefined;
     let cancelled = false;
 
@@ -35,14 +35,18 @@ export default function ServiceWorkerProvider() {
     };
 
     const scheduleRegister = () => {
-      if ("requestIdleCallback" in window) {
-        idleId = window.requestIdleCallback(() => {
+      const requestIdle = (window as Window & typeof globalThis & {
+        requestIdleCallback?: (callback: IdleRequestCallback, options?: IdleRequestOptions) => number;
+      }).requestIdleCallback;
+
+      if (typeof requestIdle === "function") {
+        idleId = requestIdle(() => {
           void register();
         }, { timeout: 4000 });
         return;
       }
 
-      timeoutId = window.setTimeout(() => {
+      timeoutId = globalThis.setTimeout(() => {
         void register();
       }, 1500);
     };
@@ -56,11 +60,15 @@ export default function ServiceWorkerProvider() {
     return () => {
       cancelled = true;
       window.removeEventListener("load", scheduleRegister);
-      if (typeof idleId === "number" && "cancelIdleCallback" in window) {
-        window.cancelIdleCallback(idleId);
+      const cancelIdle = (window as Window & typeof globalThis & {
+        cancelIdleCallback?: (handle: number) => void;
+      }).cancelIdleCallback;
+
+      if (typeof idleId === "number" && typeof cancelIdle === "function") {
+        cancelIdle(idleId);
       }
-      if (typeof timeoutId === "number") {
-        window.clearTimeout(timeoutId);
+      if (typeof timeoutId !== "undefined") {
+        globalThis.clearTimeout(timeoutId);
       }
     };
   }, []);
