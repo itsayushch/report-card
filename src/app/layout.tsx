@@ -4,6 +4,7 @@ import "./globals.css";
 import { Toaster } from "@/components/ui/sonner";
 import SessionProvider from "@/components/providers/SessionProvider";
 import ServiceWorkerProvider from "@/components/providers/ServiceWorkerProvider";
+import { QueryProvider } from "@/components/providers/QueryProvider";
 
 const manrope = Manrope({
   variable: "--font-manrope",
@@ -45,11 +46,13 @@ export default function RootLayout({
       <body
         className={`${manrope.variable} ${geistMono.variable} antialiased`}
       >
-        <SessionProvider>
-          <div className="min-h-screen flex flex-col">
-            <main className="flex-1">{children}</main>
-          </div>
-        </SessionProvider>
+        <QueryProvider>
+          <SessionProvider>
+            <div className="min-h-screen flex flex-col">
+              <main className="flex-1">{children}</main>
+            </div>
+          </SessionProvider>
+        </QueryProvider>
         <ServiceWorkerProvider />
         <Toaster />
       </body>

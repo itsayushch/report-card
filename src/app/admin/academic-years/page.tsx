@@ -16,10 +16,17 @@ import { Badge } from '@/components/ui/badge'
 import { Plus, Edit, Trash2, Loader2, CheckCircle2 } from 'lucide-react'
 import { Skeleton } from '@/components/ui/skeleton'
 import { toast } from 'sonner'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
+
+const fetchAcademicYearsData = async () => {
+  const response = await fetch('/api/academic-years')
+  if (!response.ok) throw new Error('Failed to fetch academic years')
+  const data = await response.json()
+  return data.academicYears as AcademicYear[]
+}
 
 export default function AcademicYearsPage() {
-  const [academicYears, setAcademicYears] = useState<AcademicYear[]>([])
-  const [isLoading, setIsLoading] = useState(true)
+  const queryClient = useQueryClient()
   const [isFormOpen, setIsFormOpen] = useState(false)
   const [selectedYear, setSelectedYear] = useState<AcademicYear | null>(null)
   const [formLoading, setFormLoading] = useState(false)
@@ -31,22 +38,10 @@ export default function AcademicYearsPage() {
     resolver: zodResolver(academicYearSchema),
   })
 
-  const fetchAcademicYears = async () => {
-    try {
-      setIsLoading(true)
-      const response = await fetch('/api/academic-years')
-      const data = await response.json()
-      setAcademicYears(data.academicYears)
-    } catch (error) {
-      console.error('Failed to fetch academic years:', error)
-    } finally {
-      setIsLoading(false)
-    }
-  }
-
-  useEffect(() => {
-    fetchAcademicYears()
-  }, [])
+  const { data: academicYears = [], isLoading } = useQuery({
+    queryKey: ['academic-years'],
+    queryFn: fetchAcademicYearsData,
+  })
 
   useEffect(() => {
     if (selectedYear) {
@@ -83,7 +78,7 @@ export default function AcademicYearsPage() {
       const response = await fetch(`/api/academic-years/${yearToDelete}`, { method: 'DELETE' })
       if (response.ok) {
         toast.success('Academic year deleted successfully')
-        fetchAcademicYears()
+        queryClient.invalidateQueries({ queryKey: ['academic-years'] })
       } else {
         toast.error('Failed to delete academic year')
       }
@@ -101,7 +96,7 @@ export default function AcademicYearsPage() {
       const response = await fetch(`/api/academic-years/${year}/activate`, { method: 'PUT' })
       if (response.ok) {
         toast.success('Academic year activated successfully')
-        fetchAcademicYears()
+        queryClient.invalidateQueries({ queryKey: ['academic-years'] })
       } else {
         toast.error('Failed to activate academic year')
       }
@@ -135,7 +130,7 @@ export default function AcademicYearsPage() {
       }
 
       toast.success(selectedYear ? 'Academic year updated successfully' : 'Academic year created successfully')
-      fetchAcademicYears()
+      queryClient.invalidateQueries({ queryKey: ['academic-years'] })
       setIsFormOpen(false)
       setSelectedYear(null)
     } catch (error: any) {

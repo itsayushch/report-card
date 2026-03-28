@@ -36,12 +36,29 @@ export async function POST(request: NextRequest) {
         class: classParam,
         academicYear,
       },
+      select: {
+        id: true,
+        regNo: true,
+        class: true,
+      }
     })
 
     const studentMap = new Map(students.map(s => [s.regNo, s]))
-    const updates = []
+    const studentIds = students.map(s => s.id)
+
+    // FETCH ALL RELEVANT ACADEMIC RECORDS IN ONE GO
+    const existingRecords = await prisma.academicRecord.findMany({
+      where: {
+        studentId: { in: studentIds },
+        academicYear,
+      }
+    })
+
+    const recordMap = new Map(existingRecords.map(r => [r.studentId, r]))
+    
     let successCount = 0
     let errorCount = 0
+    const operations = []
 
     for (const row of data as ImportRow[]) {
       const student = studentMap.get(row.regNo)
@@ -55,60 +72,71 @@ export async function POST(request: NextRequest) {
       // Get the correct maxMarks for this term and class
       const termsForClass = getTermsForClass(student.class)
       const termConfig = termsForClass.find(t => t.name === term)
-      const maxMarksForTerm = termConfig?.maxMarks || 100 // Fallback to 100 if not found
+      const maxMarksForTerm = termConfig?.maxMarks || 100
 
-      try {
-        // Get existing term data or create new
-        const yearRecord = await prisma.academicRecord.findUnique({
-          where: {
-            studentId_academicYear: {
+      const yearRecord = recordMap.get(student.id)
+      const terms = (yearRecord?.terms as any[] || [])
+      const termIndex = terms.findIndex(t => t.name === term)
+
+      let updatedTerms = [...terms]
+      const newSubjectData = {
+        subjectCode: subject,
+        marks: typeof row.marks === 'number' ? row.marks : 0,
+        maxMarks: maxMarksForTerm,
+        grade: row.grade || undefined,
+      }
+
+      if (termIndex >= 0) {
+        // Update existing term
+        const existingTerm = terms[termIndex]
+        const otherSubjects = (existingTerm.subjects || []).filter((s: any) => s.subjectCode !== subject)
+        updatedTerms[termIndex] = {
+          ...existingTerm,
+          subjects: [...otherSubjects, newSubjectData],
+          enteredBy: session.user.id,
+          enteredAt: new Date(),
+        }
+      } else {
+        // Add new term
+        updatedTerms.push({
+          name: term,
+          subjects: [newSubjectData],
+          enteredBy: session.user.id,
+          enteredAt: new Date(),
+          published: false,
+        })
+      }
+
+      if (yearRecord) {
+        // Queue Update
+        operations.push(
+          prisma.academicRecord.update({
+            where: { id: yearRecord.id },
+            data: { terms: updatedTerms }
+          })
+        )
+      } else {
+        // Queue Create
+        operations.push(
+          prisma.academicRecord.create({
+            data: {
               studentId: student.id,
               academicYear,
-            },
-          },
-        })
-
-        // Build subjects array with imported marks
-        const existingTerm = yearRecord?.terms.find(t => t.name === term)
-        const existingSubjects = existingTerm?.subjects || []
-        
-        // Update or add the subject - convert existing subjects to proper type
-        const updatedSubjects = existingSubjects
-          .filter(s => s.subjectCode !== subject)
-          .map(s => ({
-            subjectCode: s.subjectCode,
-            marks: s.marks,
-            maxMarks: s.maxMarks,
-            grade: s.grade || undefined,
-          }))
-        
-        updatedSubjects.push({
-          subjectCode: subject,
-          marks: typeof row.marks === 'number' ? row.marks : 0,
-          maxMarks: maxMarksForTerm, // Use correct maxMarks from term definition
-          grade: row.grade || undefined,
-        })
-
-        updates.push(
-          upsertTermMarks(
-            student.id,
-            academicYear,
-            student.class,
-            term,
-            updatedSubjects,
-            session.user.id
-          )
+              class: student.class,
+              terms: updatedTerms,
+            }
+          })
         )
-        
-        successCount++
-      } catch (error) {
-        console.error(`Error importing marks for ${row.regNo}:`, error)
-        errorCount++
       }
+      
+      successCount++
     }
 
-    // Execute all updates
-    await Promise.all(updates)
+    // Execute all updates in a single transaction if possible, or in batches
+    // For large datasets, Prisma transaction is safer on MongoDB
+    if (operations.length > 0) {
+      await prisma.$transaction(operations)
+    }
 
     return NextResponse.json({
       message: `Import completed. Success: ${successCount}, Errors: ${errorCount}`,

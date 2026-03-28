@@ -249,8 +249,9 @@ export async function getClassSubjectMarks(
       academicRecords: {
         where: {
           academicYear,
-          class: classValue,
+          // class: classValue, // Sometimes class in record might differ if student promoted mid-year, but usually same
         },
+        take: 1, // There should only be one record per year
       },
     },
   });

@@ -17,10 +17,17 @@ import { Label } from '@/components/ui/label'
 import { toast } from 'sonner'
 import { getSubjectById } from '@/lib/subjects'
 import { formatClass } from '@/lib/class-utils'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
+
+const fetchTeachersData = async () => {
+  const response = await fetch('/api/teachers')
+  if (!response.ok) throw new Error('Failed to fetch teachers')
+  const data = await response.json()
+  return data.teachers as Teacher[]
+}
 
 export default function TeachersPage() {
-  const [teachers, setTeachers] = useState<Teacher[]>([])
-  const [isLoading, setIsLoading] = useState(true)
+  const queryClient = useQueryClient()
   const [isFormOpen, setIsFormOpen] = useState(false)
   const [selectedTeacher, setSelectedTeacher] = useState<Teacher | null>(null)
   const [searchTerm, setSearchTerm] = useState('')
@@ -32,22 +39,10 @@ export default function TeachersPage() {
   const [confirmPassword, setConfirmPassword] = useState('')
   const [resettingPassword, setResettingPassword] = useState(false)
 
-  const fetchTeachers = async () => {
-    try {
-      setIsLoading(true)
-      const response = await fetch('/api/teachers')
-      const data = await response.json()
-      setTeachers(data.teachers)
-    } catch (error) {
-      console.error('Failed to fetch teachers:', error)
-    } finally {
-      setIsLoading(false)
-    }
-  }
-
-  useEffect(() => {
-    fetchTeachers()
-  }, [])
+  const { data: teachers = [], isLoading } = useQuery({
+    queryKey: ['teachers'],
+    queryFn: fetchTeachersData,
+  })
 
   const filteredTeachers = teachers.filter((teacher) => {
     const search = searchTerm.toLowerCase()
@@ -90,7 +85,7 @@ export default function TeachersPage() {
       const response = await fetch(`/api/teachers/${teacherToDelete}`, { method: 'DELETE' })
       if (response.ok) {
         toast.success('Teacher deleted successfully')
-        fetchTeachers()
+        queryClient.invalidateQueries({ queryKey: ['teachers'] })
       } else {
         toast.error('Failed to delete teacher')
       }
@@ -362,7 +357,7 @@ export default function TeachersPage() {
         open={isFormOpen}
         onOpenChange={setIsFormOpen}
         teacher={selectedTeacher}
-        onSuccess={fetchTeachers}
+        onSuccess={() => queryClient.invalidateQueries({ queryKey: ['teachers'] })}
       />
 
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>

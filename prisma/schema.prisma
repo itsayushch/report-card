@@ -23,7 +23,10 @@ model Student {
   academicRecords AcademicRecord[] // Relation to separate collection
 
   @@index([class])
+  @@index([status])
   @@index([academicYear])
+  @@index([class, status])
+  @@index([name])
   @@map("students")
 }
 

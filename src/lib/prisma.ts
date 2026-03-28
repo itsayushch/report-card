@@ -1,11 +1,28 @@
 import { PrismaClient } from '@prisma/client'
 
-const globalForPrisma = globalThis as unknown as {
-  prisma: PrismaClient | undefined
+/**
+ * PrismaClient Singleton Pattern
+ * 
+ * In development, Next.js hot-reloading can cause multiple instances of PrismaClient 
+ * to be created, leading to MongoDB connection limit exhaustion.
+ * 
+ * This singleton pattern ensures only one instance is created and reused.
+ * On Netlify/Serverless, this helps manage connection limits during cold starts.
+ */
+
+const prismaClientSingleton = () => {
+  return new PrismaClient({
+    log: process.env.NODE_ENV === 'development' ? ['error', 'warn'] : ['error'],
+    // MongoDB specific connection tuning can be added here if needed
+  })
 }
 
-export const prisma = globalForPrisma.prisma ?? new PrismaClient({
-  log: process.env.NODE_ENV === 'development' ? ['error', 'warn'] : ['error'],
-})
+declare global {
+  var prisma: undefined | ReturnType<typeof prismaClientSingleton>
+}
 
-if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma
+export const prisma = globalThis.prisma ?? prismaClientSingleton()
+
+if (process.env.NODE_ENV !== 'production') globalThis.prisma = prisma
+
+export default prisma

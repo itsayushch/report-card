@@ -4,10 +4,22 @@ import { teacherSchema } from '@/lib/validations'
 import { auth } from '@/lib/auth'
 // import { createAdminLog, AdminActions } from '@/lib/admin-log'
 
-// GET all teachers
+// GET all teachers (OPTIMIZED)
 export async function GET() {
   try {
     const teachers = await prisma.teacher.findMany({
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        profilePicture: true,
+        classSubjectPairs: true,
+        isAdmin: true,
+        isSuperAdmin: true,
+        firstLogin: true,
+        createdAt: true,
+        // password is excluded for security and performance
+      },
       orderBy: { createdAt: 'desc' },
     })
 

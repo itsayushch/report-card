@@ -16,6 +16,7 @@ import Papa from 'papaparse'
 import Link from 'next/link'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Input } from '@/components/ui/input'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 
 interface PaginationData {
   total: number
@@ -24,9 +25,24 @@ interface PaginationData {
   totalPages: number
 }
 
+// Fetcher function for students
+const fetchStudentsData = async (params: { page: number, limit: number, search: string, classFilter: string, statusFilter: string }) => {
+  const urlParams = new URLSearchParams({
+    page: params.page.toString(),
+    limit: params.limit.toString(),
+  })
+
+  if (params.search) urlParams.append('search', params.search)
+  if (params.classFilter && params.classFilter !== 'all') urlParams.append('class', params.classFilter)
+  if (params.statusFilter && params.statusFilter !== 'all') urlParams.append('status', params.statusFilter)
+
+  const response = await fetch(`/api/students?${urlParams}`)
+  if (!response.ok) throw new Error('Failed to fetch students')
+  return response.json()
+}
+
 export default function StudentsPage() {
-  const [students, setStudents] = useState<Student[]>([])
-  const [isLoading, setIsLoading] = useState(true)
+  const queryClient = useQueryClient()
   const [isFormOpen, setIsFormOpen] = useState(false)
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null)
   const [selectedStudents, setSelectedStudents] = useState<string[]>([])
@@ -35,12 +51,12 @@ export default function StudentsPage() {
   const [bulkRestoreDialogOpen, setBulkRestoreDialogOpen] = useState(false)
   const [studentToDelete, setStudentToDelete] = useState<string | null>(null)
   const [studentToPermanentDelete, setStudentToPermanentDelete] = useState<string | null>(null)
-  const [pagination, setPagination] = useState<PaginationData>({
-    total: 0,
+  
+  const [paginationState, setPaginationState] = useState({
     page: 1,
     limit: 10,
-    totalPages: 0,
   })
+  
   const [pageInput, setPageInput] = useState('1')
 
   // Filters
@@ -48,43 +64,24 @@ export default function StudentsPage() {
   const [classFilter, setClassFilter] = useState('')
   const [statusFilter, setStatusFilter] = useState('')
 
-  const fetchStudents = useCallback(async () => {
-    try {
-      setIsLoading(true)
-      const params = new URLSearchParams({
-        page: pagination.page.toString(),
-        limit: pagination.limit.toString(),
-      })
+  // useQuery implementation for caching and automatic re-fetching
+  const { data, isLoading, isError, refetch } = useQuery({
+    queryKey: ['students', paginationState.page, paginationState.limit, search, classFilter, statusFilter],
+    queryFn: () => fetchStudentsData({ 
+      page: paginationState.page, 
+      limit: paginationState.limit, 
+      search, 
+      classFilter, 
+      statusFilter 
+    }),
+  })
 
-      if (search) params.append('search', search)
-      if (classFilter && classFilter !== 'all') params.append('class', classFilter)
-      if (statusFilter && statusFilter !== 'all') params.append('status', statusFilter)
-
-      const response = await fetch(`/api/students?${params}`)
-      if (!response.ok) {
-        throw new Error('Failed to fetch students')
-      }
-
-      const data = await response.json()
-
-      setStudents(data.students || [])
-      setPagination(data.pagination || { total: 0, page: 1, limit: pagination.limit, totalPages: 0 })
-    } catch (error) {
-      console.error('Failed to fetch students:', error)
-      setStudents([])
-      setPagination(prev => ({ ...prev, total: 0, totalPages: 0 }))
-    } finally {
-      setIsLoading(false)
-    }
-  }, [pagination.page, pagination.limit, search, classFilter, statusFilter])
+  const students = data?.students || []
+  const pagination = data?.pagination || { total: 0, page: 1, limit: 10, totalPages: 0 }
 
   useEffect(() => {
-    fetchStudents()
-  }, [fetchStudents])
-
-  useEffect(() => {
-    setPageInput(pagination.page.toString())
-  }, [pagination.page])
+    setPageInput(paginationState.page.toString())
+  }, [paginationState.page])
 
   const handleEdit = (student: Student) => {
     setSelectedStudent(student)
@@ -106,7 +103,7 @@ export default function StudentsPage() {
 
       if (response.ok) {
         toast.success('Student deleted successfully')
-        fetchStudents()
+        queryClient.invalidateQueries({ queryKey: ['students'] })
       } else {
         toast.error('Failed to delete student')
       }
@@ -119,7 +116,7 @@ export default function StudentsPage() {
   }
 
   const handleFormSuccess = () => {
-    fetchStudents()
+    queryClient.invalidateQueries({ queryKey: ['students'] })
     setSelectedStudent(null)
   }
 
@@ -131,7 +128,7 @@ export default function StudentsPage() {
 
       if (response.ok) {
         toast.success('Student restored successfully')
-        fetchStudents()
+        queryClient.invalidateQueries({ queryKey: ['students'] })
       } else {
         toast.error('Failed to restore student')
       }
@@ -155,7 +152,7 @@ export default function StudentsPage() {
 
       if (response.ok) {
         toast.success('Student permanently deleted')
-        fetchStudents()
+        queryClient.invalidateQueries({ queryKey: ['students'] })
       } else {
         const error = await response.json()
         toast.error(error.error || 'Failed to permanently delete student')
@@ -189,7 +186,7 @@ export default function StudentsPage() {
       if (response.ok) {
         toast.success(`${selectedStudents.length} student(s) restored successfully`)
         setSelectedStudents([])
-        fetchStudents()
+        queryClient.invalidateQueries({ queryKey: ['students'] })
       } else {
         const error = await response.json()
         toast.error(error.error || 'Failed to restore students')

@@ -1,21 +1,30 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Users, GraduationCap, BookOpen, Calendar, ArrowRight, TrendingUp } from 'lucide-react'
+import { Users, GraduationCap, Calendar, ArrowRight, TrendingUp } from 'lucide-react'
 import Link from 'next/link'
+import { prisma } from '@/lib/prisma'
 
+// Directly fetch stats using Prisma to avoid internal HTTP overhead
 async function getStats() {
-  const response = await fetch(`${process.env.NEXTAUTH_URL}/api/stats`, {
-    cache: 'no-store',
-  })
-  
-  if (!response.ok) {
+  try {
+    const [totalStudents, totalTeachers, activeAcademicYear] = await Promise.all([
+      prisma.student.count({ where: { status: 'ACTIVE' } }),
+      prisma.teacher.count(),
+      prisma.academicYear.findFirst({ where: { isActive: true }, select: { year: true } }),
+    ])
+
+    return {
+      totalStudents,
+      totalTeachers,
+      activeAcademicYear: activeAcademicYear?.year || 'Not set',
+    }
+  } catch (error) {
+    console.error('Error fetching dashboard stats:', error)
     return {
       totalStudents: 0,
       totalTeachers: 0,
       activeAcademicYear: 'Not set',
     }
   }
-  
-  return response.json()
 }
 
 export default async function AdminDashboard() {

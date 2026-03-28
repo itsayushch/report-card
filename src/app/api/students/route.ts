@@ -5,7 +5,7 @@ import { studentSchema } from '@/lib/validations'
 import { auth } from '@/lib/auth'
 // import { createAdminLog, AdminActions } from '@/lib/admin-log'
 
-// GET all students with filters and search
+// GET all students with filters and search (OPTIMIZED)
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
@@ -13,7 +13,7 @@ export async function GET(request: NextRequest) {
     const classFilter = searchParams.get('class') || ''
     const statusFilter = searchParams.get('status') || ''
     const page = parseInt(searchParams.get('page') || '1')
-    const limit = parseInt(searchParams.get('limit') || '1000') // Increased default limit
+    const limit = Math.min(parseInt(searchParams.get('limit') || '20'), 100) // Default 20, Max 100
     const skip = (page - 1) * limit
 
     const where: any = {}
@@ -25,78 +25,38 @@ export async function GET(request: NextRequest) {
       ]
     }
 
-    if (classFilter) {
+    if (classFilter && classFilter !== 'all') {
       where.class = classFilter
     }
 
-    if (statusFilter) {
+    if (statusFilter && statusFilter !== 'all') {
       where.status = statusFilter
     }
 
-    const matchStage: any = {}
-
-    if (search) {
-      matchStage.$or = [
-        { name: { $regex: search, $options: 'i' } },
-        { regNo: { $regex: search, $options: 'i' } },
-      ]
-    }
-
-    if (classFilter) {
-      matchStage.class = classFilter
-    }
-
-    if (statusFilter) {
-      matchStage.status = statusFilter
-    }
-
-    const pipeline: any[] = []
-    if (Object.keys(matchStage).length > 0) {
-      pipeline.push({ $match: matchStage })
-    }
-
-    // Derive a numeric class for correct ordering (handles numeric strings; non-numeric drop to -Infinity)
-    pipeline.push({
-      $addFields: {
-        numericClass: {
-          $cond: [
-            { $regexMatch: { input: '$class', regex: '^[0-9]+$' } },
-            { $toInt: '$class' },
-            { $literal: -999999 },
-          ],
+    // PAGINATION: Use 'take' and 'skip' to limit database load
+    // SELECTIVE FETCHING: Only pull essential fields (exclude heavy relations like academicRecords)
+    const [students, total] = await Promise.all([
+      prisma.student.findMany({
+        where,
+        take: limit, // Only fetch the requested number of records
+        skip: skip,  // Efficiently skip records for pagination
+        select: {    // ONLY fetch what is needed for the dashboard list
+          id: true,
+          name: true,
+          regNo: true,
+          class: true,
+          status: true,
+          academicYear: true,
+          promotionStatus: true,
+          // academicRecords is excluded by default when using select
         },
-      },
-    })
-
-    pipeline.push({
-      $sort: {
-        numericClass: -1,
-        name: 1,
-        _id: 1,
-      },
-    })
-
-    pipeline.push({ $skip: skip })
-    pipeline.push({ $limit: limit })
-
-    const [rawStudents, total] = await Promise.all([
-      prisma.student.aggregateRaw({ pipeline }),
+        orderBy: [
+          { class: 'desc' },
+          { name: 'asc' }
+        ],
+      }),
       prisma.student.count({ where }),
     ])
-
-    const students = (rawStudents as unknown as any[]).map((doc) => {
-      const { _id, numericClass, ...rest } = doc
-      const id =
-        typeof _id === 'string'
-          ? _id
-          : _id?.$oid
-            ? _id.$oid
-            : _id?.toString?.() ?? String(_id ?? '')
-      return {
-        ...rest,
-        id,
-      }
-    }) as Student[]
 
     return NextResponse.json({
       students,
