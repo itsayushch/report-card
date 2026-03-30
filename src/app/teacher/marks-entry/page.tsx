@@ -22,7 +22,7 @@ import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Badge } from '@/components/ui/badge'
 import { toast } from 'sonner'
-import { Loader2, Save, Download, Upload } from 'lucide-react'
+import { Loader2, Save, Download, Upload, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react'
 import { Skeleton } from '@/components/ui/skeleton'
 import { calculateGrade, getGradeColor } from '@/lib/calculations'
 import Papa from 'papaparse'
@@ -67,6 +67,13 @@ interface ExistingMark {
   teacherRemarks: string | null
 }
 
+interface PaginationInfo {
+  total: number
+  page: number
+  limit: number
+  totalPages: number
+}
+
 export default function MarksEntryPage() {
   const [academicYears, setAcademicYears] = useState<AcademicYear[]>([])
   const [subjects, setSubjects] = useState<Subject[]>([])
@@ -85,6 +92,17 @@ export default function MarksEntryPage() {
   const [cardTerms, setCardTerms] = useState<Map<string, string>>(new Map())
   const [classSubjectMap, setClassSubjectMap] = useState<Array<{ class: string; subjects: Subject[] }>>([])
   const [hasChanges, setHasChanges] = useState(false)
+  const [paginationParams, setPaginationParams] = useState({
+    page: 1,
+    limit: 25,
+  })
+  const [pagination, setPagination] = useState<PaginationInfo>({
+    total: 0,
+    page: 1,
+    limit: 25,
+    totalPages: 0,
+  })
+  const [pageInput, setPageInput] = useState('1')
 
   useEffect(() => {
     fetchInitialData()
@@ -94,7 +112,11 @@ export default function MarksEntryPage() {
     if (selectedYear && selectedTerm && selectedClass && selectedSubject) {
       fetchStudentsAndMarks()
     }
-  }, [selectedYear, selectedTerm, selectedClass, selectedSubject])
+  }, [selectedYear, selectedTerm, selectedClass, selectedSubject, paginationParams.page, paginationParams.limit])
+
+  useEffect(() => {
+    setPageInput(paginationParams.page.toString())
+  }, [paginationParams.page])
 
   const fetchInitialData = async () => {
     try {
@@ -183,7 +205,9 @@ export default function MarksEntryPage() {
     setLoading(true)
     try {
       const results = await Promise.allSettled([
-        fetch(`/api/students?class=${selectedClass}&status=ACTIVE`),
+        fetch(
+          `/api/students?class=${selectedClass}&status=ACTIVE&page=${paginationParams.page}&limit=${paginationParams.limit}`
+        ),
         fetch(
           `/api/marks?class=${selectedClass}&subject=${selectedSubject}&term=${selectedTerm}&academicYear=${selectedYear}`
         ),
@@ -195,10 +219,19 @@ export default function MarksEntryPage() {
         return
       }
 
-      const studentsData = await results[0].value.json()
+      const studentsResponse = await results[0].value.json()
+      const studentsData: Student[] = studentsResponse.students || studentsResponse || []
       const marksData = await results[1].value.json()
 
-      setStudents(studentsData.students || studentsData)
+      setStudents(studentsData)
+      setPagination(
+        studentsResponse.pagination || {
+          total: studentsData.length,
+          page: paginationParams.page,
+          limit: paginationParams.limit,
+          totalPages: studentsData.length > 0 ? 1 : 0,
+        }
+      )
 
       // Initialize marks data
       const newMarksMap = new Map<string, MarkEntry>()
@@ -207,7 +240,7 @@ export default function MarksEntryPage() {
       const subjectDetail = getSubjectById(selectedClass, selectedSubject)
       const isAlphabetical = subjectDetail?.dataType === 'string'
       
-      studentsData.students?.forEach((student: Student) => {
+      studentsData.forEach((student: Student) => {
         const existingMark = marksData.find(
           (m: ExistingMark) => m.studentId === student.id
         )
@@ -413,7 +446,41 @@ export default function MarksEntryPage() {
     setSelectedClass(className)
     setSelectedTerm(term)
     setSelectedSubject(subjectId)
+    setPaginationParams((prev) => ({ ...prev, page: 1 }))
   }
+
+  const handlePageChange = (nextPage: number) => {
+    if (hasChanges) {
+      toast.error('Please save your changes before changing page')
+      return
+    }
+
+    setPaginationParams((prev) => {
+      const safeTotal = pagination.totalPages || 1
+      const clamped = Math.min(Math.max(1, nextPage), safeTotal)
+      return { ...prev, page: clamped }
+    })
+  }
+
+  const handleLimitChange = (value: string) => {
+    if (hasChanges) {
+      toast.error('Please save your changes before changing page size')
+      return
+    }
+
+    const numeric = Number(value)
+    if (!Number.isFinite(numeric) || numeric <= 0) return
+    setPaginationParams((prev) => ({ ...prev, limit: numeric, page: 1 }))
+  }
+
+  const handlePageInputSubmit = () => {
+    const numeric = Number(pageInput)
+    if (!Number.isFinite(numeric)) return
+    handlePageChange(numeric)
+  }
+
+  const pageStart = pagination.total === 0 ? 0 : (pagination.page - 1) * pagination.limit + 1
+  const pageEnd = Math.min(pagination.page * pagination.limit, pagination.total)
   
 
   return (
@@ -626,7 +693,7 @@ export default function MarksEntryPage() {
                 <div>
                   <CardTitle className="text-xl">Student Marks Entry</CardTitle>
                   <CardDescription className="mt-1">
-                    {students.length} {students.length === 1 ? 'student' : 'students'} enrolled in Class {formatClass(selectedClass)}
+                    Showing {students.length} of {pagination.total} students in Class {formatClass(selectedClass)}
                   </CardDescription>
                 </div>
                 {students.length > 0 && (
@@ -705,7 +772,7 @@ export default function MarksEntryPage() {
                 <>
                   {/* Mobile view - Cards */}
                   <div className="block md:hidden space-y-3">
-                    {students.sort((a, b) => a.name.localeCompare(b.name)).map((student) => {
+                    {[...students].sort((a, b) => a.name.localeCompare(b.name)).map((student) => {
                       const entry = marksData.get(student.id)
                       if (!entry) return null
 
@@ -808,6 +875,90 @@ export default function MarksEntryPage() {
                         })}
                       </TableBody>
                     </Table>
+                  </div>
+
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mt-4">
+                    <div className="flex flex-wrap items-center gap-3 text-sm text-gray-600">
+                      <span>
+                        Showing {pageStart === 0 ? 0 : `${pageStart}-${pageEnd}`} of {pagination.total}
+                      </span>
+                      <div className="flex items-center gap-2">
+                        <span>Rows per page</span>
+                        <Select
+                          value={pagination.limit.toString()}
+                          onValueChange={handleLimitChange}
+                        >
+                          <SelectTrigger className="h-9 w-24">
+                            <SelectValue placeholder="25" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {[10, 25, 50, 100].map((size) => (
+                              <SelectItem key={size} value={size.toString()}>
+                                {size}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+
+                    <div className="flex flex-wrap items-center gap-2">
+                      <div className="flex items-center gap-2 text-sm text-gray-600">
+                        <span>Page</span>
+                        <Input
+                          value={pageInput}
+                          onChange={(e) => setPageInput(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              handlePageInputSubmit()
+                            }
+                          }}
+                          className="w-16 h-9"
+                          inputMode="numeric"
+                        />
+                        <span>of {pagination.totalPages || 1}</span>
+                        <Button variant="outline" size="sm" onClick={handlePageInputSubmit}>
+                          Go
+                        </Button>
+                      </div>
+
+                      <div className="flex gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handlePageChange(1)}
+                          disabled={pagination.page === 1 || loading}
+                        >
+                          <ChevronsLeft className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handlePageChange(pagination.page - 1)}
+                          disabled={pagination.page === 1 || loading}
+                        >
+                          <ChevronLeft className="h-4 w-4" />
+                          Previous
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handlePageChange(pagination.page + 1)}
+                          disabled={pagination.page >= pagination.totalPages || loading}
+                        >
+                          Next
+                          <ChevronRight className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handlePageChange(pagination.totalPages)}
+                          disabled={pagination.page >= pagination.totalPages || loading}
+                        >
+                          <ChevronsRight className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
                   </div>
                 </>
               )}
