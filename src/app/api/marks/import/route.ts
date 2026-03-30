@@ -78,7 +78,7 @@ export async function POST(request: NextRequest) {
       const terms = (yearRecord?.terms as any[] || [])
       const termIndex = terms.findIndex(t => t.name === term)
 
-      let updatedTerms = [...terms]
+      const updatedTerms = [...terms]
       const newSubjectData = {
         subjectCode: subject,
         marks: typeof row.marks === 'number' ? row.marks : 0,

@@ -67,41 +67,63 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Move students to next class
-    const results = await Promise.all(
-      studentIds.map(async (studentId) => {
-        const student = await prisma.student.findUnique({
-          where: { id: studentId },
+    const studentsById = new Map(students.map(student => [student.id, student]))
+    const groupedUpdates = new Map<string, { studentIds: string[]; updateData: any; nextClass: string }>()
+
+    for (const student of students) {
+      const nextClass = getNextClass(student.class)
+      const updateData: any = {}
+
+      if (nextClass === 'GRADUATED') {
+        updateData.class = student.class
+        updateData.status = 'INACTIVE'
+      } else {
+        updateData.class = nextClass
+        updateData.promotionStatus = 'PENDING'
+      }
+
+      const key = `${student.class}:${nextClass}`
+      const existing = groupedUpdates.get(key)
+
+      if (existing) {
+        existing.studentIds.push(student.id)
+      } else {
+        groupedUpdates.set(key, {
+          studentIds: [student.id],
+          updateData,
+          nextClass,
         })
+      }
+    }
 
-        if (!student) {
-          return { studentId, success: false, error: 'Student not found' }
-        }
+    if (groupedUpdates.size > 0) {
+      await Promise.all(
+        Array.from(groupedUpdates.values()).map(group =>
+          prisma.student.updateMany({
+            where: { id: { in: group.studentIds } },
+            data: group.updateData,
+          })
+        )
+      )
+    }
 
-        const nextClass = getNextClass(student.class)
-        const updateData: any = {}
+    const results = studentIds.map((studentId) => {
+      const student = studentsById.get(studentId)
 
-        if (nextClass === 'GRADUATED') {
-          updateData.class = student.class // Keep same class
-          updateData.status = 'INACTIVE' // Mark as inactive
-        } else {
-          updateData.class = nextClass
-          updateData.promotionStatus = 'PENDING' // Reset promotion status for next year
-        }
+      if (!student) {
+        return { studentId, success: false, error: 'Student not found' }
+      }
 
-        await prisma.student.update({
-          where: { id: studentId },
-          data: updateData,
-        })
+      const nextClass = getNextClass(student.class)
+      const newClass = nextClass === 'GRADUATED' ? student.class : nextClass
 
-        return {
-          studentId,
-          success: true,
-          newClass: updateData.class || student.class,
-          graduated: nextClass === 'GRADUATED',
-        }
-      })
-    )
+      return {
+        studentId,
+        success: true,
+        newClass,
+        graduated: nextClass === 'GRADUATED',
+      }
+    })
 
     const successCount = results.filter((r) => r.success).length
 

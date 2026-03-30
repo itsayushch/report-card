@@ -1,6 +1,37 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+type StudentRow = {
+  id: string
+  class: string
+}
+
+type AcademicRecordRow = {
+  id: string
+  studentId: string
+  terms: unknown
+}
+
+type TermRecord = {
+  name: string
+  subjects: Array<{
+    subjectCode: string
+    marks: number
+    maxMarks: number
+    grade?: string
+  }>
+  enteredBy: string
+  enteredAt: Date
+  published: boolean
+  teacherRemarks?: string | null
+}
+
+type RemarkEntry = {
+  studentId: string
+  remarks?: string
+  term: string
+  academicYear: string
+}
 
 // GET - Fetch remarks for a class and term
 export async function GET(request: NextRequest) {
@@ -47,7 +78,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Get academic records for the class
-    const academicRecords = await prisma.academicRecord.findMany({
+    const academicRecords: AcademicRecordRow[] = await prisma.academicRecord.findMany({
       where: {
         class: classParam,
         academicYear,
@@ -56,18 +87,19 @@ export async function GET(request: NextRequest) {
 
     // Extract remarks and marks for the specified term
     const studentsData = academicRecords
-      .map((record) => {
-        const termRecord = record.terms.find((t) => t.name === term)
+      .map((record: AcademicRecordRow) => {
+        const terms = record.terms as TermRecord[]
+        const termRecord = terms.find((t) => t.name === term)
         if (!termRecord) return null
 
         return {
           studentId: record.studentId,
           remarks: termRecord.teacherRemarks || null,
-          subjects: termRecord.subjects.map(s => ({
-            subjectCode: s.subjectCode,
-            marks: s.marks,
-            maxMarks: s.maxMarks,
-            grade: s.grade,
+          subjects: termRecord.subjects.map((subject) => ({
+            subjectCode: subject.subjectCode,
+            marks: subject.marks,
+            maxMarks: subject.maxMarks,
+            grade: subject.grade,
           })),
         }
       })
@@ -93,7 +125,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json()
-    const { remarks } = body
+    const { remarks } = body as { remarks?: RemarkEntry[] }
 
     console.log('Received remarks:', remarks?.length || 0, 'entries')
 
@@ -155,87 +187,105 @@ export async function POST(request: NextRequest) {
     let successCount = 0
     let errorCount = 0
 
-    // Update remarks for each student
-    for (const remarkEntry of remarks) {
-      try {
-        const { studentId, remarks: remarkText } = remarkEntry
+    const remarkEntries = remarks.filter(
+      (entry): entry is RemarkEntry =>
+        !!entry?.studentId && !!entry.remarks && entry.remarks.trim() !== ''
+    )
 
-        // Skip if remarks are empty or unchanged
-        if (!remarkText || remarkText.trim() === '') {
-          continue
-        }
+    const studentIds = Array.from(
+      new Set(remarkEntries.map((entry) => entry.studentId))
+    )
 
-        // Find or create academic record
-        let academicRecord = await prisma.academicRecord.findUnique({
-          where: {
-            studentId_academicYear: {
-              studentId,
-              academicYear,
-            },
-          },
-        })
+    const [students, academicRecords] = await Promise.all([
+      prisma.student.findMany({
+        where: { id: { in: studentIds } },
+        select: { id: true, class: true },
+      }) as Promise<StudentRow[]>,
+      prisma.academicRecord.findMany({
+        where: {
+          studentId: { in: studentIds },
+          academicYear,
+        },
+      }) as Promise<AcademicRecordRow[]>,
+    ])
 
-        const student = await prisma.student.findUnique({
-          where: { id: studentId },
-          select: { class: true },
-        })
+    const studentMap = new Map(
+      students.map((student: StudentRow) => [student.id, student])
+    )
+    const recordMap = new Map<string, AcademicRecordRow>(
+      academicRecords.map((record: AcademicRecordRow) => [record.studentId, record])
+    )
 
-        if (!student) {
-          errorCount++
-          continue
-        }
+    const results = await Promise.all(
+      remarkEntries.map(async (remarkEntry) => {
+        try {
+          const { studentId, remarks: remarkText } = remarkEntry
+          const student = studentMap.get(studentId)
 
-        if (!academicRecord) {
-          // Create new academic record if it doesn't exist
-          academicRecord = await prisma.academicRecord.create({
+          if (!student) {
+            return { success: false, error: 'Student not found' }
+          }
+
+          let academicRecord: AcademicRecordRow | undefined = recordMap.get(studentId)
+
+          if (!academicRecord) {
+            const createdRecord = await prisma.academicRecord.create({
+              data: {
+                studentId,
+                academicYear,
+                class: student.class,
+                terms: [],
+              },
+            })
+            academicRecord = createdRecord
+            recordMap.set(studentId, createdRecord)
+          }
+
+          if (!academicRecord) {
+            return { success: false, error: 'Academic record not found' }
+          }
+
+          const terms = academicRecord.terms as TermRecord[]
+          const termIndex = terms.findIndex((t) => t.name === term)
+
+          if (termIndex === -1) {
+            return { success: false, error: 'Term not found' }
+          }
+
+          const updatedTerms = terms.map((t, i) => {
+            if (i !== termIndex) return t
+            return {
+              name: t.name,
+              subjects: t.subjects,
+              enteredBy: t.enteredBy,
+              enteredAt: t.enteredAt,
+              published: t.published,
+              teacherRemarks: remarkText,
+            }
+          })
+
+          console.log(`[save-remarks] studentId=${studentId}, term=${term}, remarkText=${remarkText}`)
+
+          await prisma.academicRecord.update({
+            where: { id: academicRecord.id },
             data: {
-              studentId,
-              academicYear,
-              class: student.class,
-              terms: [],
+              terms: updatedTerms,
             },
           })
+
+          return { success: true }
+        } catch (error) {
+          console.error(
+            `Error updating remarks for student ${remarkEntry.studentId}:`,
+            error
+          )
+          return { success: false, error: 'Update failed' }
         }
+      })
+    )
 
-        // Find the term record
-        const termIndex = academicRecord.terms.findIndex((t) => t.name === term)
-
-        if (termIndex === -1) {
-          // Term doesn't exist yet, skip this entry
-          // Remarks can only be added if marks exist
-          errorCount++
-          continue
-        }
-
-        // Update the term record with remarks - explicitly include all fields
-        const updatedTerms = academicRecord.terms.map((t, i) => {
-          if (i !== termIndex) return t
-          return {
-            name: t.name,
-            subjects: t.subjects,
-            enteredBy: t.enteredBy,
-            enteredAt: t.enteredAt,
-            published: t.published,
-            teacherRemarks: remarkText,
-          }
-        })
-
-        console.log(`[save-remarks] studentId=${studentId}, term=${term}, remarkText=${remarkText}`)
-
-        // Update the academic record
-        await prisma.academicRecord.update({
-          where: { id: academicRecord.id },
-          data: {
-            terms: updatedTerms,
-          },
-        })
-
-        successCount++
-      } catch (error) {
-        console.error(`Error updating remarks for student ${remarkEntry.studentId}:`, error)
-        errorCount++
-      }
-    }
+    successCount = results.filter((result) => result.success).length
+    errorCount = results.length - successCount
 
     console.log('Remarks update complete:', { successCount, errorCount })
 

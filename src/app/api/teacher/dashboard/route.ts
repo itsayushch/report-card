@@ -43,22 +43,25 @@ export async function GET(request: NextRequest) {
       new Map(subjectDetails.map(s => [s!.id, s])).values()
     )
 
-    // Get student counts in parallel
-    const studentCountResults = await Promise.all(
-      assignedClasses.map((cls: string) => {
-        return prisma.student.count({
+    const studentCountsByClass = assignedClasses.length
+      ? await prisma.student.groupBy({
+          by: ['class'],
           where: {
-            class: cls,
+            class: { in: assignedClasses },
             status: 'ACTIVE',
-            academicYear: activeYear?.year,
+            ...(activeYear?.year ? { academicYear: activeYear.year } : {}),
           },
+          _count: { _all: true },
         })
-      })
+      : []
+
+    const studentCountMap = new Map(
+      studentCountsByClass.map(item => [item.class, item._count._all])
     )
 
-    const studentCounts = assignedClasses.map((cls: string, index: number) => ({
+    const studentCounts = assignedClasses.map((cls: string) => ({
       class: cls,
-      count: studentCountResults[index],
+      count: studentCountMap.get(cls) ?? 0,
     }))
 
     const totalStudents = studentCounts.reduce(

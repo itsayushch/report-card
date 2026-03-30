@@ -79,23 +79,29 @@ export async function POST(request: NextRequest) {
       const shouldPromote = !previousYear || parseInt(data.year) > parseInt(previousYear.year)
 
       if (shouldPromote) {
-        // Get all active students
-        const activeStudents = await prisma.student.findMany({
-          where: {
-            status: 'ACTIVE',
-          },
-          select: {
-            id: true,
-            class: true,
-            promotionStatus: true,
-          },
-        })
+        const [promotedStudents, otherStudents] = await Promise.all([
+          prisma.student.findMany({
+            where: {
+              status: 'ACTIVE',
+              promotionStatus: 'PROMOTED',
+            },
+            select: {
+              id: true,
+              class: true,
+            },
+          }),
+          prisma.student.findMany({
+            where: {
+              status: 'ACTIVE',
+              promotionStatus: { not: 'PROMOTED' },
+            },
+            select: {
+              id: true,
+            },
+          }),
+        ])
 
-        if (activeStudents.length > 0) {
-          // Separate students by promotion status
-          const promotedStudents = activeStudents.filter(s => s.promotionStatus === 'PROMOTED')
-          const otherStudents = activeStudents.filter(s => s.promotionStatus !== 'PROMOTED')
-
+        if (promotedStudents.length > 0 || otherStudents.length > 0) {
           const updates = []
 
           // Update PROMOTED students: increment class + update year + reset status

@@ -20,10 +20,14 @@ export async function POST(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // Check if user is admin
-    const admin = await prisma.teacher.findUnique({
-      where: { email: session.user.email! },
-    })
+    const [admin, teacher] = await Promise.all([
+      prisma.teacher.findUnique({
+        where: { email: session.user.email! },
+      }),
+      prisma.teacher.findUnique({
+        where: { id },
+      }),
+    ])
 
     if (!admin?.isAdmin) {
       return NextResponse.json({ error: 'Admin access required' }, { status: 403 })
@@ -38,11 +42,6 @@ export async function POST(
         { status: 400 }
       )
     }
-
-    // Get teacher to be updated
-    const teacher = await prisma.teacher.findUnique({
-      where: { id },
-    })
 
     if (!teacher) {
       return NextResponse.json({ error: 'Teacher not found' }, { status: 404 })

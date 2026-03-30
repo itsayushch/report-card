@@ -1,6 +1,7 @@
 "use client";
 import { Printer } from "lucide-react";
 import { useEffect, useState, Suspense } from "react";
+import Image from "next/image";
 import { useSearchParams, useParams } from "next/navigation";
 import { formatClass } from "@/lib/class-utils";
 import { getSubjectById, getSubjectsForClasses, subjectsByClass } from "@/lib/subjects";
@@ -77,6 +78,19 @@ function PrintableReportCardContent() {
   const [data, setData] = useState<ReportData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [classSignatureSrc, setClassSignatureSrc] = useState<string | null>(null);
+
+  const toPublicPath = (url: string) => {
+    if (!url) return url;
+    if (url.startsWith("http://") || url.startsWith("https://")) {
+      try {
+        return new URL(url).pathname;
+      } catch {
+        return url;
+      }
+    }
+    return url;
+  };
 
   useEffect(() => {
     const fetchReport = async () => {
@@ -115,6 +129,12 @@ function PrintableReportCardContent() {
       setLoading(false);
     }
   }, [params.id, searchParams]);
+
+  useEffect(() => {
+    if (data?.student.class) {
+      setClassSignatureSrc(getSignatureUrl(data.student.class));
+    }
+  }, [data?.student.class]);
 
   if (loading) {
     return (
@@ -416,10 +436,13 @@ function PrintableReportCardContent() {
 
             {/* School Logo/Crest */}
             <div className="flex justify-center pt-4 pb-1 relative z-10 print:pt-2 print:pb-0.5">
-              <img
-                src={`${process.env.NEXT_PUBLIC_BASE_URL}/logo/small.png`}
+              <Image
+                src="/logo/small.png"
                 alt="St. Helen's School Logo"
+                width={64}
+                height={64}
                 className="w-16 h-16 object-contain print:w-10 print:h-10"
+                priority
               />
             </div>
 
@@ -754,14 +777,15 @@ function PrintableReportCardContent() {
               <div className="grid grid-cols-2 gap-12 mt-4 print:gap-3 print:mt-0">
                 <div className="text-center">
                   <div className="h-24 flex items-end justify-center mb-2 print:h-12 print:mb-1">
-                    <img
-
-                      src={getSignatureUrl(data.student.class)}
+                    <Image
+                      src={toPublicPath(
+                        classSignatureSrc || getSignatureUrl(data.student.class)
+                      )}
                       alt="Class Teacher Signature"
-                      onError={(e) => {
-                        (e.target as HTMLImageElement).src = getSignatureUrl('principal')
-                      }}
+                      width={240}
+                      height={80}
                       className="h-20 w-60 object-contain print:h-20 border border-gray-800"
+                      onError={() => setClassSignatureSrc(getSignatureUrl("principal"))}
                     />
                   </div>
                   <div className="pt-2 mx-8 print:mx-2 print:pt-0">
@@ -772,9 +796,11 @@ function PrintableReportCardContent() {
                 </div>
                 <div className="text-center">
                   <div className="h-24 flex items-end justify-center mb-2 print:h-12 print:mb-1">
-                    <img
-                      src={getSignatureUrl('principal')}
+                    <Image
+                      src={toPublicPath(getSignatureUrl("principal"))}
                       alt="Principal Signature"
+                      width={240}
+                      height={80}
                       className="h-20 object-contain w-60 print:h-20 border border-gray-800"
                     />
                   </div>
@@ -793,7 +819,7 @@ function PrintableReportCardContent() {
             {/* School Footer */}
             <div className="px-6 pb-4 text-center relative z-10 page-break-avoid print:px-3 print:pb-2">
               <p className="text-sm font-semibold text-gray-900">
-                St. Helen's Secondary School, Kurseong - 734203, Dist.
+                St. Helen&apos;s Secondary School, Kurseong - 734203, Dist.
                 Darjeeling, West Bengal, India.
               </p>
               <p className="text-xs text-gray-700 mt-1">
@@ -824,9 +850,11 @@ function PrintableReportCardContent() {
 
             {/* School Logo/Crest */}
             <div className="flex justify-center pt-6 pb-2 relative z-10 print:pt-2 print:pb-1">
-              <img
-                src={`${process.env.NEXT_PUBLIC_BASE_URL}/logo/small.png`}
+              <Image
+                src="/logo/small.png"
                 alt="St. Helen's School Logo"
+                width={64}
+                height={64}
                 className="w-16 h-16 object-contain print:w-10 print:h-10"
               />
             </div>

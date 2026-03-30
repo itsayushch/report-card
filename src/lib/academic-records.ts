@@ -209,10 +209,9 @@ export async function bulkPublishClassTermMarks(
     },
   });
 
-  // Update each record
-  const updates = records.map(async (record) => {
+  const updates = records.reduce<Prisma.PrismaPromise<any>[]>((acc, record) => {
     const termIndex = (record.terms as TermRecord[]).findIndex((t: TermRecord) => t.name === termName);
-    if (termIndex < 0) return null;
+    if (termIndex < 0) return acc;
 
     const updatedTerms = [...(record.terms as TermRecord[])];
     updatedTerms[termIndex] = {
@@ -220,13 +219,21 @@ export async function bulkPublishClassTermMarks(
       published: true,
     };
 
-    return prisma.academicRecord.update({
-      where: { id: record.id },
-      data: { terms: updatedTerms },
-    });
-  });
+    acc.push(
+      prisma.academicRecord.update({
+        where: { id: record.id },
+        data: { terms: updatedTerms },
+      })
+    );
 
-  return await Promise.all(updates.filter(Boolean));
+    return acc;
+  }, []);
+
+  if (updates.length === 0) {
+    return [];
+  }
+
+  return await prisma.$transaction(updates);
 }
 
 /**

@@ -10,10 +10,14 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
   try {
     const { id } = await params;
 
-    // Get the year being activated
-    const yearToActivate = await prisma.academicYear.findUnique({
-      where: { id },
-    });
+    const [yearToActivate, currentActiveYear] = await Promise.all([
+      prisma.academicYear.findUnique({
+        where: { id },
+      }),
+      prisma.academicYear.findFirst({
+        where: { isActive: true },
+      }),
+    ]);
 
     if (!yearToActivate) {
       return NextResponse.json(
@@ -21,11 +25,6 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
         { status: 404 }
       );
     }
-
-    // Get the current active year
-    const currentActiveYear = await prisma.academicYear.findFirst({
-      where: { isActive: true },
-    });
 
     // Deactivate all other years
     await prisma.academicYear.updateMany({
@@ -47,27 +46,34 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
     if (shouldPromote) {
       // Get all active students
       try {
-        const activeStudents = await prisma.student.findMany({
-          where: {
-            status: "ACTIVE",
-          },
-          select: {
-            id: true,
-            class: true,
-            academicYear: true,
-            promotionStatus: true,
-          },
-        });
+        const [promotedStudents, otherStudents] = await Promise.all([
+          prisma.student.findMany({
+            where: {
+              status: "ACTIVE",
+              promotionStatus: "PROMOTED",
+            },
+            select: {
+              id: true,
+              class: true,
+              academicYear: true,
+            },
+          }),
+          prisma.student.findMany({
+            where: {
+              status: "ACTIVE",
+              promotionStatus: { not: "PROMOTED" },
+            },
+            select: {
+              id: true,
+            },
+          }),
+        ]);
 
-        console.log(`Found ${activeStudents.length} active students to process`);
+        console.log(
+          `Students breakdown: ${promotedStudents.length} PROMOTED, ${otherStudents.length} other statuses`
+        );
 
-        if (activeStudents.length > 0) {
-          // Separate students by promotion status
-          const promotedStudents = activeStudents.filter(s => s.promotionStatus === 'PROMOTED')
-          const otherStudents = activeStudents.filter(s => s.promotionStatus !== 'PROMOTED')
-
-          console.log(`Students breakdown: ${promotedStudents.length} PROMOTED, ${otherStudents.length} other statuses`);
-
+        if (promotedStudents.length > 0 || otherStudents.length > 0) {
           const promotionQueries = []
 
           // Update PROMOTED students: increment class + update year + reset status

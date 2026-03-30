@@ -71,36 +71,35 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Process promotions/detentions
-    const results = await Promise.all(
-      studentIds.map(async (studentId) => {
-        const student = await prisma.student.findUnique({
-          where: { id: studentId },
-        })
+    const studentsById = new Map(students.map(student => [student.id, student]))
+    const validStudentIds = studentIds.filter(studentId => studentsById.has(studentId))
 
-        if (!student) {
-          return { studentId, success: false, error: 'Student not found' }
-        }
+    const updateData = {
+      promotionStatus:
+        action === 'PROMOTE' ? 'PROMOTED' : action === 'DETAIN' ? 'DETAINED' : 'PENDING',
+    }
 
-        const updateData: any = {
-          promotionStatus: action === 'PROMOTE' ? 'PROMOTED' : action === 'DETAIN' ? 'DETAINED' : 'PENDING',
-        }
-
-        // Don't automatically change class - just mark the promotion status
-
-        await prisma.student.update({
-          where: { id: studentId },
-          data: updateData,
-        })
-
-        return {
-          studentId,
-          success: true,
-          action,
-          newClass: student.class, // Keep current class
-        }
+    if (validStudentIds.length > 0) {
+      await prisma.student.updateMany({
+        where: { id: { in: validStudentIds } },
+        data: updateData,
       })
-    )
+    }
+
+    const results = studentIds.map((studentId) => {
+      const student = studentsById.get(studentId)
+
+      if (!student) {
+        return { studentId, success: false, error: 'Student not found' }
+      }
+
+      return {
+        studentId,
+        success: true,
+        action,
+        newClass: student.class, // Keep current class
+      }
+    })
 
     const successCount = results.filter((r) => r.success).length
 

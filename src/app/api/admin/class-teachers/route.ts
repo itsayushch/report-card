@@ -55,10 +55,16 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Check if teacher exists
-    const teacher = await prisma.teacher.findUnique({
-      where: { id: teacherId },
-    })
+    const [teacher, existingAssignment] = await Promise.all([
+      prisma.teacher.findUnique({
+        where: { id: teacherId },
+      }),
+      prisma.classTeacher.findUnique({
+        where: {
+          class: className,
+        },
+      }),
+    ])
 
     if (!teacher) {
       return NextResponse.json(
@@ -66,13 +72,6 @@ export async function POST(request: NextRequest) {
         { status: 404 }
       )
     }
-
-    // Check if class already has a teacher
-    const existingAssignment = await prisma.classTeacher.findUnique({
-      where: {
-        class: className,
-      },
-    })
 
     if (existingAssignment) {
       return NextResponse.json(

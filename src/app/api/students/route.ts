@@ -88,10 +88,14 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
     const validatedData = studentSchema.parse(body)
 
-    // Get active academic year
-    const activeYear = await prisma.academicYear.findFirst({
-      where: { isActive: true },
-    })
+    const [activeYear, existingStudent] = await Promise.all([
+      prisma.academicYear.findFirst({
+        where: { isActive: true },
+      }),
+      prisma.student.findUnique({
+        where: { regNo: validatedData.regNo },
+      }),
+    ])
 
     if (!activeYear) {
       return NextResponse.json(
@@ -99,11 +103,6 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       )
     }
-
-    // Check if registration number already exists
-    const existingStudent = await prisma.student.findUnique({
-      where: { regNo: validatedData.regNo },
-    })
 
     if (existingStudent) {
       return NextResponse.json(
