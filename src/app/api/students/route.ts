@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import type { Student } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
+import { parseClass } from '@/lib/class-utils'
 import { studentSchema } from '@/lib/validations'
 import { auth } from '@/lib/auth'
 // import { createAdminLog, AdminActions } from '@/lib/admin-log'
@@ -33,30 +34,36 @@ export async function GET(request: NextRequest) {
       where.status = statusFilter
     }
 
-    // PAGINATION: Use 'take' and 'skip' to limit database load
-    // SELECTIVE FETCHING: Only pull essential fields (exclude heavy relations like academicRecords)
-    const [students, total] = await Promise.all([
-      prisma.student.findMany({
-        where,
-        take: limit, // Only fetch the requested number of records
-        skip: skip,  // Efficiently skip records for pagination
-        select: {    // ONLY fetch what is needed for the dashboard list
-          id: true,
-          name: true,
-          regNo: true,
-          class: true,
-          status: true,
-          academicYear: true,
-          promotionStatus: true,
-          // academicRecords is excluded by default when using select
-        },
-        orderBy: [
-          { class: 'desc' },
-          { name: 'asc' }
-        ],
-      }),
-      prisma.student.count({ where }),
-    ])
+    const studentsAll = await prisma.student.findMany({
+      where,
+      select: {
+        id: true,
+        name: true,
+        regNo: true,
+        class: true,
+        status: true,
+        academicYear: true,
+        promotionStatus: true,
+      },
+    })
+
+    const students = studentsAll
+      .slice()
+      .sort((a, b) => {
+        const classA = parseClass(a.class)
+        const classB = parseClass(b.class)
+
+        if (Number.isNaN(classA) && Number.isNaN(classB)) return 0
+        if (Number.isNaN(classA)) return 1
+        if (Number.isNaN(classB)) return -1
+
+        if (classA !== classB) return classB - classA
+
+        return a.name.localeCompare(b.name)
+      })
+      .slice(skip, skip + limit)
+
+    const total = studentsAll.length
 
     return NextResponse.json({
       students,

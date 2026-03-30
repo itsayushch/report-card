@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { getNextClass } from '@/lib/calculations'
+import { PromotionStatus } from '@prisma/client'
 
 // POST - Promote or detain students (for the class teacher's assigned class)
 export async function POST(request: NextRequest) {
@@ -76,7 +77,11 @@ export async function POST(request: NextRequest) {
 
     const updateData = {
       promotionStatus:
-        action === 'PROMOTE' ? 'PROMOTED' : action === 'DETAIN' ? 'DETAINED' : 'PENDING',
+        action === 'PROMOTE'
+          ? PromotionStatus.PROMOTED
+          : action === 'DETAIN'
+            ? PromotionStatus.DETAINED
+            : PromotionStatus.PENDING,
     }
 
     if (validStudentIds.length > 0) {

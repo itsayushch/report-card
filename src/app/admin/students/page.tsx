@@ -79,7 +79,16 @@ export default function StudentsPage() {
     }),
   })
 
-  const students: Student[] = data?.students ?? []
+  const students: Student[] = (data?.students ?? []).slice().sort((a, b) => {
+    const classA = Number.parseInt(a.class, 10)
+    const classB = Number.parseInt(b.class, 10)
+
+    if (Number.isNaN(classA) && Number.isNaN(classB)) return 0
+    if (Number.isNaN(classA)) return 1
+    if (Number.isNaN(classB)) return -1
+
+    return classB - classA
+  })
   const pagination: PaginationInfo = data?.pagination ?? { total: 0, page: 1, limit: 10, totalPages: 0 }
 
   useEffect(() => {

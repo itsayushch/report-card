@@ -40,21 +40,25 @@ export const authOptions = {
 
         const role = credentials.role as UserRole
 
-        // Check if it's a student login (regNo format)
         console.log('Login attempt:', credentials.email, 'Role:', role);
 
-        const student = await prisma.student.findUnique({
-          where: { regNo: credentials.email as string }, // Using email field but checking regNo
-        })
+        if (role === 'STUDENT') {
+          const student = await prisma.student.findUnique({
+            where: { regNo: credentials.email as string },
+          })
 
-        if (student) {
-          console.log('Student found:', student.regNo, 'Password in DB:', student.password, 'Input password:', credentials.password);
-          
+          if (!student) {
+            console.log('No student found with this registration number')
+            return null
+          }
+
+          console.log('Student found:', student.regNo, 'Password in DB:', student.password, 'Input password:', credentials.password)
+
           // For students, use password field if exists, otherwise fall back to regNo
           const studentPassword = student.password || student.regNo
-          
-          console.log('Expected password:', studentPassword, 'Match:', credentials.password === studentPassword);
-          
+
+          console.log('Expected password:', studentPassword, 'Match:', credentials.password === studentPassword)
+
           if (credentials.password === studentPassword) {
             return {
               id: student.id,
@@ -63,15 +67,8 @@ export const authOptions = {
               role: 'STUDENT',
             }
           }
-          console.log('Password mismatch!');
-          return null
-        }
 
-        console.log('Student not found, checking teacher');
-
-        // If role is STUDENT but no student found, don't check teacher
-        if (role === 'STUDENT') {
-          console.log('No student found with this registration number');
+          console.log('Password mismatch!')
           return null
         }
 
