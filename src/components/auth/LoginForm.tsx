@@ -63,8 +63,7 @@ export default function LoginForm() {
       }
 
       setIsRedirecting(true)
-      router.push(getDashboardByRole(data.role))
-      router.refresh()
+      router.replace(getDashboardByRole(data.role))
     } catch {
       setError('An unexpected error occurred')
     } finally {

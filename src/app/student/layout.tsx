@@ -9,7 +9,7 @@ export default async function StudentLayout({
 }) {
   const session = await auth()
 
-  if (!session || session.user.role !== 'STUDENT') {
+  if (!session?.user || session.user.role !== 'STUDENT') {
     redirect('/login')
   }
 
