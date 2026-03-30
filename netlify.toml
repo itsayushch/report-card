@@ -1,11 +1,8 @@
 [build]
   command = "npm run build"
-  publish = ".next"
 
 [build.environment]
-  # Exclude environment variables from secrets scanning
-  # NEXT_PUBLIC_* variables are intentionally exposed to the browser in Next.js
-  # NEXTAUTH_URL and DATABASE_URL are URLs that may appear in build output
+  NODE_VERSION = "20"
   SECRETS_SCAN_OMIT_KEYS = "NEXT_PUBLIC_BASE_URL,NEXTAUTH_URL,DATABASE_URL"
 
 [[plugins]]
