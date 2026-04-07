@@ -63,13 +63,13 @@ const subjectsList1 = [
   {
     id: "SPELL-1",
     name: "Spelling",
-    dataType: "string",
+    dataType: "number",
     order: 10
   },
   {
     id: "GK-1",
     name: "G.K.",
-    dataType: "string",
+    dataType: "number",
     order: 11
   },
   {
@@ -157,13 +157,13 @@ const subjectsList2 = [
   {
     id: "SPELL-2",
     name: "Spelling",
-    dataType: "string",
+    dataType: "number",
     order: 7
   },
   {
     id: "GK-2",
     name: "G.K.",
-    dataType: "string",
+    dataType: "number",
     order: 8
   },
   {
@@ -287,13 +287,13 @@ const subjectsList3 = [
   {
     id: "SPELL-3",
     name: "Spelling / Dictation",
-    dataType: "string",
+    dataType: "number",
     order: 11
   },
   {
     id: "GK-3",
     name: "G.K",
-    dataType: "string",
+    dataType: "number",
     order: 12
   },
   {
@@ -393,13 +393,13 @@ const subjectsList4 = [
   {
     id: "SPELL-4",
     name: "Spelling / Dictation",
-    dataType: "string",
+    dataType: "number",
     order: 11
   },
   {
     id: "GK-4",
     name: "G.K",
-    dataType: "string",
+    dataType: "number",
     order: 12
   },
   {

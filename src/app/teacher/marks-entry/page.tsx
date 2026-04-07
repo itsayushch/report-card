@@ -292,9 +292,10 @@ export default function MarksEntryPage() {
         }
       } else if (field === 'grade') {
         // For alphabetical grading subjects
-        entry.grade = value.toUpperCase()
+        const sanitized = String(value).toUpperCase().replace(/[^A-E]/g, '')
+        entry.grade = sanitized.slice(0, 1)
         // Set marks to the grade value for non-numeric subjects
-        entry.marks = value.toUpperCase()
+        entry.marks = entry.grade
       } else {
         entry[field] = value
       }
@@ -800,6 +801,7 @@ export default function MarksEntryPage() {
                                     onChange={(e) =>
                                       updateMark(student.id, 'marks', e.target.value)
                                     }
+                                    onWheel={(e) => e.currentTarget.blur()}
                                     className="text-lg h-12 text-center font-semibold"
                                     placeholder="0"
                                   />
@@ -812,7 +814,7 @@ export default function MarksEntryPage() {
                                     }
                                     className="text-lg h-12 text-center font-semibold uppercase"
                                     placeholder="A/B/C"
-                                    maxLength={2}
+                                    maxLength={1}
                                   />
                                 )}
                               </div>
@@ -854,6 +856,7 @@ export default function MarksEntryPage() {
                                     onChange={(e) =>
                                       updateMark(student.id, 'marks', e.target.value)
                                     }
+                                    onWheel={(e) => e.currentTarget.blur()}
                                     className="w-28 text-center text-base font-semibold mx-auto"
                                     placeholder="0"
                                   />
@@ -866,7 +869,7 @@ export default function MarksEntryPage() {
                                     }
                                     className="w-28 text-center text-base font-semibold mx-auto uppercase"
                                     placeholder="A/B/C"
-                                    maxLength={2}
+                                    maxLength={1}
                                   />
                                 )}
                               </TableCell>
