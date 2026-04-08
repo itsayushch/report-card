@@ -12,7 +12,7 @@ import {
 } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
 import { toast } from 'sonner'
-import { Loader2, Save, AlertCircle, ExternalLink, Search } from 'lucide-react'
+import { Loader2, Save, AlertCircle, ExternalLink, Search, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
 import { formatClass } from '@/lib/class-utils'
@@ -51,6 +51,13 @@ interface RemarksEntry {
   remarks: string
 }
 
+interface PaginationInfo {
+  total: number
+  page: number
+  limit: number
+  totalPages: number
+}
+
 export default function ClassRemarksPage() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -67,6 +74,17 @@ export default function ClassRemarksPage() {
   const [hasChanges, setHasChanges] = useState(false)
   const [terms, setTerms] = useState<any[]>([])
   const [searchQuery, setSearchQuery] = useState('')
+  const [paginationParams, setPaginationParams] = useState({
+    page: 1,
+    limit: 20,
+  })
+  const [pagination, setPagination] = useState<PaginationInfo>({
+    total: 0,
+    page: 1,
+    limit: 20,
+    totalPages: 0,
+  })
+  const [pageInput, setPageInput] = useState('1')
 
   useEffect(() => {
     fetchInitialData()
@@ -80,7 +98,11 @@ export default function ClassRemarksPage() {
     ) {
       fetchStudentsAndRemarks()
     }
-  }, [selectedTerm])
+  }, [selectedTerm, paginationParams.page, paginationParams.limit, searchQuery])
+
+  useEffect(() => {
+    setPageInput(paginationParams.page.toString())
+  }, [paginationParams.page])
 
   const fetchInitialData = async () => {
     try {
@@ -138,8 +160,19 @@ export default function ClassRemarksPage() {
 
     try {
       setLoading(true)
+      const params = new URLSearchParams({
+        class: classTeacherInfo.class,
+        status: 'ACTIVE',
+        page: paginationParams.page.toString(),
+        limit: paginationParams.limit.toString(),
+      })
+
+      if (searchQuery.trim()) {
+        params.append('search', searchQuery.trim())
+      }
+
       const [studentsRes, remarksRes] = await Promise.all([
-        fetch(`/api/students?class=${classTeacherInfo.class}&status=ACTIVE`),
+        fetch(`/api/students?${params.toString()}`),
         fetch(
           `/api/teacher/class-remarks?class=${classTeacherInfo.class}&term=${selectedTerm}&academicYear=${activeYear.year}`
         ),
@@ -155,6 +188,14 @@ export default function ClassRemarksPage() {
       // Get students array from API response
       const studentsArray = studentsData.students || studentsData || []
       setStudents(studentsArray)
+      setPagination(
+        studentsData.pagination || {
+          total: studentsArray.length,
+          page: paginationParams.page,
+          limit: paginationParams.limit,
+          totalPages: studentsArray.length > 0 ? 1 : 0,
+        }
+      )
 
       // Initialize remarks data and marks data
       const newRemarksMap = new Map<string, RemarksEntry>()
@@ -198,6 +239,60 @@ export default function ClassRemarksPage() {
       setHasChanges(true)
     }
   }
+
+  const handleTermChange = (term: string) => {
+    if (hasChanges) {
+      toast.error('Please save your changes before changing term')
+      return
+    }
+
+    setSelectedTerm(term)
+    setSearchQuery('')
+    setPaginationParams((prev) => ({ ...prev, page: 1 }))
+  }
+
+  const handleSearchChange = (value: string) => {
+    if (hasChanges) {
+      toast.error('Please save your changes before searching')
+      return
+    }
+
+    setSearchQuery(value)
+    setPaginationParams((prev) => ({ ...prev, page: 1 }))
+  }
+
+  const handlePageChange = (nextPage: number) => {
+    if (hasChanges) {
+      toast.error('Please save your changes before changing page')
+      return
+    }
+
+    setPaginationParams((prev) => {
+      const safeTotal = pagination.totalPages || 1
+      const clamped = Math.min(Math.max(1, nextPage), safeTotal)
+      return { ...prev, page: clamped }
+    })
+  }
+
+  const handleLimitChange = (value: string) => {
+    if (hasChanges) {
+      toast.error('Please save your changes before changing page size')
+      return
+    }
+
+    const numeric = Number(value)
+    if (!Number.isFinite(numeric) || numeric <= 0) return
+    setPaginationParams((prev) => ({ ...prev, limit: numeric, page: 1 }))
+  }
+
+  const handlePageInputSubmit = () => {
+    const numeric = Number(pageInput)
+    if (!Number.isFinite(numeric)) return
+    handlePageChange(numeric)
+  }
+
+  const pageStart = pagination.total === 0 ? 0 : (pagination.page - 1) * pagination.limit + 1
+  const pageEnd = Math.min(pagination.page * pagination.limit, pagination.total)
 
   const handleSaveRemarks = async () => {
     if (!activeYear || !selectedTerm) {
@@ -326,7 +421,7 @@ export default function ClassRemarksPage() {
               </div>
               {/* Filter row: term selector + search */}
               <div className="flex flex-col sm:flex-row gap-2">
-                <Select value={selectedTerm} onValueChange={(v) => { setSelectedTerm(v); setSearchQuery('') }}>
+                <Select value={selectedTerm} onValueChange={handleTermChange}>
                   <SelectTrigger className="w-full sm:w-52">
                     <SelectValue placeholder="Select term" />
                   </SelectTrigger>
@@ -343,7 +438,7 @@ export default function ClassRemarksPage() {
                   <Input
                     placeholder="Search by name or reg no…"
                     value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
+                    onChange={(e) => handleSearchChange(e.target.value)}
                     className="pl-9"
                   />
                 </div>
@@ -365,16 +460,7 @@ export default function ClassRemarksPage() {
               </p>
             ) : (
               <div className="space-y-6">
-                {students
-                  .filter((student) => {
-                    if (!searchQuery.trim()) return true
-                    const q = searchQuery.toLowerCase()
-                    return (
-                      student.name.toLowerCase().includes(q) ||
-                      student.regNo.toLowerCase().includes(q)
-                    )
-                  })
-                  .map((student) => {
+                {students.map((student) => {
                   const entry = remarksData.get(student.id)
                   const marks = studentMarksData.get(student.id) || []
                   
@@ -444,6 +530,87 @@ export default function ClassRemarksPage() {
                     </div>
                   )
                 })}
+
+                <div className="border-t pt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <p className="text-sm text-muted-foreground">
+                    Showing {pageStart}-{pageEnd} of {pagination.total} students
+                  </p>
+
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Select value={paginationParams.limit.toString()} onValueChange={handleLimitChange}>
+                      <SelectTrigger className="h-9 w-28">
+                        <SelectValue placeholder="Rows" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="10">10 / page</SelectItem>
+                        <SelectItem value="20">20 / page</SelectItem>
+                        <SelectItem value="50">50 / page</SelectItem>
+                      </SelectContent>
+                    </Select>
+
+                    <div className="flex items-center gap-1">
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        className="h-9 w-9"
+                        onClick={() => handlePageChange(1)}
+                        disabled={pagination.page <= 1}
+                        aria-label="First page"
+                      >
+                        <ChevronsLeft className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        className="h-9 w-9"
+                        onClick={() => handlePageChange(pagination.page - 1)}
+                        disabled={pagination.page <= 1}
+                        aria-label="Previous page"
+                      >
+                        <ChevronLeft className="h-4 w-4" />
+                      </Button>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <Input
+                        value={pageInput}
+                        onChange={(e) => setPageInput(e.target.value.replace(/[^0-9]/g, ''))}
+                        onBlur={handlePageInputSubmit}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            handlePageInputSubmit()
+                          }
+                        }}
+                        className="h-9 w-16 text-center"
+                        aria-label="Page number"
+                      />
+                      <span className="text-sm text-muted-foreground">/ {Math.max(pagination.totalPages, 1)}</span>
+                    </div>
+
+                    <div className="flex items-center gap-1">
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        className="h-9 w-9"
+                        onClick={() => handlePageChange(pagination.page + 1)}
+                        disabled={pagination.page >= pagination.totalPages}
+                        aria-label="Next page"
+                      >
+                        <ChevronRight className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        className="h-9 w-9"
+                        onClick={() => handlePageChange(pagination.totalPages)}
+                        disabled={pagination.page >= pagination.totalPages}
+                        aria-label="Last page"
+                      >
+                        <ChevronsRight className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                </div>
               </div>
             )}
           </CardContent>
