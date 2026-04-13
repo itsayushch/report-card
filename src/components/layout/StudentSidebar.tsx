@@ -7,8 +7,7 @@ import { cn } from '@/lib/utils'
 import { signOut } from 'next-auth/react'
 import {
   LayoutDashboard,
-  TrendingUp,
-  User,
+  FileText,
   LogOut,
 } from 'lucide-react'
 
@@ -18,16 +17,11 @@ const menuItems = [
     href: '/student/dashboard',
     icon: LayoutDashboard,
   },
-  // {
-  //   title: 'Performance',
-  //   href: '/student/performance',
-  //   icon: TrendingUp,
-  // },
-  // {
-  //   title: 'My Profile',
-  //   href: '/student/profile',
-  //   icon: User,
-  // },
+  {
+    title: 'Results',
+    href: '/student/report-card',
+    icon: FileText,
+  },
 ]
 
 export function StudentSidebar() {

@@ -1,11 +1,11 @@
 'use client'
 
+import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
-import { User, Calendar } from 'lucide-react'
+import { User, Calendar, FileText, ArrowRight } from 'lucide-react'
 import { Skeleton } from '@/components/ui/skeleton'
 import { formatClass } from '@/lib/class-utils'
 
@@ -122,6 +122,15 @@ export default function StudentDashboard() {
     .toUpperCase()
     .slice(0, 2) || ''
 
+  const quickActions = [
+    {
+      title: 'View Results',
+      href: '/student/report-card',
+      icon: FileText,
+      description: 'Check published report cards by year and term',
+    },
+  ]
+
 
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-6">
@@ -168,6 +177,36 @@ export default function StudentDashboard() {
               </div>
             </div>
 
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-xl">Quick Actions</CardTitle>
+          <CardDescription>Jump to important student tasks</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid gap-3 sm:grid-cols-2">
+            {quickActions.map((action) => {
+              const Icon = action.icon
+              return (
+                <Link key={action.title} href={action.href}>
+                  <div className="group flex items-start gap-3 rounded-lg border p-4 hover:bg-accent hover:shadow-sm transition-all cursor-pointer">
+                    <div className="p-2 rounded-md bg-muted">
+                      <Icon className="h-4 w-4 text-muted-foreground" />
+                    </div>
+                    <div className="flex-1 space-y-1">
+                      <div className="flex items-center justify-between">
+                        <p className="font-medium leading-none">{action.title}</p>
+                        <ArrowRight className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+                      </div>
+                      <p className="text-sm text-muted-foreground">{action.description}</p>
+                    </div>
+                  </div>
+                </Link>
+              )
+            })}
           </div>
         </CardContent>
       </Card>
