@@ -22,7 +22,7 @@ import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Badge } from '@/components/ui/badge'
 import { toast } from 'sonner'
-import { Loader2, Save, Download, Upload, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react'
+import { Loader2, Save, Download, Upload, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Check } from 'lucide-react'
 import { Skeleton } from '@/components/ui/skeleton'
 import { calculateGrade, getGradeColor } from '@/lib/calculations'
 import Papa from 'papaparse'
@@ -56,6 +56,7 @@ interface MarkEntry {
   subjectId: string
   marks: number | string
   grade: string
+  isAbsent: boolean
   teacherRemarks: string
 }
 
@@ -64,6 +65,7 @@ interface ExistingMark {
   subjectId: string
   marks: number
   grade: string
+  isAbsent?: boolean
   teacherRemarks: string | null
 }
 
@@ -244,14 +246,16 @@ export default function MarksEntryPage() {
         const existingMark = marksData.find(
           (m: ExistingMark) => m.studentId === student.id
         )
+        const isAbsent = Boolean(existingMark?.isAbsent || existingMark?.grade === 'AB')
 
         // For alphabetical subjects, prioritize grade over marks
         
         newMarksMap.set(student.id, {
           studentId: student.id,
           subjectId: selectedSubject,
-          marks: isAlphabetical ? (existingMark?.grade || '') : (existingMark?.marks ?? ''),
-          grade: existingMark?.grade || '',
+          marks: isAbsent ? '' : (isAlphabetical ? (existingMark?.grade || '') : (existingMark?.marks ?? '')),
+          grade: isAbsent ? 'AB' : (existingMark?.grade || ''),
+          isAbsent,
           teacherRemarks: existingMark?.teacherRemarks || '',
         })
       })
@@ -266,18 +270,32 @@ export default function MarksEntryPage() {
     }
   }
 
-  const updateMark = (studentId: string, field: keyof MarkEntry, value: any) => {
+  const updateMark = (
+    studentId: string,
+    field: 'marks' | 'grade' | 'teacherRemarks',
+    value: string | number
+  ) => {
     const newMarksMap = new Map(marksData)
     const entry = newMarksMap.get(studentId)
     
     if (entry) {
       if (field === 'marks') {
-        const marks = value === '' ? '' : parseFloat(value)
+        if (entry.isAbsent) {
+          return
+        }
+
+        const normalizedValue = typeof value === 'number' ? value : Number(value)
+        const marks = value === '' ? '' : normalizedValue
         
-        if (marks !== '' && !isNaN(marks)) {
+        if (marks !== '' && Number.isFinite(marks)) {
           // Get max marks from the term configuration
           const currentTerm = termsForClass.find(t => t.name === selectedTerm)
           const maxMarks = currentTerm?.maxMarks || 100
+
+          if (marks < 0) {
+            toast.error('Marks cannot be less than 0')
+            return
+          }
           
           if (marks > maxMarks) {
             toast.error(`Marks cannot exceed ${maxMarks}`)
@@ -288,16 +306,22 @@ export default function MarksEntryPage() {
           entry.grade = calculateGrade(marks)
         } else {
           entry.marks = ''
-          entry.grade = ''
+          if (entry.grade !== 'AB') {
+            entry.grade = ''
+          }
         }
       } else if (field === 'grade') {
+        if (entry.isAbsent) {
+          return
+        }
+
         // For alphabetical grading subjects
         const sanitized = String(value).toUpperCase().replace(/[^A-E]/g, '')
         entry.grade = sanitized.slice(0, 1)
         // Set marks to the grade value for non-numeric subjects
         entry.marks = entry.grade
-      } else {
-        entry[field] = value
+      } else if (field === 'teacherRemarks') {
+        entry.teacherRemarks = String(value)
       }
       
       newMarksMap.set(studentId, entry)
@@ -305,6 +329,29 @@ export default function MarksEntryPage() {
       setChangedStudents(prev => new Set(prev).add(studentId))
       setHasChanges(true) // Mark that changes have been made
     }
+  }
+
+  const toggleAbsent = (studentId: string, absent: boolean) => {
+    const newMarksMap = new Map(marksData)
+    const entry = newMarksMap.get(studentId)
+
+    if (!entry) {
+      return
+    }
+
+    entry.isAbsent = absent
+    if (absent) {
+      entry.grade = 'AB'
+      entry.marks = ''
+    } else if (entry.grade === 'AB') {
+      entry.grade = ''
+      entry.marks = ''
+    }
+
+    newMarksMap.set(studentId, entry)
+    setMarksData(newMarksMap)
+    setChangedStudents(prev => new Set(prev).add(studentId))
+    setHasChanges(true)
   }
 
   const handleSaveMarks = async () => {
@@ -789,10 +836,22 @@ export default function MarksEntryPage() {
                               
                               {/* Marks Input */}
                               <div className="space-y-2">
-                                <label className="text-sm font-medium text-gray-700">
+                                <label className="text-sm font-medium text-gray-700 flex items-center justify-between">
                                   {isNumericSubject ? `Marks (Max: ${maxMarks})` : 'Grade'}
+                                  {entry.isAbsent && (
+                                    <span className="text-xs font-semibold text-amber-700 bg-amber-100 border border-amber-200 px-2 py-0.5 rounded-full">
+                                      AB
+                                    </span>
+                                  )}
                                 </label>
-                                {isNumericSubject ? (
+                                {entry.isAbsent ? (
+                                  <Input
+                                    type="text"
+                                    value="AB"
+                                    disabled
+                                    className="text-lg h-12 text-center font-semibold bg-amber-50 border-amber-200 text-amber-900"
+                                  />
+                                ) : isNumericSubject ? (
                                   <Input
                                     type="number"
                                     min="0"
@@ -818,6 +877,38 @@ export default function MarksEntryPage() {
                                   />
                                 )}
                               </div>
+
+                              <div className="pt-1">
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  size="default"
+                                  onClick={() => toggleAbsent(student.id, !entry.isAbsent)}
+                                  aria-pressed={entry.isAbsent}
+                                  aria-label={entry.isAbsent ? 'Unmark absent' : 'Mark absent'}
+                                  className={entry.isAbsent
+                                    ? 'w-full justify-start border-amber-300 bg-amber-50 text-amber-900 hover:bg-amber-100 h-11 px-3'
+                                    : 'w-full justify-start border-slate-200 bg-white text-slate-700 hover:bg-slate-100 h-11 px-3'}
+                                >
+                                  <span className="flex w-full items-center justify-between">
+                                    <span className="flex items-center gap-2">
+                                      <span
+                                        aria-hidden="true"
+                                        className={`inline-flex h-4 w-4 items-center justify-center rounded-sm border transition-colors ${entry.isAbsent ? 'border-amber-700 bg-amber-700 text-white' : 'border-slate-400 bg-white text-transparent'}`}
+                                      >
+                                        <Check className="h-3 w-3" />
+                                      </span>
+                                      <span className="font-medium">Mark as Absent</span>
+                                    </span>
+                                    <span
+                                      aria-hidden="true"
+                                      className={`text-xs font-semibold px-2 py-0.5 rounded-full ${entry.isAbsent ? 'bg-amber-200 text-amber-800' : 'bg-slate-100 text-slate-500'}`}
+                                    >
+                                      {entry.isAbsent ? 'ON' : 'OFF'}
+                                    </span>
+                                  </span>
+                                </Button>
+                              </div>
                             </div>
                           </CardContent>
                         </Card>
@@ -833,6 +924,7 @@ export default function MarksEntryPage() {
                           <TableHead className="w-32">Reg. Number</TableHead>
                           <TableHead>Student Name</TableHead>
                           <TableHead className="w-40 text-center">{isNumericSubject ? 'Marks' : 'Grade'}</TableHead>
+                          <TableHead className="w-28 text-center">Absent</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
@@ -847,7 +939,14 @@ export default function MarksEntryPage() {
                               </TableCell>
                               <TableCell className="font-medium">{student.name}</TableCell>
                               <TableCell className="text-center">
-                                {isNumericSubject ? (
+                                {entry.isAbsent ? (
+                                  <Input
+                                    type="text"
+                                    value="AB"
+                                    disabled
+                                    className="w-28 text-center text-base font-semibold mx-auto"
+                                  />
+                                ) : isNumericSubject ? (
                                   <Input
                                     type="number"
                                     min="0"
@@ -872,6 +971,28 @@ export default function MarksEntryPage() {
                                     maxLength={1}
                                   />
                                 )}
+                              </TableCell>
+                              <TableCell className="text-center">
+                                <Button
+                                  type="button"
+                                  variant={entry.isAbsent ? 'default' : 'outline'}
+                                  size="sm"
+                                  onClick={() => toggleAbsent(student.id, !entry.isAbsent)}
+                                  aria-pressed={entry.isAbsent}
+                                  className={entry.isAbsent
+                                    ? 'bg-amber-600 hover:bg-amber-700 text-white border-amber-600 min-w-28'
+                                    : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-100 min-w-28'}
+                                >
+                                  <span className="flex items-center gap-2">
+                                    <span
+                                      aria-hidden="true"
+                                      className={`inline-flex h-4 w-4 items-center justify-center rounded-sm border transition-colors ${entry.isAbsent ? 'border-white bg-white text-amber-700' : 'border-slate-400 bg-white text-transparent'}`}
+                                    >
+                                      <Check className="h-3 w-3" />
+                                    </span>
+                                    Mark As Absent
+                                  </span>
+                                </Button>
                               </TableCell>
                             </TableRow>
                           )

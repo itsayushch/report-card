@@ -35,8 +35,9 @@ export async function GET(request: NextRequest) {
     const marks = marksData.map(data => ({
       studentId: data?.studentId || '',
       subjectId: subject,
-      marks: data?.marks || 0,
+      marks: data?.marks ?? 0,
       grade: data?.grade || '',
+      isAbsent: data?.grade === 'AB',
       teacherRemarks: null,
     }))
 

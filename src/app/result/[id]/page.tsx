@@ -233,6 +233,16 @@ function PrintableReportCardContent() {
     return termData.subjects.find((s) => s.subjectCode === subjectCode);
   };
 
+  const renderSubjectTermValue = (
+    termMark: { marks: number; grade: string } | null | undefined,
+    isAlphabetical: boolean
+  ) => {
+    if (!termMark) return "-";
+    if (termMark.grade === "AB") return "AB";
+    if (isAlphabetical && termMark.grade) return termMark.grade;
+    return termMark.marks;
+  };
+
   const currentTerm = searchParams.get("term");
 
   // Calculate cumulative marks up to each term
@@ -520,7 +530,7 @@ function PrintableReportCardContent() {
                     >
                       MARKS OBTAINED
                     </th>
-                    <th className="border-r border-blue-800 px-3 py-2 text-center text-sm font-bold text-gray-900 w-20 print:px-2 print:py-1.5 print:text-xs">
+                    <th className="border-r border-blue-800 px-1.5 py-2 text-center text-sm font-bold text-gray-900 w-20 print:px-1 print:py-1.5 print:text-xs">
                       AVERAGE
                       <br />
                       (100)
@@ -600,18 +610,18 @@ function PrintableReportCardContent() {
                             ?.name || subjectCode}
                         </td>
                         <td className="border-r border-blue-800 px-2 py-1.5 text-center text-sm font-semibold text-gray-900 print:px-1.5 print:py-1 print:text-xs">
-                          {term1 ? (isAlphabetical && term1.grade ? term1.grade : term1.marks) : "-"}
+                          {renderSubjectTermValue(term1, isAlphabetical)}
                         </td>
                         <td className="border-r border-blue-800 px-2 py-1.5 text-center text-sm font-semibold text-gray-900 print:px-1.5 print:py-1 print:text-xs">
-                          {term2 ? (isAlphabetical && term2.grade ? term2.grade : term2.marks) : "-"}
+                          {renderSubjectTermValue(term2, isAlphabetical)}
                         </td>
                         <td className="border-r border-blue-800 px-2 py-1.5 text-center text-sm font-semibold text-gray-900 print:px-1.5 print:py-1 print:text-xs">
-                          {term3 ? (isAlphabetical && term3.grade ? term3.grade : term3.marks) : "-"}
+                          {renderSubjectTermValue(term3, isAlphabetical)}
                         </td>
                         <td className="border-r border-blue-800 px-2 py-1.5 text-center text-sm font-semibold text-gray-900 print:px-1.5 print:py-1 print:text-xs">
-                          {term4 ? (isAlphabetical && term4.grade ? term4.grade : term4.marks) : "-"}
+                          {renderSubjectTermValue(term4, isAlphabetical)}
                         </td>
-                        <td className="border-r border-blue-800 px-2 py-1.5 text-center text-sm font-semibold text-gray-900 print:px-1.5 print:py-1 print:text-xs">
+                        <td className="border-r border-blue-800 px-1 py-1.5 text-center text-sm font-semibold text-gray-900 print:px-1 print:py-1 print:text-xs whitespace-nowrap">
                           {isAlphabetical ? "-" : (hasMarks
                             ? averagePercentage.toFixed(0)
                             : "-")}
@@ -645,7 +655,7 @@ function PrintableReportCardContent() {
                         ? `${data.termReports["Final Term"].totalObtained} / ${data.termReports["Final Term"].totalMax}`
                         : "-"}
                     </td>
-                    <td className="border-r border-blue-800 px-2 py-2 text-center text-sm font-bold text-gray-900 print:px-1.5 print:py-1.5 print:text-xs">
+                    <td className="border-r border-blue-800 px-1 py-2 text-center text-sm font-bold text-gray-900 print:px-1 print:py-1.5 print:text-xs whitespace-nowrap">
                       {(() => {
                         let totalAverage = 0;
                         let subjectCount = 0;

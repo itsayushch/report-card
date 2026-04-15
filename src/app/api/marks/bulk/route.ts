@@ -9,6 +9,7 @@ interface MarkInput {
   subjectId: string
   marks: number | string
   grade: string
+  isAbsent?: boolean
   term: string
   academicYear: string
   teacherRemarks?: string
@@ -87,12 +88,16 @@ export async function POST(request: NextRequest) {
       const maxMarksForTerm = termConfig?.maxMarks || 100 // Fallback to 100 if not found
 
       // Transform marks to subject format
-      const subjects = studentMarks.map(mark => ({
-        subjectCode: mark.subjectId,
-        marks: typeof mark.marks === 'string' ? 0 : mark.marks, // For alphabetical grading
-        maxMarks: maxMarksForTerm, // Use correct maxMarks from term definition
-        grade: mark.grade || undefined,
-      }))
+      const subjects = studentMarks.map(mark => {
+        const isAbsent = Boolean(mark.isAbsent)
+
+        return {
+          subjectCode: mark.subjectId,
+          marks: isAbsent ? 0 : (typeof mark.marks === 'string' ? 0 : mark.marks), // For alphabetical grading
+          maxMarks: maxMarksForTerm, // Use correct maxMarks from term definition
+          grade: isAbsent ? 'AB' : (mark.grade || undefined),
+        }
+      })
 
       // Upsert the term marks
       updates.push(
