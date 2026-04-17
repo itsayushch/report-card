@@ -1,7 +1,7 @@
 'use client'
 
 import Image from 'next/image'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { signIn } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -25,6 +25,12 @@ export default function LoginForm() {
   const [error, setError] = useState<string>('')
   const [isLoading, setIsLoading] = useState(false)
   const [isRedirecting, setIsRedirecting] = useState(false)
+
+  const [mounted, setMounted] = useState(false)
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
 
   const {
     register,
@@ -71,6 +77,8 @@ export default function LoginForm() {
     }
   }
 
+  const currentYear = mounted ? new Date().getFullYear() : ''
+
   return (
     <div className="min-h-screen flex">
       {isRedirecting && (
@@ -80,8 +88,8 @@ export default function LoginForm() {
               <div className="w-16 h-16 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin" />
             </div>
             <div className="text-center">
-              <p className="text-lg font-semibold text-gray-900">Loading Dashboard...</p>
-              <p className="text-sm text-gray-500 mt-1">Please wait</p>
+              <p className="text-lg font-semibold text-gray-900"><span>Loading Dashboard...</span></p>
+              <p className="text-sm text-gray-500 mt-1"><span>Please wait</span></p>
             </div>
           </div>
         </div>
@@ -106,9 +114,9 @@ export default function LoginForm() {
         </div>
 
         <div className="relative z-10 text-white">
-          <h2 className="text-4xl font-bold mb-4">Welcome!</h2>
+          <h2 className="text-4xl font-bold mb-4"><span>Welcome!</span></h2>
           <p className="text-blue-100 text-lg mb-8">
-            St. Helen&apos;s Secondary School Report Card Management System
+            <span>St. Helen&apos;s Secondary School Report Card Management System</span>
           </p>
           <div className="space-y-3">
             <div className="flex items-center space-x-3">
@@ -133,9 +141,9 @@ export default function LoginForm() {
         </div>
 
         <div className="relative z-10 text-blue-100 text-sm">
-          © {new Date().getFullYear()} St. Helen&apos;s School. All rights reserved. <br />
+          <span>© {currentYear} St. Helen&apos;s School. All rights reserved.</span> <br />
           <p className="text-blue-100 ml-3.5">
-            Developed by{' '}
+            <span>Developed by{' '}</span>
             <a
               href="https://www.weblyx.site/"
               target="_blank"
@@ -168,29 +176,29 @@ export default function LoginForm() {
             </div>
             <div className="text-center px-2 pb-3">
               <h1 className="text-white text-xl font-bold tracking-wide">
-                ST. HELEN&apos;S SECONDARY SCHOOL
+                <span>ST. HELEN&apos;S SECONDARY SCHOOL</span>
               </h1>
-              <h2 className="text-white text-xl font-bold tracking-wider">KURSEONG</h2>
+              <h2 className="text-white text-xl font-bold tracking-wider"><span>KURSEONG</span></h2>
             </div>
           </div>
 
           <div className="bg-white lg:bg-transparent rounded-2xl lg:rounded-none shadow-xl lg:shadow-none p-6 lg:p-0">
             <div className="mb-6">
-              <h2 className="text-3xl font-bold text-gray-900 mb-2">Sign In</h2>
-              <p className="text-gray-600">Enter your credentials to access your account</p>
+              <h2 className="text-3xl font-bold text-gray-900 mb-2"><span>Sign In</span></h2>
+              <p className="text-gray-600"><span>Enter your credentials to access your account</span></p>
             </div>
 
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
               {error && (
                 <Alert variant="destructive" className="bg-red-50 border-red-200">
                   <AlertCircle className="h-4 w-4" />
-                  <AlertDescription className="text-sm">{error}</AlertDescription>
+                  <AlertDescription className="text-sm"><span>{error}</span></AlertDescription>
                 </Alert>
               )}
 
               <div className="space-y-2">
                 <Label htmlFor="role" className="text-sm font-medium text-gray-700">
-                  Log in as
+                  <span>Log in as</span>
                 </Label>
                 <Select
                   value={selectedRole}
@@ -204,22 +212,22 @@ export default function LoginForm() {
                   </SelectTrigger>
                   <SelectContent className="min-w-70">
                     <SelectItem value="ADMIN" className="text-base">
-                      Administrator
+                      <span>Administrator</span>
                     </SelectItem>
                     <SelectItem value="TEACHER" className="text-base">
-                      Teacher
+                      <span>Teacher</span>
                     </SelectItem>
                     <SelectItem value="STUDENT" className="text-base">
-                      Student
+                      <span>Student</span>
                     </SelectItem>
                   </SelectContent>
                 </Select>
-                {errors.role && <p className="text-sm text-red-600 mt-1">{errors.role.message}</p>}
+                {errors.role && <p className="text-sm text-red-600 mt-1"><span>{errors.role.message}</span></p>}
               </div>
 
               <div className="space-y-2">
                 <Label htmlFor="email" className="text-sm font-medium text-gray-700">
-                  {selectedRole === 'STUDENT' ? 'Registration Number' : 'Email Address'}
+                  {selectedRole === 'STUDENT' ? <span>Registration Number</span> : <span>Email Address</span>}
                 </Label>
                 <Input
                   id="email"
@@ -231,12 +239,12 @@ export default function LoginForm() {
                   disabled={isLoading}
                   className="h-12 border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 rounded-lg"
                 />
-                {errors.email && <p className="text-sm text-red-600 mt-1">{errors.email.message}</p>}
+                {errors.email && <p className="text-sm text-red-600 mt-1"><span>{errors.email.message}</span></p>}
               </div>
 
               <div className="space-y-2">
                 <Label htmlFor="password" className="text-sm font-medium text-gray-700">
-                  Password
+                  <span>Password</span>
                 </Label>
                 <Input
                   id="password"
@@ -250,7 +258,7 @@ export default function LoginForm() {
                   disabled={isLoading}
                   className="h-12 border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 rounded-lg"
                 />
-                {errors.password && <p className="text-sm text-red-600 mt-1">{errors.password.message}</p>}
+                {errors.password && <p className="text-sm text-red-600 mt-1"><span>{errors.password.message}</span></p>}
               </div>
 
               <Button
@@ -280,19 +288,19 @@ export default function LoginForm() {
                         d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
                       />
                     </svg>
-                    Signing in...
+                    <span>Signing in...</span>
                   </span>
                 ) : (
-                  'Sign In'
+                  <span>Sign In</span>
                 )}
               </Button>
             </form>
           </div>
 
           <div className="lg:hidden mt-6 text-center text-sm text-gray-600 px-6">
-            <p>© {new Date().getFullYear()} St. Helen&apos;s School. All rights reserved.</p>
+            <p><span>© {currentYear} St. Helen&apos;s School. All rights reserved.</span></p>
             <p className="mt-1">
-              Developed by{' '}
+              <span>Developed by{' '}</span>
               <a
                 href="https://www.weblyx.site/"
                 target="_blank"
