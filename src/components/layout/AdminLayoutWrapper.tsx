@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { AdminSidebar } from './AdminSidebar'
 import { AdminHeader } from './AdminHeader'
-import { Sheet, SheetContent } from '@/components/ui/sheet'
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet'
 
 interface AdminLayoutWrapperProps {
   children: React.ReactNode
@@ -24,6 +24,10 @@ export function AdminLayoutWrapper({ children, userName, userEmail }: AdminLayou
       {/* Mobile Sidebar */}
       <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
         <SheetContent side="left" className="p-0 w-64">
+          <SheetHeader className="sr-only">
+            <SheetTitle>Admin Navigation</SheetTitle>
+            <SheetDescription>Access administration tools and dashboard</SheetDescription>
+          </SheetHeader>
           <AdminSidebar onClose={() => setMobileMenuOpen(false)} />
         </SheetContent>
       </Sheet>

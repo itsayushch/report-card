@@ -14,6 +14,7 @@ import {
   LogOut,
   TrendingUp,
   MessageSquare,
+  Loader2,
 } from 'lucide-react'
 
 const menuItems = [
@@ -42,6 +43,7 @@ const menuItems = [
 export function TeacherSidebar() {
   const pathname = usePathname()
   const [isClassTeacher, setIsClassTeacher] = useState(false)
+  const [isLoggingOut, setIsLoggingOut] = useState(false)
 
   const checkClassTeacherStatus = async () => {
     try {
@@ -66,6 +68,16 @@ export function TeacherSidebar() {
   useEffect(() => {
     checkClassTeacherStatus()
   }, [])
+
+  const handleSignOut = async () => {
+    try {
+      setIsLoggingOut(true)
+      await signOut({ callbackUrl: '/login' })
+    } catch (error) {
+      console.error('Logout failed:', error)
+      setIsLoggingOut(false)
+    }
+  }
 
   // Add promotion and class remarks to menu items if teacher is a class teacher
   const dynamicMenuItems = [
@@ -124,12 +136,22 @@ export function TeacherSidebar() {
       {/* Footer */}
       <div className="p-4 border-t border-gray-800">
         <button
-          onClick={() => signOut({ callbackUrl: '/login' })}
+          onClick={handleSignOut}
+          disabled={isLoggingOut}
           type="button"
-          className="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-300 hover:bg-gray-800 hover:text-white transition-colors w-full"
+          className={cn(
+            "flex items-center gap-3 px-4 py-3 rounded-lg text-gray-300 hover:bg-gray-800 hover:text-white transition-colors w-full disabled:opacity-50 disabled:cursor-not-allowed",
+            isLoggingOut && "bg-gray-800 text-white"
+          )}
         >
-          <LogOut className="h-5 w-5" />
-          <span className="font-medium">Sign Out</span>
+          {isLoggingOut ? (
+            <Loader2 className="h-5 w-5 animate-spin" />
+          ) : (
+            <LogOut className="h-5 w-5" />
+          )}
+          <span className="font-medium">
+            {isLoggingOut ? 'Signing Out...' : 'Sign Out'}
+          </span>
         </button>
       </div>
     </div>

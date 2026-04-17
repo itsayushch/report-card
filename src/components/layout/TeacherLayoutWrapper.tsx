@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { TeacherSidebar } from './TeacherSidebar'
 import { TeacherHeader } from './TeacherHeader'
-import { Sheet, SheetContent } from '@/components/ui/sheet'
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet'
 
 interface TeacherLayoutWrapperProps {
   children: React.ReactNode
@@ -30,6 +30,10 @@ export function TeacherLayoutWrapper({
       {/* Mobile Sidebar */}
       <Sheet open={sidebarOpen} onOpenChange={setSidebarOpen}>
         <SheetContent side="left" className="w-64 p-0">
+          <SheetHeader className="sr-only">
+            <SheetTitle>Navigation Menu</SheetTitle>
+            <SheetDescription>Access teacher dashboard and tools</SheetDescription>
+          </SheetHeader>
           <TeacherSidebar />
         </SheetContent>
       </Sheet>

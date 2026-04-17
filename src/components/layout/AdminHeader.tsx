@@ -1,6 +1,6 @@
 'use client'
 
-import { Menu, LogOut, User, Mail } from 'lucide-react'
+import { Menu, LogOut, User, Mail, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import {
@@ -12,6 +12,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { signOut } from 'next-auth/react'
+import { useState } from 'react'
 
 interface AdminHeaderProps {
   userName?: string
@@ -20,12 +21,23 @@ interface AdminHeaderProps {
 }
 
 export function AdminHeader({ userName = 'Admin', userEmail = '', onMenuClick }: AdminHeaderProps) {
+  const [isLoggingOut, setIsLoggingOut] = useState(false)
   const initials = userName
     .split(' ')
     .map((n) => n[0])
     .join('')
     .toUpperCase()
     .slice(0, 2)
+
+  const handleSignOut = async () => {
+    try {
+      setIsLoggingOut(true)
+      await signOut({ callbackUrl: '/login' })
+    } catch (error) {
+      console.error('Logout failed:', error)
+      setIsLoggingOut(false)
+    }
+  }
 
   return (
     <header className="h-16 border-b bg-white flex items-center justify-between px-4 lg:px-6">
@@ -78,11 +90,18 @@ export function AdminHeader({ userName = 'Admin', userEmail = '', onMenuClick }:
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuItem 
-              onClick={() => signOut({ callbackUrl: '/login' })} 
-              className="cursor-pointer text-red-600 focus:text-red-600 focus:bg-red-50 py-2.5"
+              onClick={handleSignOut}
+              disabled={isLoggingOut}
+              className="cursor-pointer text-red-600 focus:text-red-600 focus:bg-red-50 py-2.5 disabled:opacity-50"
             >
-              <LogOut className="mr-3 h-4 w-4" />
-              <span className="font-medium">Log out</span>
+              {isLoggingOut ? (
+                <Loader2 className="mr-3 h-4 w-4 animate-spin" />
+              ) : (
+                <LogOut className="mr-3 h-4 w-4" />
+              )}
+              <span className="font-medium">
+                {isLoggingOut ? 'Logging out...' : 'Log out'}
+              </span>
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

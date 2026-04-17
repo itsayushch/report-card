@@ -5,10 +5,12 @@ import Image from 'next/image'
 import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
 import { signOut } from 'next-auth/react'
+import { useState } from 'react'
 import {
   LayoutDashboard,
   FileText,
   LogOut,
+  Loader2,
 } from 'lucide-react'
 
 const menuItems = [
@@ -26,6 +28,17 @@ const menuItems = [
 
 export function StudentSidebar() {
   const pathname = usePathname()
+  const [isLoggingOut, setIsLoggingOut] = useState(false)
+
+  const handleSignOut = async () => {
+    try {
+      setIsLoggingOut(true)
+      await signOut({ callbackUrl: '/login' })
+    } catch (error) {
+      console.error('Logout failed:', error)
+      setIsLoggingOut(false)
+    }
+  }
 
   return (
     <div className="flex h-full flex-col bg-gray-900">
@@ -64,12 +77,22 @@ export function StudentSidebar() {
       {/* Footer */}
       <div className="p-4 border-t border-gray-800">
         <button
-          onClick={() => signOut({ callbackUrl: '/login' })}
+          onClick={handleSignOut}
+          disabled={isLoggingOut}
           type="button"
-          className="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-300 hover:bg-gray-800 hover:text-white transition-colors w-full"
+          className={cn(
+            "flex items-center gap-3 px-4 py-3 rounded-lg text-gray-300 hover:bg-gray-800 hover:text-white transition-colors w-full disabled:opacity-50 disabled:cursor-not-allowed",
+            isLoggingOut && "bg-gray-800 text-white"
+          )}
         >
-          <LogOut className="h-5 w-5" />
-          <span className="font-medium">Sign Out</span>
+          {isLoggingOut ? (
+            <Loader2 className="h-5 w-5 animate-spin" />
+          ) : (
+            <LogOut className="h-5 w-5" />
+          )}
+          <span className="font-medium">
+            {isLoggingOut ? 'Signing Out...' : 'Sign Out'}
+          </span>
         </button>
       </div>
     </div>
