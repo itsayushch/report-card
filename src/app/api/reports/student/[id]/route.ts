@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { calculateResult } from '@/lib/calculations'
-import { getSubjectById } from '@/lib/subjects'
+import { getSubjectById, resolveLegacySubjectCode } from '@/lib/subjects'
 import { getTermsForClass } from '@/lib/terms'
 
 export async function GET(
@@ -101,24 +101,42 @@ export async function GET(
       
       // Show data if: no session (direct URL access), OR teacher, OR published (for logged-in students)
       if (termRecord && termRecord.subjects && termRecord.subjects.length > 0 && (!session || isTeacher || isTermPublished)) {
-        const subjects = termRecord.subjects.map((s: any) => ({
-          subjectCode: s.subjectCode,
-          marks: s.marks,
-          maxMarks: correctMaxMarks, // Always use term config value
-          grade: s.grade !== undefined && s.grade !== null && s.grade !== '' 
-            ? s.grade 
-            : calculateGrade((s.marks / correctMaxMarks) * 100),
-        }));
+        const subjects = termRecord.subjects.map((s: any) => {
+          const resolvedCode = resolveLegacySubjectCode(classForYear, s.subjectCode, {
+            secondLanguageSubject: student.secondLanguageSubject,
+            thirdLanguageSubject: student.thirdLanguageSubject,
+            sixthSubject: student.sixthSubject,
+          });
+
+          return {
+            subjectCode: resolvedCode,
+            marks: s.marks,
+            maxMarks: correctMaxMarks, // Always use term config value
+            grade: s.grade !== undefined && s.grade !== null && s.grade !== ''
+              ? s.grade
+              : calculateGrade((s.marks / correctMaxMarks) * 100),
+          };
+        });
 
         // Only include numeric subjects (those without alphabetical grading) in totals
         const totalObtained = termRecord.subjects.reduce((sum: number, s: any) => {
-          const subjectDetail = getSubjectById(classForYear, s.subjectCode);
+          const resolvedCode = resolveLegacySubjectCode(classForYear, s.subjectCode, {
+            secondLanguageSubject: student.secondLanguageSubject,
+            thirdLanguageSubject: student.thirdLanguageSubject,
+            sixthSubject: student.sixthSubject,
+          });
+          const subjectDetail = getSubjectById(classForYear, resolvedCode);
           if (!subjectDetail || subjectDetail.dataType === 'string') return sum;
           return sum + s.marks;
         }, 0);
         
         const totalMax = termRecord.subjects.reduce((sum: number, s: any) => {
-          const subjectDetail = getSubjectById(classForYear, s.subjectCode);
+          const resolvedCode = resolveLegacySubjectCode(classForYear, s.subjectCode, {
+            secondLanguageSubject: student.secondLanguageSubject,
+            thirdLanguageSubject: student.thirdLanguageSubject,
+            sixthSubject: student.sixthSubject,
+          });
+          const subjectDetail = getSubjectById(classForYear, resolvedCode);
           if (!subjectDetail || subjectDetail.dataType === 'string') return sum;
           return sum + correctMaxMarks; // Use correct maxMarks from config
         }, 0);
@@ -157,6 +175,10 @@ export async function GET(
         name: student.name,
         regNo: student.regNo,
         class: classForYear, // Use the class from that academic year
+        secondLanguageSubject: student.secondLanguageSubject,
+        thirdLanguageSubject: student.thirdLanguageSubject,
+        sixthSubject: student.sixthSubject,
+        valueFaithSubject: student.valueFaithSubject,
       },
       academicYear,
       termReports,

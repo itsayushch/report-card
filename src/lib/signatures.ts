@@ -17,16 +17,19 @@ function normalizeClassName(className: string): string {
 
 export function getSignatureUrl(className: string): string {
     const normalized = normalizeClassName(className);
-    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || '';
+    const rawBaseUrl = process.env.NEXT_PUBLIC_BASE_URL || '';
+    const baseUrl = rawBaseUrl.replace(/\/$/, '');
+    const isLocalBaseUrl = /^https?:\/\/(localhost|127\.0\.0\.1|\[::1\])(?::\d+)?$/i.test(baseUrl);
+    const prefix = baseUrl && !isLocalBaseUrl ? baseUrl : '';
 
     if (normalized === 'principal') {
-        return `${baseUrl}/signatures/principal.png`;
+        return `${prefix}/signatures/principal.png`;
     }
 
     if (normalized) {
-        return `${baseUrl}/signatures/class_${normalized}.png`;
+        return `${prefix}/signatures/class_${normalized}.png`;
     }
 
     // Default to principal if class cannot be determined
-    return `${baseUrl}/signatures/principal.png`;
+    return `${prefix}/signatures/principal.png`;
 }

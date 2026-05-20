@@ -26,6 +26,7 @@ import { studentSchema, type StudentFormData } from '@/lib/validations'
 import { Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { formatClass } from '@/lib/class-utils'
+import { getSubjectsByPrefixes } from '@/lib/subjects'
 
 interface StudentFormProps {
   open: boolean
@@ -35,6 +36,7 @@ interface StudentFormProps {
 }
 
 const classes = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12']
+const noneValue = '__none__'
 
 export function StudentForm({ open, onOpenChange, student, onSuccess }: StudentFormProps) {
   const [isLoading, setIsLoading] = useState(false)
@@ -56,21 +58,88 @@ export function StudentForm({ open, onOpenChange, student, onSuccess }: StudentF
         name: student.name,
         regNo: student.regNo,
         class: student.class,
+        secondLanguageSubject: student.secondLanguageSubject || noneValue,
+        thirdLanguageSubject: student.thirdLanguageSubject || noneValue,
+        sixthSubject: student.sixthSubject || noneValue,
+        valueFaithSubject: student.valueFaithSubject || noneValue,
       })
     } else {
       reset({
         name: '',
         regNo: '',
         class: '',
+        secondLanguageSubject: noneValue,
+        thirdLanguageSubject: noneValue,
+        sixthSubject: noneValue,
+        valueFaithSubject: noneValue,
       })
     }
   }, [student, reset])
 
   const selectedClass = watch('class')
+  const secondLanguageValue = watch('secondLanguageSubject') || noneValue
+  const thirdLanguageValue = watch('thirdLanguageSubject') || noneValue
+  const sixthSubjectValue = watch('sixthSubject') || noneValue
+  const valueFaithValue = watch('valueFaithSubject') || noneValue
+
+  const secondLanguageOptions = selectedClass
+    ? getSubjectsByPrefixes(selectedClass, ['2ND-LANG-'])
+    : []
+  const thirdLanguageOptions = selectedClass
+    ? getSubjectsByPrefixes(selectedClass, ['3RD-LANG-'])
+    : []
+  const sixthSubjectOptions = selectedClass
+    ? getSubjectsByPrefixes(selectedClass, ['6TH-SUB-'])
+    : []
+  const valueFaithOptions = selectedClass
+    ? getSubjectsByPrefixes(selectedClass, ['VAL-EDU-', 'FAITH-EDU-'])
+    : []
+
+  useEffect(() => {
+    if (!selectedClass) return
+
+    const ensureValid = (
+      currentValue: string,
+      options: Array<{ id: string }>,
+      field: 'secondLanguageSubject' | 'thirdLanguageSubject' | 'sixthSubject' | 'valueFaithSubject'
+    ) => {
+      if (currentValue === noneValue) return
+      if (!options.some((option) => option.id === currentValue)) {
+        setValue(field, noneValue)
+      }
+    }
+
+    ensureValid(secondLanguageValue, secondLanguageOptions, 'secondLanguageSubject')
+    ensureValid(thirdLanguageValue, thirdLanguageOptions, 'thirdLanguageSubject')
+    ensureValid(sixthSubjectValue, sixthSubjectOptions, 'sixthSubject')
+    ensureValid(valueFaithValue, valueFaithOptions, 'valueFaithSubject')
+  }, [
+    selectedClass,
+    secondLanguageValue,
+    thirdLanguageValue,
+    sixthSubjectValue,
+    valueFaithValue,
+    secondLanguageOptions,
+    thirdLanguageOptions,
+    sixthSubjectOptions,
+    valueFaithOptions,
+    setValue,
+  ])
 
   const onSubmit = async (data: StudentFormData) => {
     try {
       setIsLoading(true)
+
+      const normalizeChoice = (value?: string | null) =>
+        value && value !== noneValue ? value : null
+
+      const payload: StudentFormData = {
+        ...data,
+        secondLanguageSubject: normalizeChoice(data.secondLanguageSubject),
+        thirdLanguageSubject: normalizeChoice(data.thirdLanguageSubject),
+        sixthSubject: normalizeChoice(data.sixthSubject),
+        valueFaithSubject: normalizeChoice(data.valueFaithSubject),
+      }
 
       const url = student
         ? `/api/students/${student.id}`
@@ -81,7 +150,7 @@ export function StudentForm({ open, onOpenChange, student, onSuccess }: StudentF
       const response = await fetch(url, {
         method,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data),
+        body: JSON.stringify(payload),
       })
 
       if (!response.ok) {
@@ -157,6 +226,101 @@ export function StudentForm({ open, onOpenChange, student, onSuccess }: StudentF
               <p className="text-sm text-red-600">{errors.class.message}</p>
             )}
           </div>
+
+          {selectedClass && (secondLanguageOptions.length > 0 || thirdLanguageOptions.length > 0 || sixthSubjectOptions.length > 0 || valueFaithOptions.length > 0) && (
+            <div className="space-y-4">
+              <div className="text-sm font-medium text-gray-700">Subject Choices (Optional)</div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {secondLanguageOptions.length > 0 && (
+                  <div className="space-y-2">
+                    <Label htmlFor="secondLanguageSubject">2nd Language</Label>
+                    <Select
+                      value={secondLanguageValue}
+                      onValueChange={(value) => setValue('secondLanguageSubject', value)}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select 2nd language" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value={noneValue}>None</SelectItem>
+                        {secondLanguageOptions.map((subject) => (
+                          <SelectItem key={subject.id} value={subject.id}>
+                            {subject.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+
+                {thirdLanguageOptions.length > 0 && (
+                  <div className="space-y-2">
+                    <Label htmlFor="thirdLanguageSubject">3rd Language</Label>
+                    <Select
+                      value={thirdLanguageValue}
+                      onValueChange={(value) => setValue('thirdLanguageSubject', value)}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select 3rd language" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value={noneValue}>None</SelectItem>
+                        {thirdLanguageOptions.map((subject) => (
+                          <SelectItem key={subject.id} value={subject.id}>
+                            {subject.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+
+                {sixthSubjectOptions.length > 0 && (
+                  <div className="space-y-2">
+                    <Label htmlFor="sixthSubject">6th Subject</Label>
+                    <Select
+                      value={sixthSubjectValue}
+                      onValueChange={(value) => setValue('sixthSubject', value)}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select 6th subject" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value={noneValue}>None</SelectItem>
+                        {sixthSubjectOptions.map((subject) => (
+                          <SelectItem key={subject.id} value={subject.id}>
+                            {subject.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+
+                {valueFaithOptions.length > 0 && (
+                  <div className="space-y-2">
+                    <Label htmlFor="valueFaithSubject">Value / Faith Education</Label>
+                    <Select
+                      value={valueFaithValue}
+                      onValueChange={(value) => setValue('valueFaithSubject', value)}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select subject" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value={noneValue}>None</SelectItem>
+                        {valueFaithOptions.map((subject) => (
+                          <SelectItem key={subject.id} value={subject.id}>
+                            {subject.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
 
           <DialogFooter>
             <Button

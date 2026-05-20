@@ -3,7 +3,7 @@ import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { getStudentYearRecords } from '@/lib/academic-records'
 import { calculateGrade } from '@/lib/calculations'
-import { getSubjectById } from '@/lib/subjects'
+import { getSubjectById, resolveLegacySubjectCode } from '@/lib/subjects'
 
 export async function GET(request: NextRequest) {
   try {
@@ -65,7 +65,12 @@ export async function GET(request: NextRequest) {
           let totalMax = 0
           
           publishedTerm.subjects.forEach(subject => {
-            const subjectDetail = getSubjectById(student.class, subject.subjectCode)
+            const resolvedCode = resolveLegacySubjectCode(student.class, subject.subjectCode, {
+              secondLanguageSubject: student.secondLanguageSubject,
+              thirdLanguageSubject: student.thirdLanguageSubject,
+              sixthSubject: student.sixthSubject,
+            })
+            const subjectDetail = getSubjectById(student.class, resolvedCode)
             
             // Only include numeric subjects in total
             if (subjectDetail && subjectDetail.dataType !== 'string') {

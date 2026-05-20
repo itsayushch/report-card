@@ -15,6 +15,7 @@ import {
   TrendingUp,
   MessageSquare,
   Loader2,
+  BookOpen,
 } from 'lucide-react'
 
 const menuItems = [
@@ -88,6 +89,11 @@ export function TeacherSidebar() {
             title: 'Class Remarks',
             href: '/teacher/class-remarks',
             icon: MessageSquare,
+          },
+          {
+            title: 'Subject Choices',
+            href: '/teacher/subject-choices',
+            icon: BookOpen,
           },
           {
             title: 'Promotions',

@@ -44,6 +44,10 @@ export async function GET(request: NextRequest) {
         status: true,
         academicYear: true,
         promotionStatus: true,
+        secondLanguageSubject: true,
+        thirdLanguageSubject: true,
+        sixthSubject: true,
+        valueFaithSubject: true,
       },
     })
 

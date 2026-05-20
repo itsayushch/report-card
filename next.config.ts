@@ -8,6 +8,11 @@ const nextConfig: NextConfig = {
         protocol: "https",
         hostname: "result.sthelenskurseong.in",
       },
+      {
+        protocol: 'http',
+        hostname: 'localhost',
+        port: '3000',
+      }
     ],
   },
 };

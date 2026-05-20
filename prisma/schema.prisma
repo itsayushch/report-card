@@ -15,6 +15,10 @@ model Student {
   class           String
   status          Status           @default(ACTIVE)
   academicYear    String
+  secondLanguageSubject String?
+  thirdLanguageSubject  String?
+  sixthSubject          String?
+  valueFaithSubject     String?
   promotionStatus PromotionStatus  @default(PENDING)
   createdAt       String
   updatedAt       String

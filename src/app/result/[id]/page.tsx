@@ -4,7 +4,7 @@ import { useEffect, useState, Suspense } from "react";
 import Image from "next/image";
 import { useSearchParams, useParams } from "next/navigation";
 import { formatClass } from "@/lib/class-utils";
-import { getSubjectById, getSubjectsForClasses, subjectsByClass } from "@/lib/subjects";
+import { getSubjectById, getSubjectsForClassWithChoices, subjectsByClass } from "@/lib/subjects";
 import { getTermsForClass } from "@/lib/terms";
 import { getSignatureUrl } from "@/lib/signatures";
 
@@ -207,7 +207,12 @@ function PrintableReportCardContent() {
     }
   });
 
-  getSubjectsForClasses([data.student.class]).forEach((sub) => allSubjects.add(sub.id));
+  getSubjectsForClassWithChoices(data.student.class, {
+    secondLanguageSubject: data.student.secondLanguageSubject,
+    thirdLanguageSubject: data.student.thirdLanguageSubject,
+    sixthSubject: data.student.sixthSubject,
+    valueFaithSubject: data.student.valueFaithSubject,
+  }).forEach((sub) => allSubjects.add(sub.id));
   // Preserve subject order as defined in the subject list for the student's class
   const classSubjects = subjectsByClass[data.student.class] || [];
   const subjectOrderMap = new Map<string, number>();

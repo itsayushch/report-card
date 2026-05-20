@@ -5,6 +5,10 @@ export const studentSchema = z.object({
   regNo: z.string().min(1, 'Registration number is required'),
   class: z.string().min(1, 'Class is required'),
   academicYear: z.string().optional(),
+  secondLanguageSubject: z.string().nullable().optional(),
+  thirdLanguageSubject: z.string().nullable().optional(),
+  sixthSubject: z.string().nullable().optional(),
+  valueFaithSubject: z.string().nullable().optional(),
 })
 
 export const teacherSchema = z.object({

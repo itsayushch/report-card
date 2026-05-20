@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { calculatePercentage, calculateResult } from '@/lib/calculations'
-import { getSubjectsForClass, getSubjectById } from '@/lib/subjects'
+import { getSubjectsForClass, getSubjectById, resolveLegacySubjectCode } from '@/lib/subjects'
 
 // GET - Fetch eligible students for promotion (for the class teacher's assigned class)
 export async function GET(request: NextRequest) {
@@ -75,7 +75,12 @@ export async function GET(request: NextRequest) {
           const term = yearRecord.terms.find((t) => t.name === termName)
           if (term) {
             term.subjects.forEach((subject) => {
-              allSubjects.add(subject.subjectCode)
+              const resolvedCode = resolveLegacySubjectCode(student.class, subject.subjectCode, {
+                secondLanguageSubject: student.secondLanguageSubject,
+                thirdLanguageSubject: student.thirdLanguageSubject,
+                sixthSubject: student.sixthSubject,
+              })
+              allSubjects.add(resolvedCode)
             })
           }
         })
@@ -103,7 +108,14 @@ export async function GET(request: NextRequest) {
             allTerms.forEach(termName => {
               const term = yearRecord.terms.find((t) => t.name === termName)
               if (term) {
-                const subject = term.subjects.find((s) => s.subjectCode === subjectCode)
+                const subject = term.subjects.find((s) => {
+                  const resolvedCode = resolveLegacySubjectCode(student.class, s.subjectCode, {
+                    secondLanguageSubject: student.secondLanguageSubject,
+                    thirdLanguageSubject: student.thirdLanguageSubject,
+                    sixthSubject: student.sixthSubject,
+                  })
+                  return resolvedCode === subjectCode
+                })
                 if (subject) {
                   subjectTotalObtained += subject.marks
                   subjectTotalMax += subject.maxMarks
