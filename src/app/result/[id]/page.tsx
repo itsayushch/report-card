@@ -13,6 +13,10 @@ interface ReportData {
     name: string;
     regNo: string;
     class: string;
+    secondLanguageSubject?: string | null;
+    thirdLanguageSubject?: string | null;
+    sixthSubject?: string | null;
+    valueFaithSubject?: string | null;
   };
   academicYear: string;
   termReports: {

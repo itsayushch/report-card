@@ -101,42 +101,43 @@ export async function GET(
       
       // Show data if: no session (direct URL access), OR teacher, OR published (for logged-in students)
       if (termRecord && termRecord.subjects && termRecord.subjects.length > 0 && (!session || isTeacher || isTermPublished)) {
-        const subjects = termRecord.subjects.map((s: any) => {
-          const resolvedCode = resolveLegacySubjectCode(classForYear, s.subjectCode, {
-            secondLanguageSubject: student.secondLanguageSubject,
-            thirdLanguageSubject: student.thirdLanguageSubject,
-            sixthSubject: student.sixthSubject,
-          });
+        const choices = {
+          secondLanguageSubject: student.secondLanguageSubject,
+          thirdLanguageSubject: student.thirdLanguageSubject,
+          sixthSubject: student.sixthSubject,
+        };
+        const subjectMap = new Map<string, { subjectCode: string; marks: number; maxMarks: number; grade: string }>();
 
-          return {
-            subjectCode: resolvedCode,
-            marks: s.marks,
-            maxMarks: correctMaxMarks, // Always use term config value
-            grade: s.grade !== undefined && s.grade !== null && s.grade !== ''
-              ? s.grade
-              : calculateGrade((s.marks / correctMaxMarks) * 100),
-          };
+        termRecord.subjects.forEach((s: any) => {
+          const resolvedCode = resolveLegacySubjectCode(classForYear, s.subjectCode, choices);
+          const gradeValue = s.grade !== undefined && s.grade !== null && s.grade !== ''
+            ? s.grade
+            : calculateGrade((s.marks / correctMaxMarks) * 100);
+          const current = subjectMap.get(resolvedCode);
+          const prefersCurrent = s.subjectCode === resolvedCode;
+          const shouldReplace = !current || prefersCurrent;
+
+          if (shouldReplace) {
+            subjectMap.set(resolvedCode, {
+              subjectCode: resolvedCode,
+              marks: s.marks,
+              maxMarks: correctMaxMarks, // Always use term config value
+              grade: gradeValue,
+            });
+          }
         });
 
+        const subjects = Array.from(subjectMap.values());
+
         // Only include numeric subjects (those without alphabetical grading) in totals
-        const totalObtained = termRecord.subjects.reduce((sum: number, s: any) => {
-          const resolvedCode = resolveLegacySubjectCode(classForYear, s.subjectCode, {
-            secondLanguageSubject: student.secondLanguageSubject,
-            thirdLanguageSubject: student.thirdLanguageSubject,
-            sixthSubject: student.sixthSubject,
-          });
-          const subjectDetail = getSubjectById(classForYear, resolvedCode);
+        const totalObtained = subjects.reduce((sum: number, s: any) => {
+          const subjectDetail = getSubjectById(classForYear, s.subjectCode);
           if (!subjectDetail || subjectDetail.dataType === 'string') return sum;
           return sum + s.marks;
         }, 0);
         
-        const totalMax = termRecord.subjects.reduce((sum: number, s: any) => {
-          const resolvedCode = resolveLegacySubjectCode(classForYear, s.subjectCode, {
-            secondLanguageSubject: student.secondLanguageSubject,
-            thirdLanguageSubject: student.thirdLanguageSubject,
-            sixthSubject: student.sixthSubject,
-          });
-          const subjectDetail = getSubjectById(classForYear, resolvedCode);
+        const totalMax = subjects.reduce((sum: number, s: any) => {
+          const subjectDetail = getSubjectById(classForYear, s.subjectCode);
           if (!subjectDetail || subjectDetail.dataType === 'string') return sum;
           return sum + correctMaxMarks; // Use correct maxMarks from config
         }, 0);
