@@ -16,6 +16,7 @@ import {
   MessageSquare,
   Loader2,
   BookOpen,
+  FileSpreadsheet,
 } from 'lucide-react'
 
 const menuItems = [
@@ -94,6 +95,11 @@ export function TeacherSidebar() {
             title: 'Subject Choices',
             href: '/teacher/subject-choices',
             icon: BookOpen,
+          },
+          {
+            title: 'Marks Sheet',
+            href: '/teacher/marks-sheet',
+            icon: FileSpreadsheet,
           },
           {
             title: 'Promotions',

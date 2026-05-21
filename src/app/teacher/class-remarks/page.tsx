@@ -12,7 +12,7 @@ import {
 } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
 import { toast } from 'sonner'
-import { Loader2, Save, AlertCircle, ExternalLink, Search, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react'
+import { Loader2, Save, AlertCircle, ExternalLink, Search, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Download } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
 import { formatClass } from '@/lib/class-utils'
@@ -72,6 +72,7 @@ export default function ClassRemarksPage() {
   const [remarksData, setRemarksData] = useState<Map<string, RemarksEntry>>(new Map())
   const [studentMarksData, setStudentMarksData] = useState<Map<string, SubjectMark[]>>(new Map())
   const [hasChanges, setHasChanges] = useState(false)
+  const [exporting, setExporting] = useState(false)
   const [terms, setTerms] = useState<any[]>([])
   const [searchQuery, setSearchQuery] = useState('')
   const [paginationParams, setPaginationParams] = useState({
@@ -339,6 +340,37 @@ export default function ClassRemarksPage() {
     }
   }
 
+  const handleDownloadMarksSheet = async () => {
+    if (!activeYear?.year) {
+      toast.error('Active academic year not found')
+      return
+    }
+
+    try {
+      setExporting(true)
+      const response = await fetch(`/api/teacher/marks-sheet?academicYear=${activeYear.year}`)
+
+      if (!response.ok) {
+        const error = await response.json()
+        throw new Error(error.error || 'Failed to download marks sheet')
+      }
+
+      const blob = await response.blob()
+      const url = window.URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = `class_${classTeacherInfo?.class || 'class'}_marks_${activeYear.year}.xlsx`
+      document.body.appendChild(link)
+      link.click()
+      link.remove()
+      window.URL.revokeObjectURL(url)
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to download marks sheet')
+    } finally {
+      setExporting(false)
+    }
+  }
+
   const getSubjectName = (subjectCode: string) => {
     if (!classTeacherInfo?.class) return subjectCode
     const subject = getSubjectById(classTeacherInfo.class, subjectCode)
@@ -400,24 +432,45 @@ export default function ClassRemarksPage() {
                     {selectedTerm ? ` for ${selectedTerm}` : ''}
                   </CardDescription>
                 </div>
-                <Button
-                  onClick={handleSaveRemarks}
-                  disabled={saving || !hasChanges || !selectedTerm}
-                  size="sm"
-                  className="gap-2 sm:shrink-0"
-                >
-                  {saving ? (
-                    <>
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                      Saving...
-                    </>
-                  ) : (
-                    <>
-                      <Save className="h-4 w-4" />
-                      Save All Remarks
-                    </>
-                  )}
-                </Button>
+                <div className="flex flex-wrap gap-2 sm:justify-end">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleDownloadMarksSheet}
+                    disabled={exporting}
+                    className="gap-2"
+                  >
+                    {exporting ? (
+                      <>
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        Preparing...
+                      </>
+                    ) : (
+                      <>
+                        <Download className="h-4 w-4" />
+                        Download Marks Sheet
+                      </>
+                    )}
+                  </Button>
+                  <Button
+                    onClick={handleSaveRemarks}
+                    disabled={saving || !hasChanges || !selectedTerm}
+                    size="sm"
+                    className="gap-2 sm:shrink-0"
+                  >
+                    {saving ? (
+                      <>
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        Saving...
+                      </>
+                    ) : (
+                      <>
+                        <Save className="h-4 w-4" />
+                        Save All Remarks
+                      </>
+                    )}
+                  </Button>
+                </div>
               </div>
               {/* Filter row: term selector + search */}
               <div className="flex flex-col sm:flex-row gap-2">
