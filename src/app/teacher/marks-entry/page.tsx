@@ -206,10 +206,16 @@ export default function MarksEntryPage() {
   const fetchStudentsAndMarks = async () => {
     setLoading(true)
     try {
+      const studentParams = new URLSearchParams({
+        class: selectedClass,
+        status: 'ACTIVE',
+        page: paginationParams.page.toString(),
+        limit: paginationParams.limit.toString(),
+        subject: selectedSubject,
+      })
+
       const results = await Promise.allSettled([
-        fetch(
-          `/api/students?class=${selectedClass}&status=ACTIVE&page=${paginationParams.page}&limit=${paginationParams.limit}`
-        ),
+        fetch(`/api/students?${studentParams.toString()}`),
         fetch(
           `/api/marks?class=${selectedClass}&subject=${selectedSubject}&term=${selectedTerm}&academicYear=${selectedYear}`
         ),

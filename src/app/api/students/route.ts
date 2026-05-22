@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import type { Student } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { parseClass } from '@/lib/class-utils'
+import { getSubjectChoiceDefaults } from '@/lib/subjects'
 import { studentSchema } from '@/lib/validations'
 import { auth } from '@/lib/auth'
 // import { createAdminLog, AdminActions } from '@/lib/admin-log'
@@ -13,6 +14,7 @@ export async function GET(request: NextRequest) {
     const search = searchParams.get('search') || ''
     const classFilter = searchParams.get('class') || ''
     const statusFilter = searchParams.get('status') || ''
+    const subjectFilter = searchParams.get('subject') || ''
     const page = parseInt(searchParams.get('page') || '1')
     const limit = Math.min(parseInt(searchParams.get('limit') || '20'), 100) // Default 20, Max 100
     const skip = (page - 1) * limit
@@ -51,7 +53,43 @@ export async function GET(request: NextRequest) {
       },
     })
 
-    const students = studentsAll
+    const normalizedSubjectFilter = subjectFilter.trim()
+    const shouldFilterBySubject = Boolean(normalizedSubjectFilter) && Boolean(classFilter) && classFilter !== 'all'
+
+    const filteredStudents = shouldFilterBySubject
+      ? studentsAll.filter((student) => {
+          if (normalizedSubjectFilter.startsWith('2ND-LANG-')) {
+            const defaults = getSubjectChoiceDefaults(student.class, {
+              secondLanguageSubject: student.secondLanguageSubject,
+            })
+            return defaults.secondLanguageSubject === normalizedSubjectFilter
+          }
+          if (normalizedSubjectFilter.startsWith('3RD-LANG-')) {
+            const defaults = getSubjectChoiceDefaults(student.class, {
+              thirdLanguageSubject: student.thirdLanguageSubject,
+            })
+            return defaults.thirdLanguageSubject === normalizedSubjectFilter
+          }
+          if (normalizedSubjectFilter.startsWith('6TH-SUB-')) {
+            const defaults = getSubjectChoiceDefaults(student.class, {
+              sixthSubject: student.sixthSubject,
+            })
+            return defaults.sixthSubject === normalizedSubjectFilter
+          }
+          if (
+            normalizedSubjectFilter.startsWith('VAL-EDU-') ||
+            normalizedSubjectFilter.startsWith('FAITH-EDU-')
+          ) {
+            const defaults = getSubjectChoiceDefaults(student.class, {
+              valueFaithSubject: student.valueFaithSubject,
+            })
+            return defaults.valueFaithSubject === normalizedSubjectFilter
+          }
+          return true
+        })
+      : studentsAll
+
+    const students = filteredStudents
       .slice()
       .sort((a, b) => {
         const classA = parseClass(a.class)
@@ -67,7 +105,7 @@ export async function GET(request: NextRequest) {
       })
       .slice(skip, skip + limit)
 
-    const total = studentsAll.length
+    const total = filteredStudents.length
 
     return NextResponse.json({
       students,
