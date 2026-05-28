@@ -48,11 +48,11 @@ interface ClassTeacher {
   class: string
   createdAt: string
   updatedAt: string
-  teacher: {
+  teacher?: {
     id: string
     name: string
     email: string
-  }
+  } | null
 }
 
 export default function ClassTeachersPage() {
@@ -230,46 +230,56 @@ export default function ClassTeachersPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {classTeachers.sort((a, b) => Number(a.class) - Number(b.class)).map((ct) => (
-                    <TableRow key={ct.id}>
-                      <TableCell>
-                        <Badge variant="outline">{formatClass(ct.class)}</Badge>
-                      </TableCell>
-                      <TableCell className="font-medium">{ct.teacher.name}</TableCell>
-                      <TableCell className="hidden sm:table-cell align-middle">
-                        <div className="flex items-center">
-                          <Image
-                            src={getSignatureUrl(ct.class)}
-                            alt={`${ct.teacher.name} signature`}
-                            width={120}
-                            height={40}
-                            className="h-10 object-contain max-w-[120px]"
-                          />
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-muted-foreground hidden sm:table-cell">
-                        {ct.teacher.email}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex items-center justify-end gap-1 sm:gap-2">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleOpenDialog(ct)}
-                          >
-                            <Pencil className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleDelete(ct.id)}
-                          >
-                            <Trash2 className="h-4 w-4 text-destructive" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
+                  {classTeachers.sort((a, b) => Number(a.class) - Number(b.class)).map((ct) => {
+                    const teacherName = ct.teacher?.name || 'Not assigned'
+                    const teacherEmail = ct.teacher?.email || 'Not assigned'
+                    const hasTeacher = Boolean(ct.teacher?.name)
+
+                    return (
+                      <TableRow key={ct.id}>
+                        <TableCell>
+                          <Badge variant="outline">{formatClass(ct.class)}</Badge>
+                        </TableCell>
+                        <TableCell className="font-medium">{teacherName}</TableCell>
+                        <TableCell className="hidden sm:table-cell align-middle">
+                          {hasTeacher ? (
+                            <div className="flex items-center">
+                              <Image
+                                src={getSignatureUrl(ct.class)}
+                                alt={`${teacherName} signature`}
+                                width={120}
+                                height={40}
+                                className="h-10 object-contain max-w-[120px]"
+                              />
+                            </div>
+                          ) : (
+                            <span className="text-sm text-muted-foreground">Not assigned</span>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-muted-foreground hidden sm:table-cell">
+                          {teacherEmail}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex items-center justify-end gap-1 sm:gap-2">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleOpenDialog(ct)}
+                            >
+                              <Pencil className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleDelete(ct.id)}
+                            >
+                              <Trash2 className="h-4 w-4 text-destructive" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    )
+                  })}
                 </TableBody>
               </Table>
             </div>
