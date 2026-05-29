@@ -131,7 +131,7 @@ export default function MarksSheetPage() {
         <CardHeader>
           <CardTitle>Download Full Marks Sheet</CardTitle>
           <CardDescription>
-            Download a CSV with all students and their marks across every term.
+            Download an Excel Sheet with all students and their marks across every term.
           </CardDescription>
         </CardHeader>
         <CardContent>
