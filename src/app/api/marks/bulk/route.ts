@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
-import { upsertTermMarks } from '@/lib/academic-records'
+import { deleteTermSubjectMarks, upsertTermMarks } from '@/lib/academic-records'
 import { prisma } from '@/lib/prisma'
 import { getTermsForClass } from '@/lib/terms'
 
@@ -124,6 +124,63 @@ export async function POST(request: NextRequest) {
     console.error('Bulk save marks error:', error)
     return NextResponse.json(
       { error: 'Failed to save marks' },
+      { status: 500 }
+    )
+  }
+}
+
+export async function DELETE(request: NextRequest) {
+  try {
+    const session = await auth()
+
+    if (!session || session.user.role !== 'TEACHER') {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    const body = await request.json()
+    const { class: classValue, subjectId, term, academicYear } = body ?? {}
+
+    if (!classValue || !subjectId || !term || !academicYear) {
+      return NextResponse.json(
+        { error: 'class, subjectId, term, and academicYear are required' },
+        { status: 400 }
+      )
+    }
+
+    const students = await prisma.student.findMany({
+      where: {
+        class: classValue,
+        academicYear,
+        status: 'ACTIVE',
+      },
+      select: { id: true },
+    })
+
+    if (students.length === 0) {
+      return NextResponse.json(
+        { error: 'No active students found for the selected class and academic year' },
+        { status: 404 }
+      )
+    }
+
+    const results = await Promise.all(
+      students.map((student) =>
+        deleteTermSubjectMarks(student.id, academicYear, term, subjectId)
+      )
+    )
+
+    const deleted = results.filter(Boolean).length
+    const failed = results.length - deleted
+
+    return NextResponse.json({
+      message: `Removed marks for ${deleted} students`,
+      deleted,
+      failed,
+    })
+  } catch (error) {
+    console.error('Delete marks error:', error)
+    return NextResponse.json(
+      { error: 'Failed to delete marks' },
       { status: 500 }
     )
   }

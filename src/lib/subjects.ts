@@ -114,12 +114,12 @@ const subjectsList1 = [
     dataType: "string",
     order: 18
   },
-  {
-    id: "SUPW-1",
-    name: "S.U.P.W.",
-    dataType: "string",
-    order: 19
-  },
+  // {
+  //   id: "SUPW-1",
+  //   name: "S.U.P.W.",
+  //   dataType: "string",
+  //   order: 19
+  // },
   // {
   //   id: "3RD-LANG-NEP-1",
   //   name: "3rd Language Nepali",

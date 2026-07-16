@@ -2,8 +2,8 @@
  * Helper functions for working with the new AcademicRecord bucket pattern
  */
 
-import { prisma } from './prisma';
 import { Prisma } from '@prisma/client';
+import { prisma } from './prisma';
 
 type TermRecord = {
   name: string;
@@ -111,6 +111,58 @@ export async function upsertTermMarks(
   });
 
   return updated;
+}
+
+/**
+ * Remove a specific subject from a term in an academic record bucket.
+ * If the term becomes empty, remove the whole term entry.
+ */
+export async function deleteTermSubjectMarks(
+  studentId: string,
+  academicYear: string,
+  termName: string,
+  subjectCode: string
+) : Promise<boolean> {
+  const bucket = await getStudentYearRecords(studentId, academicYear);
+
+  if (!bucket) {
+    return false;
+  }
+
+  const terms = bucket.terms as TermRecord[];
+  const termIndex = terms.findIndex((term) => term.name === termName);
+
+  if (termIndex < 0) {
+    return false;
+  }
+
+  const term = terms[termIndex];
+  const subjectExists = term.subjects.some((subject) => subject.subjectCode === subjectCode);
+
+  if (!subjectExists) {
+    return false;
+  }
+
+  const remainingSubjects = term.subjects.filter((subject) => subject.subjectCode !== subjectCode);
+  const updatedTerms = [...terms];
+
+  if (remainingSubjects.length === 0) {
+    updatedTerms.splice(termIndex, 1);
+  } else {
+    updatedTerms[termIndex] = {
+      ...term,
+      subjects: remainingSubjects,
+    };
+  }
+
+  await prisma.academicRecord.update({
+    where: { id: bucket.id },
+    data: {
+      terms: updatedTerms,
+    },
+  });
+
+  return true;
 }
 
 /**
