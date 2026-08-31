@@ -62,6 +62,7 @@ export async function POST(request: NextRequest) {
     const invalidStudents = students.filter(
       (student) =>
         student.class !== classTeacherAssignment.class ||
+        (classTeacherAssignment.section && student.section !== classTeacherAssignment.section) ||
         student.academicYear !== academicYear
     )
 
@@ -103,6 +104,7 @@ export async function POST(request: NextRequest) {
         success: true,
         action,
         newClass: student.class, // Keep current class
+        section: student.section,
       }
     })
 

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { Student } from '@prisma/client'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -8,13 +8,15 @@ import { StudentTable } from '@/components/admin/students/StudentTable'
 import { StudentForm } from '@/components/admin/students/StudentForm'
 import { StudentFilters } from '@/components/admin/students/StudentFilters'
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog'
-import { Plus, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react'
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Label } from '@/components/ui/label'
+import { Layers, Loader2, Plus } from 'lucide-react'
 import { Skeleton } from '@/components/ui/skeleton'
 import { toast } from 'sonner'
 import Papa from 'papaparse'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Input } from '@/components/ui/input'
-import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { useQuery } from '@tanstack/react-query'
+import { useInfiniteScroll } from '@/hooks/useInfiniteScroll'
 
 interface PaginationInfo {
   total: number
@@ -28,8 +30,14 @@ interface StudentsResponse {
   pagination: PaginationInfo
 }
 
+interface SectionsResponse {
+  sections: Array<{ id: string; name: string }>
+}
+
+const STUDENTS_PAGE_SIZE = 20
+
 // Fetcher function for students
-const fetchStudentsData = async (params: { page: number, limit: number, search: string, classFilter: string, statusFilter: string }): Promise<StudentsResponse> => {
+const fetchStudentsData = async (params: { page: number, limit: number, search: string, classFilter: string, sectionFilter: string, statusFilter: string }): Promise<StudentsResponse> => {
   const urlParams = new URLSearchParams({
     page: params.page.toString(),
     limit: params.limit.toString(),
@@ -37,6 +45,7 @@ const fetchStudentsData = async (params: { page: number, limit: number, search: 
 
   if (params.search) urlParams.append('search', params.search)
   if (params.classFilter && params.classFilter !== 'all') urlParams.append('class', params.classFilter)
+  if (params.sectionFilter && params.sectionFilter !== 'all') urlParams.append('section', params.sectionFilter)
   if (params.statusFilter && params.statusFilter !== 'all') urlParams.append('status', params.statusFilter)
 
   const response = await fetch(`/api/students?${urlParams}`)
@@ -45,55 +54,153 @@ const fetchStudentsData = async (params: { page: number, limit: number, search: 
 }
 
 export default function StudentsPage() {
-  const queryClient = useQueryClient()
   const [isFormOpen, setIsFormOpen] = useState(false)
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null)
+  const [loadedStudents, setLoadedStudents] = useState<Student[]>([])
   const [selectedStudents, setSelectedStudents] = useState<string[]>([])
+  const [allMatchingSelected, setAllMatchingSelected] = useState(false)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [permanentDeleteDialogOpen, setPermanentDeleteDialogOpen] = useState(false)
   const [bulkRestoreDialogOpen, setBulkRestoreDialogOpen] = useState(false)
+  const [sectionDialogOpen, setSectionDialogOpen] = useState(false)
+  const [selectedSection, setSelectedSection] = useState('')
+  const [assigningSection, setAssigningSection] = useState(false)
   const [studentToDelete, setStudentToDelete] = useState<string | null>(null)
   const [studentToPermanentDelete, setStudentToPermanentDelete] = useState<string | null>(null)
   
-  const [paginationParams, setPagination] = useState({
+  const [isLoading, setIsLoading] = useState(true)
+  const [isLoadingMore, setIsLoadingMore] = useState(false)
+  const [pagination, setPagination] = useState<PaginationInfo>({
+    total: 0,
     page: 1,
-    limit: 10,
+    limit: STUDENTS_PAGE_SIZE,
+    totalPages: 0,
   })
-  
-  const [pageInput, setPageInput] = useState('1')
 
   // Filters
   const [search, setSearch] = useState('')
   const [classFilter, setClassFilter] = useState('')
+  const [sectionFilter, setSectionFilter] = useState('')
   const [statusFilter, setStatusFilter] = useState('')
 
-  // useQuery implementation for caching and automatic re-fetching
-  const { data, isLoading } = useQuery<StudentsResponse>({
-    queryKey: ['students', paginationParams.page, paginationParams.limit, search, classFilter, statusFilter],
-    queryFn: () => fetchStudentsData({ 
-      page: paginationParams.page, 
-      limit: paginationParams.limit, 
-      search, 
-      classFilter, 
-      statusFilter 
-    }),
+  const { data: sectionsData } = useQuery<SectionsResponse>({
+    queryKey: ['sections', classFilter],
+    queryFn: async () => {
+      if (!classFilter || classFilter === 'all') return { sections: [] }
+      const response = await fetch(`/api/admin/sections?class=${classFilter}&activeOnly=true`)
+      if (!response.ok) throw new Error('Failed to fetch sections')
+      return response.json() as Promise<SectionsResponse>
+    },
   })
 
-  const students: Student[] = (data?.students ?? []).slice().sort((a, b) => {
+  const loadStudents = useCallback(async (page = 1, append = false) => {
+    try {
+      if (append) {
+        setIsLoadingMore(true)
+      } else {
+        setIsLoading(true)
+      }
+
+      const data = await fetchStudentsData({
+        page,
+        limit: STUDENTS_PAGE_SIZE,
+        search,
+        classFilter,
+        sectionFilter,
+        statusFilter,
+      })
+
+      setLoadedStudents((prev) => {
+        if (!append) return data.students ?? []
+
+        const seen = new Set(prev.map((student) => student.id))
+        const nextStudents = (data.students ?? []).filter((student) => !seen.has(student.id))
+        return [...prev, ...nextStudents]
+      })
+      setPagination(data.pagination ?? {
+        total: data.students?.length ?? 0,
+        page,
+        limit: STUDENTS_PAGE_SIZE,
+        totalPages: (data.students?.length ?? 0) > 0 ? 1 : 0,
+      })
+    } catch {
+      toast.error('Failed to fetch students')
+    } finally {
+      setIsLoading(false)
+      setIsLoadingMore(false)
+    }
+  }, [classFilter, search, sectionFilter, statusFilter])
+
+  useEffect(() => {
+    setSelectedStudents([])
+    setAllMatchingSelected(false)
+    void loadStudents(1, false)
+  }, [loadStudents])
+
+  const hasMore = pagination.page < pagination.totalPages
+  const loadMoreRef = useInfiniteScroll({
+    hasMore,
+    isLoading: isLoading || isLoadingMore,
+    onLoadMore: () => {
+      void loadStudents(pagination.page + 1, true)
+    },
+  })
+
+  const students: Student[] = loadedStudents.slice().sort((a, b) => {
     const classA = Number.parseInt(a.class, 10)
     const classB = Number.parseInt(b.class, 10)
 
-    if (Number.isNaN(classA) && Number.isNaN(classB)) return 0
-    if (Number.isNaN(classA)) return 1
-    if (Number.isNaN(classB)) return -1
+    if (Number.isNaN(classA) && !Number.isNaN(classB)) return 1
+    if (!Number.isNaN(classA) && Number.isNaN(classB)) return -1
+    
+    if (classA !== classB) {
+      if (!Number.isNaN(classA) && !Number.isNaN(classB)) {
+        return classB - classA
+      }
+    }
 
-    return classB - classA
+    const sectionA = a.section || ''
+    const sectionB = b.section || ''
+    if (sectionA !== sectionB) return sectionA.localeCompare(sectionB)
+
+    return a.name.localeCompare(b.name)
   })
-  const pagination: PaginationInfo = data?.pagination ?? { total: 0, page: 1, limit: 10, totalPages: 0 }
+  const loadedStudentIds = students.map((student) => student.id)
+  const allLoadedSelected = loadedStudentIds.length > 0 && loadedStudentIds.every((id) => selectedStudents.includes(id))
+  const loadedSelectedInactiveCount = students.filter(
+    (student) => selectedStudents.includes(student.id) && student.status === 'INACTIVE'
+  ).length
+  const canBulkRestore = allMatchingSelected ? statusFilter !== 'ACTIVE' : loadedSelectedInactiveCount > 0
+  const hasSelectedStudents = allMatchingSelected || selectedStudents.length > 0
+  const sectionActionClass = classFilter && classFilter !== 'all' ? classFilter : ''
+  const targetSectionLabel = allMatchingSelected
+    ? `${pagination.total} matching student${pagination.total === 1 ? '' : 's'}`
+    : `${selectedStudents.length} selected student${selectedStudents.length === 1 ? '' : 's'}`
 
-  useEffect(() => {
-    setPageInput(paginationParams.page.toString())
-  }, [paginationParams.page])
+  const clearSelection = () => {
+    setSelectedStudents([])
+    setAllMatchingSelected(false)
+  }
+
+  const openSectionDialog = () => {
+    if (!hasSelectedStudents) {
+      toast.error('Please select students first')
+      return
+    }
+
+    if (!sectionActionClass) {
+      toast.error('Please filter by one class before adding students to a section')
+      return
+    }
+
+    if ((sectionsData?.sections || []).length === 0) {
+      toast.error('No active sections found for this class')
+      return
+    }
+
+    setSelectedSection('')
+    setSectionDialogOpen(true)
+  }
 
   const handleEdit = (student: Student) => {
     setSelectedStudent(student)
@@ -115,7 +222,7 @@ export default function StudentsPage() {
 
       if (response.ok) {
         toast.success('Student deleted successfully')
-        queryClient.invalidateQueries({ queryKey: ['students'] })
+        void loadStudents(1, false)
       } else {
         toast.error('Failed to delete student')
       }
@@ -128,7 +235,7 @@ export default function StudentsPage() {
   }
 
   const handleFormSuccess = () => {
-    queryClient.invalidateQueries({ queryKey: ['students'] })
+    void loadStudents(1, false)
     setSelectedStudent(null)
   }
 
@@ -140,7 +247,7 @@ export default function StudentsPage() {
 
       if (response.ok) {
         toast.success('Student restored successfully')
-        queryClient.invalidateQueries({ queryKey: ['students'] })
+        void loadStudents(1, false)
       } else {
         toast.error('Failed to restore student')
       }
@@ -164,7 +271,7 @@ export default function StudentsPage() {
 
       if (response.ok) {
         toast.success('Student permanently deleted')
-        queryClient.invalidateQueries({ queryKey: ['students'] })
+        void loadStudents(1, false)
       } else {
         const error = await response.json()
         toast.error(error.error || 'Failed to permanently delete student')
@@ -178,7 +285,7 @@ export default function StudentsPage() {
   }
 
   const handleBulkRestore = () => {
-    if (selectedStudents.length === 0) {
+    if (!allMatchingSelected && selectedStudents.length === 0) {
       toast.error('Please select students to restore')
       return
     }
@@ -190,15 +297,27 @@ export default function StudentsPage() {
       const response = await fetch('/api/students/bulk-restore', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          studentIds: selectedStudents,
-        }),
+        body: JSON.stringify(allMatchingSelected
+          ? {
+              allMatching: true,
+              filters: {
+                search,
+                classFilter,
+                sectionFilter,
+                statusFilter,
+              },
+            }
+          : {
+              studentIds: selectedStudents,
+            }
+        ),
       })
 
       if (response.ok) {
-        toast.success(`${selectedStudents.length} student(s) restored successfully`)
-        setSelectedStudents([])
-        queryClient.invalidateQueries({ queryKey: ['students'] })
+        const data = await response.json()
+        toast.success(`${data.count ?? selectedStudents.length} student(s) restored successfully`)
+        clearSelection()
+        void loadStudents(1, false)
       } else {
         const error = await response.json()
         toast.error(error.error || 'Failed to restore students')
@@ -210,38 +329,71 @@ export default function StudentsPage() {
     }
   }
 
-  const handleSelectAll = () => {
-    if (selectedStudents.length === students.length) {
-      setSelectedStudents([])
-    } else {
-      setSelectedStudents(students.map((student) => student.id))
+  const handleAssignSection = async () => {
+    if (!selectedSection) {
+      toast.error('Please select a section')
+      return
+    }
+
+    try {
+      setAssigningSection(true)
+      const response = await fetch('/api/students/bulk-section', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(allMatchingSelected
+          ? {
+              allMatching: true,
+              className: sectionActionClass,
+              section: selectedSection,
+              filters: {
+                search,
+                sectionFilter,
+                statusFilter,
+              },
+            }
+          : {
+              studentIds: selectedStudents,
+              className: sectionActionClass,
+              section: selectedSection,
+            }
+        ),
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to assign section')
+      }
+
+      toast.success(`${data.count ?? 0} student(s) added to Section ${selectedSection}`)
+      setSectionDialogOpen(false)
+      setSelectedSection('')
+      clearSelection()
+      void loadStudents(1, false)
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to assign section')
+    } finally {
+      setAssigningSection(false)
     }
   }
 
-  const handlePageChange = (nextPage: number) => {
-    setPagination(prev => {
-      const safeTotal = pagination.totalPages || 1
-      const clamped = Math.min(Math.max(1, nextPage), safeTotal)
-      return { ...prev, page: clamped }
-    })
-  }
+  const handleSelectAll = () => {
+    setAllMatchingSelected(false)
 
-  const handleLimitChange = (value: string) => {
-    const numeric = Number(value)
-    if (!Number.isFinite(numeric) || numeric <= 0) return
-    setPagination(prev => ({ ...prev, limit: numeric, page: 1 }))
+    if (allLoadedSelected) {
+      setSelectedStudents((prev) => prev.filter((id) => !loadedStudentIds.includes(id)))
+    } else {
+      setSelectedStudents((prev) => Array.from(new Set([...prev, ...loadedStudentIds])))
+    }
   }
-
-  const handlePageInputSubmit = () => {
-    const numeric = Number(pageInput)
-    if (!Number.isFinite(numeric)) return
-    handlePageChange(numeric)
-  }
-
-  const pageStart = pagination.total === 0 ? 0 : (pagination.page - 1) * pagination.limit + 1
-  const pageEnd = Math.min(pagination.page * pagination.limit, pagination.total)
 
   const handleSelectStudent = (id: string) => {
+    if (allMatchingSelected) {
+      setAllMatchingSelected(false)
+      setSelectedStudents(loadedStudentIds.filter((studentId) => studentId !== id))
+      return
+    }
+
     setSelectedStudents(prev => 
       prev.includes(id) 
         ? prev.filter(sid => sid !== id)
@@ -258,6 +410,7 @@ export default function StudentsPage() {
     try {
       const params = new URLSearchParams()
       if (classFilter && classFilter !== 'all') params.append('class', classFilter)
+      if (sectionFilter && sectionFilter !== 'all') params.append('section', sectionFilter)
       if (statusFilter && statusFilter !== 'all') params.append('status', statusFilter)
 
       const response = await fetch(`/api/students/export?${params}`)
@@ -310,21 +463,31 @@ export default function StudentsPage() {
                 Showing {students.length} of {pagination.total} students
               </CardDescription>
             </div>
-            {selectedStudents.length > 0 && (() => {
-              const selectedStudentObjects = students.filter((student) => selectedStudents.includes(student.id))
-              const inactiveCount = selectedStudentObjects.filter((student) => student.status === 'INACTIVE').length
-              
-              return inactiveCount > 0 ? (
+            {hasSelectedStudents && (
+              <div className="flex flex-wrap gap-2 sm:justify-end">
+                <Button
+                  onClick={openSectionDialog}
+                  variant="outline"
+                  size="sm"
+                  className="border-blue-200 text-blue-700 hover:border-blue-300 hover:bg-blue-50 hover:text-blue-800"
+                >
+                  <Layers className="mr-2 h-4 w-4" />
+                  Add to Section
+                </Button>
+                {canBulkRestore && (
                 <Button 
                   onClick={handleBulkRestore} 
                   variant="outline"
                   size="sm"
                   className="text-green-600 border-green-200 hover:text-green-700 hover:bg-green-50 hover:border-green-300"
                 >
-                  Restore {inactiveCount} Student{inactiveCount > 1 ? 's' : ''}
+                  {allMatchingSelected
+                    ? 'Restore Matching Inactive Students'
+                    : `Restore ${loadedSelectedInactiveCount} Student${loadedSelectedInactiveCount > 1 ? 's' : ''}`}
                 </Button>
-              ) : null
-            })()}
+                )}
+              </div>
+            )}
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -333,18 +496,21 @@ export default function StudentsPage() {
             <StudentFilters
               search={search}
               classFilter={classFilter}
+              sectionFilter={sectionFilter}
               statusFilter={statusFilter}
+              sections={sectionsData?.sections || []}
               onSearchChange={(value) => {
                 setSearch(value)
-                setPagination(prev => ({ ...prev, page: 1 }))
               }}
               onClassChange={(value) => {
                 setClassFilter(value)
-                setPagination(prev => ({ ...prev, page: 1 }))
+                setSectionFilter('')
+              }}
+              onSectionChange={(value) => {
+                setSectionFilter(value)
               }}
               onStatusChange={(value) => {
                 setStatusFilter(value)
-                setPagination(prev => ({ ...prev, page: 1 }))
               }}
             />
           </div>
@@ -389,6 +555,39 @@ export default function StudentsPage() {
             </div>
           ) : (
             <>
+              {(allLoadedSelected || allMatchingSelected) && pagination.total > students.length && (
+                <div className="rounded-md border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-900">
+                  {allMatchingSelected ? (
+                    <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                      <span>All {pagination.total} students matching the current filters are selected.</span>
+                      <Button variant="link" size="sm" className="h-auto p-0 text-blue-900" onClick={clearSelection}>
+                        Clear selection
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                      <span>All {students.length} loaded students are selected.</span>
+                      <div className="flex flex-wrap gap-3">
+                        <Button
+                          variant="link"
+                          size="sm"
+                          className="h-auto p-0 text-blue-900"
+                          onClick={() => {
+                            setAllMatchingSelected(true)
+                            setSelectedStudents(loadedStudentIds)
+                          }}
+                        >
+                          Select all {pagination.total} matching students
+                        </Button>
+                        <Button variant="link" size="sm" className="h-auto p-0 text-blue-900" onClick={clearSelection}>
+                          Clear selection
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
               <StudentTable
                 students={students}
                 onEdit={handleEdit}
@@ -396,93 +595,22 @@ export default function StudentsPage() {
                 onRestore={handleRestore}
                 onPermanentDelete={handlePermanentDelete}
                 selectedStudents={selectedStudents}
+                allMatchingSelected={allMatchingSelected}
                 onSelectStudent={handleSelectStudent}
                 onSelectAll={handleSelectAll}
               />
 
-              {/* Pagination */}
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mt-4">
-                <div className="flex flex-wrap items-center gap-3 text-sm text-gray-600">
-                  <span>
-                    Showing {pageStart === 0 ? 0 : `${pageStart}-${pageEnd}`} of {pagination.total}
+              <div ref={loadMoreRef} className="flex justify-center py-4 text-sm text-gray-600">
+                {isLoadingMore ? (
+                  <span className="inline-flex items-center gap-2">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Loading more students...
                   </span>
-                  <div className="flex items-center gap-2">
-                    <span>Rows per page</span>
-                    <Select
-                      value={pagination.limit.toString()}
-                      onValueChange={handleLimitChange}
-                    >
-                      <SelectTrigger className="h-9 w-24">
-                        <SelectValue placeholder="10" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {[10, 25, 50, 100].map(size => (
-                          <SelectItem key={size} value={size.toString()}>
-                            {size}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-
-                <div className="flex flex-wrap items-center gap-2">
-                  <div className="flex items-center gap-2 text-sm text-gray-600">
-                    <span>Page</span>
-                    <Input
-                      value={pageInput}
-                      onChange={(e) => setPageInput(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter') {
-                          handlePageInputSubmit()
-                        }
-                      }}
-                      className="w-16 h-9"
-                      inputMode="numeric"
-                    />
-                    <span>of {pagination.totalPages || 1}</span>
-                    <Button variant="outline" size="sm" onClick={handlePageInputSubmit}>
-                      Go
-                    </Button>
-                  </div>
-
-                  <div className="flex gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handlePageChange(1)}
-                      disabled={pagination.page === 1}
-                    >
-                      <ChevronsLeft className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handlePageChange(pagination.page - 1)}
-                      disabled={pagination.page === 1}
-                    >
-                      <ChevronLeft className="h-4 w-4" />
-                      Previous
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handlePageChange(pagination.page + 1)}
-                      disabled={pagination.page >= pagination.totalPages}
-                    >
-                      Next
-                      <ChevronRight className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handlePageChange(pagination.totalPages)}
-                      disabled={pagination.page >= pagination.totalPages}
-                    >
-                      <ChevronsRight className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
+                ) : hasMore ? (
+                  <span>Scroll to load more students</span>
+                ) : (
+                  <span>{pagination.total === 0 ? 'No students to show' : 'All students loaded'}</span>
+                )}
               </div>
             </>
           )}
@@ -495,6 +623,43 @@ export default function StudentsPage() {
         student={selectedStudent}
         onSuccess={handleFormSuccess}
       />
+
+      <Dialog open={sectionDialogOpen} onOpenChange={setSectionDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Add Students to Section</DialogTitle>
+            <DialogDescription>
+              Assign {targetSectionLabel} from Class {sectionActionClass} to a section.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-2">
+            <Label htmlFor="bulk-section">Section</Label>
+            <Select value={selectedSection} onValueChange={setSelectedSection}>
+              <SelectTrigger id="bulk-section">
+                <SelectValue placeholder="Select section" />
+              </SelectTrigger>
+              <SelectContent>
+                {(sectionsData?.sections || []).map((section) => (
+                  <SelectItem key={section.id} value={section.name}>
+                    {section.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setSectionDialogOpen(false)} disabled={assigningSection}>
+              Cancel
+            </Button>
+            <Button onClick={handleAssignSection} disabled={assigningSection || !selectedSection}>
+              {assigningSection && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Add to Section
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>
@@ -518,7 +683,9 @@ export default function StudentsPage() {
           <AlertDialogHeader>
             <AlertDialogTitle>Restore Students?</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to restore {selectedStudents.filter((id) => students.find((student) => student.id === id)?.status === 'INACTIVE').length} inactive student(s) to active status?
+              {allMatchingSelected
+                ? 'Are you sure you want to restore all inactive students matching the current filters to active status?'
+                : `Are you sure you want to restore ${selectedStudents.filter((id) => students.find((student) => student.id === id)?.status === 'INACTIVE').length} inactive student(s) to active status?`}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

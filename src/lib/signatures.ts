@@ -15,19 +15,33 @@ function normalizeClassName(className: string): string {
     return romanToNumber[trimmed] || '';
 }
 
-export function getSignatureUrl(className: string): string {
-    const normalized = normalizeClassName(className);
+export function getSignatureUrl(className: string, sectionName?: string | null): string {
+    const normalizedClass = normalizeClassName(className);
+    const normalizedSection = sectionName ? sectionName.trim().toLowerCase() : '';
+    
+    let publicId = normalizedClass;
+    if (normalizedClass !== 'principal') {
+        publicId = normalizedSection ? `class_${normalizedClass}_${normalizedSection}` : `class_${normalizedClass}`;
+    }
+
+    // Use Cloudinary if configured
+    if (process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME) {
+        const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
+        return `https://res.cloudinary.com/${cloudName}/image/upload/signatures/${publicId}.png`;
+    }
+
+    // Fallback to local storage
     const rawBaseUrl = process.env.NEXT_PUBLIC_BASE_URL || '';
     const baseUrl = rawBaseUrl.replace(/\/$/, '');
     const isLocalBaseUrl = /^https?:\/\/(localhost|127\.0\.0\.1|\[::1\])(?::\d+)?$/i.test(baseUrl);
     const prefix = baseUrl && !isLocalBaseUrl ? baseUrl : '';
 
-    if (normalized === 'principal') {
+    if (normalizedClass === 'principal') {
         return `${prefix}/signatures/principal.png`;
     }
 
-    if (normalized) {
-        return `${prefix}/signatures/class_${normalized}.png`;
+    if (normalizedClass) {
+        return `${prefix}/signatures/${publicId}.png`;
     }
 
     // Default to principal if class cannot be determined

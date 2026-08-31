@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import {
@@ -27,14 +27,17 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { Badge } from '@/components/ui/badge'
-import { toast } from 'sonner'
-import { Loader2, Plus, Pencil, Trash2, GraduationCap } from 'lucide-react'
-import { formatClass } from '@/lib/class-utils'
 import { Label } from '@/components/ui/label'
+import { formatClass, formatClassSection, formatSection } from '@/lib/class-utils'
 import { getSignatureUrl } from '@/lib/signatures'
+import { GraduationCap, Loader2, Pencil, Plus, Trash2 } from 'lucide-react'
 import Image from 'next/image'
+import { toast } from 'sonner'
+import { SignatureUploadDialog } from '@/components/admin/class-teachers/SignatureUploadDialog'
+import { Upload } from 'lucide-react'
 
-const CLASSES = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10"];
+const CLASSES = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12']
+const NO_SECTION_VALUE = '__classwide__'
 
 interface Teacher {
   id: string
@@ -42,10 +45,18 @@ interface Teacher {
   email: string
 }
 
+interface ClassSection {
+  id: string
+  class: string
+  name: string
+  isActive: boolean
+}
+
 interface ClassTeacher {
   id: string
   teacherId: string
   class: string
+  section?: string | null
   createdAt: string
   updatedAt: string
   teacher?: {
@@ -57,17 +68,27 @@ interface ClassTeacher {
 
 export default function ClassTeachersPage() {
   const [classTeachers, setClassTeachers] = useState<ClassTeacher[]>([])
+  const [sections, setSections] = useState<ClassSection[]>([])
   const [teachers, setTeachers] = useState<Teacher[]>([])
   const [loading, setLoading] = useState(false)
   const [showDialog, setShowDialog] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
+  
+  // Signature upload state
+  const [showSignatureDialog, setShowSignatureDialog] = useState(false)
+  const [uploadClass, setUploadClass] = useState<string>('')
+  const [uploadSection, setUploadSection] = useState<string | null>(null)
+  const [signatureTimestamp, setSignatureTimestamp] = useState(Date.now())
+
   const [formData, setFormData] = useState({
     teacherId: '',
     class: '',
+    section: NO_SECTION_VALUE,
   })
 
   useEffect(() => {
     fetchTeachers()
+    fetchSections()
     fetchClassTeachers()
   }, [])
 
@@ -78,6 +99,16 @@ export default function ClassTeachersPage() {
       setTeachers(data.teachers || [])
     } catch {
       toast.error('Failed to fetch teachers')
+    }
+  }
+
+  const fetchSections = async () => {
+    try {
+      const response = await fetch('/api/admin/sections?activeOnly=true')
+      const data = await response.json()
+      setSections(data.sections || [])
+    } catch {
+      toast.error('Failed to fetch sections')
     }
   }
 
@@ -100,12 +131,14 @@ export default function ClassTeachersPage() {
       setFormData({
         teacherId: classTeacher.teacherId,
         class: classTeacher.class,
+        section: classTeacher.section || NO_SECTION_VALUE,
       })
     } else {
       setEditingId(null)
       setFormData({
         teacherId: '',
         class: '',
+        section: NO_SECTION_VALUE,
       })
     }
     setShowDialog(true)
@@ -117,6 +150,7 @@ export default function ClassTeachersPage() {
     setFormData({
       teacherId: '',
       class: '',
+      section: NO_SECTION_VALUE,
     })
   }
 
@@ -127,15 +161,17 @@ export default function ClassTeachersPage() {
     }
 
     try {
-      const url = editingId
-        ? `/api/admin/class-teachers/${editingId}`
-        : '/api/admin/class-teachers'
+      const url = editingId ? `/api/admin/class-teachers/${editingId}` : '/api/admin/class-teachers'
       const method = editingId ? 'PUT' : 'POST'
 
       const response = await fetch(url, {
         method,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
+        body: JSON.stringify({
+          teacherId: formData.teacherId,
+          class: formData.class,
+          section: formData.section === NO_SECTION_VALUE ? null : formData.section,
+        }),
       })
 
       const data = await response.json()
@@ -144,11 +180,7 @@ export default function ClassTeachersPage() {
         throw new Error(data.error || 'Failed to save class teacher')
       }
 
-      toast.success(
-        editingId
-          ? 'Class teacher updated successfully'
-          : 'Class teacher assigned successfully'
-      )
+      toast.success(editingId ? 'Class teacher updated successfully' : 'Class teacher assigned successfully')
       handleCloseDialog()
       fetchClassTeachers()
     } catch (error) {
@@ -177,18 +209,34 @@ export default function ClassTeachersPage() {
     }
   }
 
-  // Get classes that already have a teacher assigned (exclude current class when editing)
-  const assignedClasses = classTeachers
+  const assignedClassSections = classTeachers
     .filter((ct) => !editingId || ct.id !== editingId)
-    .map((ct) => ct.class)
-  const availableClasses = CLASSES.filter((c) => !assignedClasses.includes(c))
+    .map((ct) => `${ct.class}::${ct.section || ''}`)
+
+  const availableSections = sections
+    .filter((section) => section.class === formData.class && section.isActive)
+    .filter((section) => !assignedClassSections.includes(`${section.class}::${section.name}`))
+
+  const canUseClassWideAssignment =
+    formData.class &&
+    !assignedClassSections.includes(`${formData.class}::`)
+
+  const assignmentSections = [
+    ...(canUseClassWideAssignment
+      ? [{ value: NO_SECTION_VALUE, label: 'Class-wide' }]
+      : []),
+    ...availableSections.map((section) => ({
+      value: section.name,
+      label: section.name,
+    })),
+  ]
 
   return (
     <div className="p-4 md:p-6 space-y-6">
       <div className="space-y-2">
         <h1 className="text-2xl md:text-3xl font-bold">Class Teachers</h1>
         <p className="text-sm md:text-base text-muted-foreground">
-          Assign teachers as class teachers to manage student promotions
+          Assign teachers to classes and sections
         </p>
       </div>
 
@@ -215,14 +263,14 @@ export default function ClassTeachersPage() {
           ) : classTeachers.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground px-4">
               <GraduationCap className="h-12 w-12 mx-auto mb-4 opacity-50" />
-              <p className="text-sm md:text-base">No class teachers assigned for this academic year</p>
+              <p className="text-sm md:text-base">No class teachers assigned</p>
             </div>
           ) : (
             <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="min-w-[80px]">Class</TableHead>
+                    <TableHead className="min-w-[120px]">Class / Section</TableHead>
                     <TableHead className="min-w-[150px]">Teacher Name</TableHead>
                     <TableHead className="min-w-[120px] hidden sm:table-cell">Signature</TableHead>
                     <TableHead className="min-w-[200px] hidden sm:table-cell">Email</TableHead>
@@ -230,56 +278,74 @@ export default function ClassTeachersPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {classTeachers.sort((a, b) => Number(a.class) - Number(b.class)).map((ct) => {
-                    const teacherName = ct.teacher?.name || 'Not assigned'
-                    const teacherEmail = ct.teacher?.email || 'Not assigned'
-                    const hasTeacher = Boolean(ct.teacher?.name)
+                  {classTeachers
+                    .slice()
+                    .sort((a, b) => Number(a.class) - Number(b.class) || formatSection(a.section).localeCompare(formatSection(b.section)))
+                    .map((ct) => {
+                      const teacherName = ct.teacher?.name || 'Not assigned'
+                      const teacherEmail = ct.teacher?.email || 'Not assigned'
+                      const hasTeacher = Boolean(ct.teacher?.name)
 
-                    return (
-                      <TableRow key={ct.id}>
-                        <TableCell>
-                          <Badge variant="outline">{formatClass(ct.class)}</Badge>
-                        </TableCell>
-                        <TableCell className="font-medium">{teacherName}</TableCell>
-                        <TableCell className="hidden sm:table-cell align-middle">
-                          {hasTeacher ? (
-                            <div className="flex items-center">
-                              <Image
-                                src={getSignatureUrl(ct.class)}
-                                alt={`${teacherName} signature`}
-                                width={120}
-                                height={40}
-                                className="h-10 object-contain max-w-[120px]"
-                              />
+                      return (
+                        <TableRow key={ct.id}>
+                          <TableCell>
+                            <Badge variant="outline">{formatClassSection(ct.class, ct.section)}</Badge>
+                          </TableCell>
+                          <TableCell className="font-medium">{teacherName}</TableCell>
+                          <TableCell className="hidden sm:table-cell align-middle">
+                            {hasTeacher ? (
+                              <div className="flex items-center">
+                                <Image
+                                  src={`${getSignatureUrl(ct.class, ct.section)}?t=${signatureTimestamp}`}
+                                  alt={`${teacherName} signature`}
+                                  width={120}
+                                  height={40}
+                                  className="h-10 object-contain max-w-[120px]"
+                                  unoptimized
+                                />
+                              </div>
+                            ) : (
+                              <span className="text-sm text-muted-foreground">Not assigned</span>
+                            )}
+                          </TableCell>
+                          <TableCell className="text-muted-foreground hidden sm:table-cell">
+                            {teacherEmail}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <div className="flex items-center justify-end gap-1 sm:gap-2">
+                              {hasTeacher && (
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  title="Upload Signature"
+                                  onClick={() => {
+                                    setUploadClass(ct.class)
+                                    setUploadSection(ct.section || null)
+                                    setShowSignatureDialog(true)
+                                  }}
+                                >
+                                  <Upload className="h-4 w-4 text-blue-600" />
+                                </Button>
+                              )}
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleOpenDialog(ct)}
+                              >
+                                <Pencil className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleDelete(ct.id)}
+                              >
+                                <Trash2 className="h-4 w-4 text-destructive" />
+                              </Button>
                             </div>
-                          ) : (
-                            <span className="text-sm text-muted-foreground">Not assigned</span>
-                          )}
-                        </TableCell>
-                        <TableCell className="text-muted-foreground hidden sm:table-cell">
-                          {teacherEmail}
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <div className="flex items-center justify-end gap-1 sm:gap-2">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleOpenDialog(ct)}
-                            >
-                              <Pencil className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleDelete(ct.id)}
-                            >
-                              <Trash2 className="h-4 w-4 text-destructive" />
-                            </Button>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    )
-                  })}
+                          </TableCell>
+                        </TableRow>
+                      )
+                    })}
                 </TableBody>
               </Table>
             </div>
@@ -294,9 +360,7 @@ export default function ClassTeachersPage() {
               {editingId ? 'Edit Class Teacher' : 'Assign Class Teacher'}
             </DialogTitle>
             <DialogDescription className="text-sm">
-              {editingId
-                ? 'Update the class teacher assignment'
-                : 'Assign a teacher as a class teacher for a specific class'}
+              Assign a teacher to a class or section
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
@@ -304,9 +368,7 @@ export default function ClassTeachersPage() {
               <Label className="text-sm">Teacher</Label>
               <Select
                 value={formData.teacherId}
-                onValueChange={(value) =>
-                  setFormData((prev) => ({ ...prev, teacherId: value }))
-                }
+                onValueChange={(value) => setFormData((prev) => ({ ...prev, teacherId: value }))}
               >
                 <SelectTrigger className="w-full">
                   <SelectValue placeholder="Select teacher" />
@@ -324,17 +386,34 @@ export default function ClassTeachersPage() {
               <Label className="text-sm">Class</Label>
               <Select
                 value={formData.class}
-                onValueChange={(value) =>
-                  setFormData((prev) => ({ ...prev, class: value }))
-                }
+                onValueChange={(value) => setFormData((prev) => ({ ...prev, class: value, section: NO_SECTION_VALUE }))}
               >
                 <SelectTrigger className="w-full">
                   <SelectValue placeholder="Select class" />
                 </SelectTrigger>
                 <SelectContent>
-                  {availableClasses.map((className) => (
+                  {CLASSES.map((className) => (
                     <SelectItem key={className} value={className}>
-                      {formatClass(className)}
+                      Class {formatClass(className)}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label className="text-sm">Section</Label>
+              <Select
+                value={formData.section}
+                onValueChange={(value) => setFormData((prev) => ({ ...prev, section: value }))}
+                disabled={!formData.class || assignmentSections.length === 0}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Select section" />
+                </SelectTrigger>
+                <SelectContent>
+                  {assignmentSections.map((section) => (
+                    <SelectItem key={section.value} value={section.value}>
+                      {section.label}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -351,6 +430,16 @@ export default function ClassTeachersPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <SignatureUploadDialog 
+        open={showSignatureDialog}
+        onOpenChange={setShowSignatureDialog}
+        className={uploadClass}
+        sectionName={uploadSection}
+        onSuccess={() => {
+          setSignatureTimestamp(Date.now())
+        }}
+      />
     </div>
   )
 }

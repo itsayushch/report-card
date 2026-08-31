@@ -28,6 +28,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
       isClassTeacher: true,
       class: classTeacherAssignment.class,
+      section: classTeacherAssignment.section,
     })
   } catch (error) {
     console.error('Error checking class teacher status:', error)

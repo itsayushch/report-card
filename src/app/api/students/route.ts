@@ -43,6 +43,7 @@ export async function GET(request: NextRequest) {
         name: true,
         regNo: true,
         class: true,
+        section: true,
         status: true,
         academicYear: true,
         promotionStatus: true,
@@ -95,11 +96,18 @@ export async function GET(request: NextRequest) {
         const classA = parseClass(a.class)
         const classB = parseClass(b.class)
 
-        if (Number.isNaN(classA) && Number.isNaN(classB)) return 0
-        if (Number.isNaN(classA)) return 1
-        if (Number.isNaN(classB)) return -1
+        if (Number.isNaN(classA) && !Number.isNaN(classB)) return 1
+        if (!Number.isNaN(classA) && Number.isNaN(classB)) return -1
+        
+        if (classA !== classB) {
+          if (!Number.isNaN(classA) && !Number.isNaN(classB)) {
+            return classB - classA
+          }
+        }
 
-        if (classA !== classB) return classB - classA
+        const sectionA = a.section || ''
+        const sectionB = b.section || ''
+        if (sectionA !== sectionB) return sectionA.localeCompare(sectionB)
 
         return a.name.localeCompare(b.name)
       })

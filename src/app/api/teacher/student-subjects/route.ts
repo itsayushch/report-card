@@ -39,6 +39,7 @@ export async function PATCH(request: NextRequest) {
       where: {
         id: { in: studentIds },
         class: classTeacherAssignment.class,
+        ...(classTeacherAssignment.section ? { section: classTeacherAssignment.section } : {}),
       },
       select: { id: true },
     })

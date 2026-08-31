@@ -13,6 +13,7 @@ import {
   BookOpen,
   Calendar,
   FileCheck,
+  Layers,
   TrendingUp,
   LogOut,
   Shield,
@@ -34,6 +35,11 @@ const menuItems = [
     title: 'Teachers',
     href: '/admin/teachers',
     icon: GraduationCap,
+  },
+  {
+    title: 'Sections',
+    href: '/admin/sections',
+    icon: Layers,
   },
   {
     title: 'Class Teachers',

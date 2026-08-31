@@ -16,7 +16,7 @@ import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { toast } from 'sonner'
 import { Loader2, TrendingUp, TrendingDown, CheckCircle2, AlertCircle, ExternalLink } from 'lucide-react'
-import { formatClass } from '@/lib/class-utils'
+import { formatClass, formatClassSection } from '@/lib/class-utils'
 import Link from 'next/link'
 import {
   Dialog,
@@ -33,6 +33,7 @@ interface Student {
   name: string
   regNo: string
   class: string
+  section?: string | null
   promotionStatus: string
   hasMarks: boolean
   totalObtained: number
@@ -45,6 +46,7 @@ export default function TeacherPromotionPage() {
   const [classTeacherInfo, setClassTeacherInfo] = useState<{
     isClassTeacher: boolean
     class?: string
+    section?: string | null
     message?: string
   } | null>(null)
   const [activeAcademicYear, setActiveAcademicYear] = useState<string>('')
@@ -269,7 +271,7 @@ export default function TeacherPromotionPage() {
       <div className="space-y-2">
         <h1 className="text-2xl md:text-3xl font-bold">Student Promotion</h1>
         <p className="text-sm md:text-base text-muted-foreground">
-          Manage promotions for your class: {formatClass(classTeacherInfo.class!)}
+          Manage promotions for your class: {formatClassSection(classTeacherInfo.class!, classTeacherInfo.section)}
         </p>
       </div>
 

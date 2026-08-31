@@ -14,7 +14,7 @@ import { Badge } from '@/components/ui/badge'
 import { Edit, Trash2, Mail, Phone, Check } from 'lucide-react'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Checkbox } from '@/components/ui/checkbox'
-import { formatClass } from '@/lib/class-utils'
+import { formatClass, formatSection } from '@/lib/class-utils'
 
 interface StudentTableProps {
   students: Student[]
@@ -23,17 +23,19 @@ interface StudentTableProps {
   onRestore: (id: string) => void
   onPermanentDelete: (id: string) => void
   selectedStudents: string[]
+  allMatchingSelected?: boolean
   onSelectStudent: (id: string) => void
   onSelectAll: () => void
 }
 
-export function StudentTable({ students, onEdit, onDelete, onRestore, onPermanentDelete, selectedStudents, onSelectStudent, onSelectAll }: StudentTableProps) {
+export function StudentTable({ students, onEdit, onDelete, onRestore, onPermanentDelete, selectedStudents, allMatchingSelected = false, onSelectStudent, onSelectAll }: StudentTableProps) {
   // Sort students: ACTIVE first, then INACTIVE
   const sortedStudents = [...students].sort((a, b) => {
     if (a.status === 'ACTIVE' && b.status === 'INACTIVE') return -1
     if (a.status === 'INACTIVE' && b.status === 'ACTIVE') return 1
     return 0
   })
+  const allLoadedSelected = students.length > 0 && students.every((student) => selectedStudents.includes(student.id))
 
   return (
     <div className="border rounded-lg overflow-hidden">
@@ -42,13 +44,14 @@ export function StudentTable({ students, onEdit, onDelete, onRestore, onPermanen
           <TableRow>
             <TableHead className="w-12">
               <Checkbox 
-                checked={selectedStudents.length === students.length && students.length > 0}
+                checked={allMatchingSelected || allLoadedSelected}
                 onCheckedChange={onSelectAll}
               />
             </TableHead>
             <TableHead>Student</TableHead>
             <TableHead>Reg. Number</TableHead>
             <TableHead>Class</TableHead>
+            <TableHead>Section</TableHead>
             <TableHead>Status</TableHead>
             <TableHead className="text-right">Actions</TableHead>
           </TableRow>
@@ -56,7 +59,7 @@ export function StudentTable({ students, onEdit, onDelete, onRestore, onPermanen
         <TableBody>
           {sortedStudents.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={6} className="text-center py-8 text-gray-500">
+              <TableCell colSpan={7} className="text-center py-8 text-gray-500">
                 No students found
               </TableCell>
             </TableRow>
@@ -65,7 +68,7 @@ export function StudentTable({ students, onEdit, onDelete, onRestore, onPermanen
               <TableRow key={student.id}>
                 <TableCell>
                   <Checkbox 
-                    checked={selectedStudents.includes(student.id)}
+                    checked={allMatchingSelected || selectedStudents.includes(student.id)}
                     onCheckedChange={() => onSelectStudent(student.id)}
                   />
                 </TableCell>
@@ -76,6 +79,7 @@ export function StudentTable({ students, onEdit, onDelete, onRestore, onPermanen
                 </TableCell>
                 <TableCell className="font-mono">{student.regNo}</TableCell>
                 <TableCell>{formatClass(student.class)}</TableCell>
+                <TableCell>{formatSection(student.section)}</TableCell>
                 <TableCell>
                   <Badge
                     variant={student.status === 'ACTIVE' ? 'default' : 'secondary'}

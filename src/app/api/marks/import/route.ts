@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
-import { upsertTermMarks } from '@/lib/academic-records'
 import { prisma } from '@/lib/prisma'
 import { getTermsForClass } from '@/lib/terms'
 
@@ -40,6 +39,7 @@ export async function POST(request: NextRequest) {
         id: true,
         regNo: true,
         class: true,
+        section: true,
       }
     })
 
@@ -123,6 +123,7 @@ export async function POST(request: NextRequest) {
               studentId: student.id,
               academicYear,
               class: student.class,
+              section: student.section || null,
               terms: updatedTerms,
             }
           })

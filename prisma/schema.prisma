@@ -13,6 +13,7 @@ model Student {
   regNo           String           @unique @map("regNo")
   password        String?          @map("password") // Maps to password field in DB, optional for backward compatibility
   class           String
+  section         String?
   status          Status           @default(ACTIVE)
   academicYear    String
   secondLanguageSubject String?
@@ -27,6 +28,7 @@ model Student {
   academicRecords AcademicRecord[] // Relation to separate collection
 
   @@index([class])
+  @@index([class, section])
   @@index([status])
   @@index([academicYear])
   @@index([class, status])
@@ -41,6 +43,7 @@ model AcademicRecord {
   student      Student      @relation(fields: [studentId], references: [id], onDelete: Cascade)
   academicYear String
   class        String
+  section      String?
   terms        TermRecord[] // Array of terms for this year
   createdAt    DateTime     @default(now())
   updatedAt    DateTime     @updatedAt
@@ -49,6 +52,7 @@ model AcademicRecord {
   @@index([studentId])
   @@index([academicYear])
   @@index([class])
+  @@index([class, section])
   @@map("academic_records")
 }
 
@@ -118,9 +122,24 @@ model AcademicYear {
   @@map("academic_years")
 }
 
+model ClassSection {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  class     String
+  name      String
+  isActive  Boolean  @default(true)
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([class, name])
+  @@index([class])
+  @@map("class_sections")
+}
+
 model ReportPublish {
   id           String   @id @default(auto()) @map("_id") @db.ObjectId
   class        String
+  section      String?
   term         String
   academicYear String
   isPublished  Boolean  @default(false)
@@ -130,7 +149,8 @@ model ReportPublish {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
-  @@unique([class, term, academicYear])
+  @@unique([class, section, term, academicYear])
+  @@index([class, section])
   @@map("report_publish")
 }
 
@@ -158,10 +178,22 @@ model ClassTeacher {
   teacherId    String   @db.ObjectId
   teacher      Teacher  @relation(fields: [teacherId], references: [id], onDelete: Cascade)
   class        String
+  section      String?
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
-  @@unique([class])
+  @@unique([class, section])
   @@index([teacherId])
+  @@index([class])
   @@map("class_teachers")
+}
+
+model Signature {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  className String   @unique
+  data      Bytes
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("signatures")
 }

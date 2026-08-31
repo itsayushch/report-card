@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { normalizeSection } from '@/lib/class-utils'
 
 // DELETE - Remove a class teacher assignment
 export async function DELETE(
@@ -45,6 +46,7 @@ export async function PUT(
     const { id } = await params
     const body = await request.json()
     const { teacherId, class: className } = body
+    const section = normalizeSection(body.section)
 
     if (!teacherId || !className) {
       return NextResponse.json(
@@ -53,7 +55,7 @@ export async function PUT(
       )
     }
 
-    const [teacher, existingAssignment] = await Promise.all([
+    const [teacher, existingAssignment, existingSection] = await Promise.all([
       prisma.teacher.findUnique({
         where: { id: teacherId },
       }),
@@ -61,10 +63,16 @@ export async function PUT(
         where: {
           AND: [
             { class: className },
+            { section },
             { id: { not: id } },
           ],
         },
       }),
+      section
+        ? prisma.classSection.findFirst({
+            where: { class: className, name: section, isActive: true },
+          })
+        : Promise.resolve(null),
     ])
 
     if (!teacher) {
@@ -74,9 +82,16 @@ export async function PUT(
       )
     }
 
+    if (section && !existingSection) {
+      return NextResponse.json(
+        { error: 'Selected section was not found for this class' },
+        { status: 400 }
+      )
+    }
+
     if (existingAssignment) {
       return NextResponse.json(
-        { error: 'This class already has a class teacher' },
+        { error: 'This class section already has a class teacher' },
         { status: 400 }
       )
     }
@@ -86,6 +101,7 @@ export async function PUT(
       data: {
         teacherId,
         class: className,
+        section,
       },
       include: {
         teacher: {

@@ -65,3 +65,21 @@ export function parseClass(classValue: string): number {
   // Try to parse as Roman numeral
   return fromRoman(classValue.toUpperCase())
 }
+
+export function normalizeSection(section?: string | null): string | null {
+  const trimmed = section?.trim()
+  return trimmed ? trimmed : null
+}
+
+export function formatSection(section?: string | null): string {
+  return normalizeSection(section) || 'Unsectioned'
+}
+
+export function formatClassSection(
+  classValue: string | number,
+  section?: string | null
+): string {
+  const formattedClass = `Class ${formatClass(classValue)}`
+  const normalizedSection = normalizeSection(section)
+  return normalizedSection ? `${formattedClass} - ${normalizedSection}` : formattedClass
+}

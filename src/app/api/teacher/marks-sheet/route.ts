@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { formatClassSection } from '@/lib/class-utils'
 import { getTermsForClass } from '@/lib/terms'
 import { getSubjectById, getSubjectsForClassWithChoices, resolveLegacySubjectCode } from '@/lib/subjects'
 import ExcelJS from 'exceljs'
@@ -58,10 +59,12 @@ export async function GET(request: NextRequest) {
     }
 
     const classValue = classTeacherAssignment.class
+    const sectionValue = classTeacherAssignment.section
 
     const students = await prisma.student.findMany({
       where: {
         class: classValue,
+        ...(sectionValue ? { section: sectionValue } : {}),
         academicYear,
         status: 'ACTIVE',
       },
@@ -226,7 +229,7 @@ export async function GET(request: NextRequest) {
     const workbook = new ExcelJS.Workbook()
     const worksheet = workbook.addWorksheet('Marks Sheet')
 
-    const headerRow = worksheet.addRow([`Class: ${classValue}`, '', '', '', `Year: ${academicYear}`])
+    const headerRow = worksheet.addRow([formatClassSection(classValue, sectionValue), '', '', '', `Year: ${academicYear}`])
     worksheet.mergeCells('A1:D1')
     worksheet.mergeCells('E1:H1')
     worksheet.addRow([])
@@ -320,7 +323,8 @@ export async function GET(request: NextRequest) {
     })
 
     const buffer = await workbook.xlsx.writeBuffer()
-    const filename = `class_${classValue}_marks_${academicYear}.xlsx`
+    const sectionPart = sectionValue ? `_section_${sectionValue.replace(/[^a-z0-9]+/gi, '_')}` : ''
+    const filename = `class_${classValue}${sectionPart}_marks_${academicYear}.xlsx`
 
     return new NextResponse(Buffer.from(buffer), {
       headers: {

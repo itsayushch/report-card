@@ -56,6 +56,7 @@ export async function POST(request: NextRequest) {
     const invalidStudents = students.filter(
       (student) =>
         student.class !== classTeacherAssignment.class ||
+        (classTeacherAssignment.section && student.section !== classTeacherAssignment.section) ||
         student.academicYear !== academicYear ||
         student.promotionStatus !== 'PROMOTED'
     )
@@ -79,6 +80,7 @@ export async function POST(request: NextRequest) {
         updateData.status = 'INACTIVE'
       } else {
         updateData.class = nextClass
+        updateData.section = null
         updateData.promotionStatus = 'PENDING'
       }
 

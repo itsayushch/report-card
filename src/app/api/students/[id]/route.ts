@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { studentSchema } from '@/lib/validations'
+import { normalizeSection } from '@/lib/class-utils'
 // import { logAdminAction, AdminActions } from '@/lib/admin-log'
 import { auth } from '@/lib/auth'
+import { ZodError } from 'zod'
 
 interface RouteParams {
   params: Promise<{ id: string }>
@@ -40,19 +42,47 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
     const { id } = await params
     const body = await request.json()
     const validatedData = studentSchema.parse(body)
+    const section = normalizeSection(validatedData.section)
+
+    if (section) {
+      const existingSection = await prisma.classSection.findFirst({
+        where: { class: validatedData.class, name: section, isActive: true },
+      })
+
+      if (!existingSection) {
+        return NextResponse.json(
+          { error: 'Selected section was not found for this class' },
+          { status: 400 }
+        )
+      }
+    }
 
     const student = await prisma.student.update({
       where: { id },
-      data: validatedData,
+      data: {
+        ...validatedData,
+        section,
+      },
+    })
+
+    await prisma.academicRecord.updateMany({
+      where: {
+        studentId: id,
+        academicYear: student.academicYear,
+      },
+      data: {
+        class: student.class,
+        section: student.section || null,
+      },
     })
 
     return NextResponse.json(student)
-  } catch (error: any) {
+  } catch (error) {
     console.error('Error updating student:', error)
     
-    if (error.name === 'ZodError') {
+    if (error instanceof ZodError) {
       return NextResponse.json(
-        { error: 'Validation failed', details: error.errors },
+        { error: 'Validation failed', details: error.issues },
         { status: 400 }
       )
     }

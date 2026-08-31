@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import {
@@ -21,15 +21,17 @@ import {
 import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
 import { toast } from 'sonner'
-import { Loader2, Save, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react'
+import { Loader2, Save } from 'lucide-react'
 import { getSubjectsByPrefixes } from '@/lib/subjects'
-import { formatClass } from '@/lib/class-utils'
+import { formatClassSection } from '@/lib/class-utils'
+import { useInfiniteScroll } from '@/hooks/useInfiniteScroll'
 
 interface StudentRow {
   id: string
   name: string
   regNo: string
   class: string
+  section?: string | null
   secondLanguageSubject?: string | null
   thirdLanguageSubject?: string | null
   sixthSubject?: string | null
@@ -44,6 +46,7 @@ interface PaginationInfo {
 }
 
 const noneValue = '__none__'
+const STUDENTS_PAGE_SIZE = 20
 
 export default function SubjectChoicesPage() {
   const [loading, setLoading] = useState(true)
@@ -51,37 +54,24 @@ export default function SubjectChoicesPage() {
   const [classTeacherInfo, setClassTeacherInfo] = useState<{
     isClassTeacher: boolean
     class?: string
+    section?: string | null
     message?: string
   } | null>(null)
   const [students, setStudents] = useState<StudentRow[]>([])
   const [choicesMap, setChoicesMap] = useState<Map<string, StudentRow>>(new Map())
   const [dirtyStudents, setDirtyStudents] = useState<Set<string>>(new Set())
   const [searchQuery, setSearchQuery] = useState('')
-  const [paginationParams, setPaginationParams] = useState({
-    page: 1,
-    limit: 20,
-  })
+  const [isLoadingMore, setIsLoadingMore] = useState(false)
   const [pagination, setPagination] = useState<PaginationInfo>({
     total: 0,
     page: 1,
-    limit: 20,
+    limit: STUDENTS_PAGE_SIZE,
     totalPages: 0,
   })
-  const [pageInput, setPageInput] = useState('1')
 
   useEffect(() => {
     fetchClassTeacherStatus()
   }, [])
-
-  useEffect(() => {
-    if (classTeacherInfo?.isClassTeacher) {
-      fetchStudents()
-    }
-  }, [classTeacherInfo?.isClassTeacher, paginationParams.page, paginationParams.limit, searchQuery])
-
-  useEffect(() => {
-    setPageInput(paginationParams.page.toString())
-  }, [paginationParams.page])
 
   const fetchClassTeacherStatus = async () => {
     try {
@@ -99,18 +89,26 @@ export default function SubjectChoicesPage() {
     }
   }
 
-  const fetchStudents = async () => {
+  const fetchStudents = useCallback(async (page = 1, append = false) => {
     if (!classTeacherInfo?.class) return
 
     try {
-      setLoading(true)
+      if (append) {
+        setIsLoadingMore(true)
+      } else {
+        setLoading(true)
+      }
 
       const params = new URLSearchParams({
         class: classTeacherInfo.class,
         status: 'ACTIVE',
-        page: paginationParams.page.toString(),
-        limit: paginationParams.limit.toString(),
+        page: page.toString(),
+        limit: STUDENTS_PAGE_SIZE.toString(),
       })
+
+      if (classTeacherInfo.section) {
+        params.append('section', classTeacherInfo.section)
+      }
 
       if (searchQuery.trim()) {
         params.append('search', searchQuery.trim())
@@ -124,34 +122,65 @@ export default function SubjectChoicesPage() {
       const data = await response.json()
       const studentsArray: StudentRow[] = data.students || data || []
 
-      setStudents(studentsArray)
+      setStudents((prev) => {
+        if (!append) return studentsArray
+
+        const seen = new Set(prev.map((student) => student.id))
+        const nextStudents = studentsArray.filter((student) => !seen.has(student.id))
+        return [...prev, ...nextStudents]
+      })
       setPagination(
         data.pagination || {
           total: studentsArray.length,
-          page: paginationParams.page,
-          limit: paginationParams.limit,
+          page,
+          limit: STUDENTS_PAGE_SIZE,
           totalPages: studentsArray.length > 0 ? 1 : 0,
         }
       )
 
-      const nextMap = new Map<string, StudentRow>()
-      studentsArray.forEach((student) => {
-        nextMap.set(student.id, {
-          ...student,
-          secondLanguageSubject: student.secondLanguageSubject || null,
-          thirdLanguageSubject: student.thirdLanguageSubject || null,
-          sixthSubject: student.sixthSubject || null,
-          valueFaithSubject: student.valueFaithSubject || null,
+      setChoicesMap((prev) => {
+        const nextMap = append ? new Map(prev) : new Map<string, StudentRow>()
+        studentsArray.forEach((student) => {
+          nextMap.set(student.id, {
+            ...student,
+            secondLanguageSubject: student.secondLanguageSubject || null,
+            thirdLanguageSubject: student.thirdLanguageSubject || null,
+            sixthSubject: student.sixthSubject || null,
+            valueFaithSubject: student.valueFaithSubject || null,
+          })
         })
+        return nextMap
       })
 
-      setChoicesMap(nextMap)
-      setDirtyStudents(new Set())
+      if (!append) {
+        setDirtyStudents(new Set())
+      }
     } catch (error) {
       toast.error('Failed to fetch students')
     } finally {
       setLoading(false)
+      setIsLoadingMore(false)
     }
+  }, [classTeacherInfo?.class, classTeacherInfo?.section, searchQuery])
+
+  useEffect(() => {
+    if (classTeacherInfo?.isClassTeacher) {
+      void fetchStudents(1, false)
+    }
+  }, [classTeacherInfo?.isClassTeacher, fetchStudents])
+
+  const hasMore = pagination.page < pagination.totalPages
+  const loadMoreRef = useInfiniteScroll({
+    hasMore,
+    isLoading: loading || isLoadingMore,
+    onLoadMore: () => {
+      if (dirtyStudents.size > 0) return
+      void fetchStudents(pagination.page + 1, true)
+    },
+  })
+
+  const refreshStudents = () => {
+    void fetchStudents(1, false)
   }
 
   const updateChoice = (studentId: string, key: keyof StudentRow, value: string) => {
@@ -206,7 +235,7 @@ export default function SubjectChoicesPage() {
 
       toast.success('Subject choices updated')
       setDirtyStudents(new Set())
-      fetchStudents()
+      refreshStudents()
     } catch (error: any) {
       toast.error(error.message || 'Failed to save changes')
     } finally {
@@ -221,37 +250,6 @@ export default function SubjectChoicesPage() {
     }
 
     setSearchQuery(value)
-    setPaginationParams((prev) => ({ ...prev, page: 1 }))
-  }
-
-  const handlePageChange = (nextPage: number) => {
-    if (dirtyStudents.size > 0) {
-      toast.error('Save changes before changing page')
-      return
-    }
-
-    setPaginationParams((prev) => {
-      const safeTotal = pagination.totalPages || 1
-      const clamped = Math.min(Math.max(1, nextPage), safeTotal)
-      return { ...prev, page: clamped }
-    })
-  }
-
-  const handleLimitChange = (value: string) => {
-    if (dirtyStudents.size > 0) {
-      toast.error('Save changes before changing page size')
-      return
-    }
-
-    const numeric = Number(value)
-    if (!Number.isFinite(numeric) || numeric <= 0) return
-    setPaginationParams((prev) => ({ ...prev, limit: numeric, page: 1 }))
-  }
-
-  const handlePageInputSubmit = () => {
-    const numeric = Number(pageInput)
-    if (!Number.isFinite(numeric)) return
-    handlePageChange(numeric)
   }
 
   const classValue = classTeacherInfo?.class || ''
@@ -314,15 +312,12 @@ export default function SubjectChoicesPage() {
     )
   }
 
-  const pageStart = pagination.total === 0 ? 0 : (pagination.page - 1) * pagination.limit + 1
-  const pageEnd = Math.min(pagination.page * pagination.limit, pagination.total)
-
   return (
     <div className="py-6 px-3 lg:px-6 space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold">Subject Choices</h1>
-          <p className="text-gray-600 mt-1">Class {formatClass(classValue)}</p>
+          <p className="text-gray-600 mt-1">{formatClassSection(classValue, classTeacherInfo.section)}</p>
         </div>
         <Button onClick={handleSave} disabled={saving || dirtyStudents.size === 0}>
           {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
@@ -337,7 +332,7 @@ export default function SubjectChoicesPage() {
             <div>
               <CardTitle>Students</CardTitle>
               <CardDescription>
-                Showing {pageStart} - {pageEnd} of {pagination.total} students
+                Showing {students.length} of {pagination.total} students
               </CardDescription>
             </div>
             <div className="flex items-center gap-2">
@@ -347,18 +342,6 @@ export default function SubjectChoicesPage() {
                 onChange={(event) => handleSearchChange(event.target.value)}
                 className="w-56"
               />
-              <Select value={paginationParams.limit.toString()} onValueChange={handleLimitChange}>
-                <SelectTrigger className="w-24">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {[10, 20, 30, 50].map((value) => (
-                    <SelectItem key={value} value={value.toString()}>
-                      {value}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
             </div>
           </div>
         </CardHeader>
@@ -585,58 +568,17 @@ export default function SubjectChoicesPage() {
             </Table>
           </div>
 
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mt-4">
-            <div className="text-sm text-gray-600">
-              Showing {pageStart} - {pageEnd} of {pagination.total}
-            </div>
-            <div className="flex items-center gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => handlePageChange(1)}
-                disabled={pagination.page <= 1}
-              >
-                <ChevronsLeft className="h-4 w-4" />
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => handlePageChange(pagination.page - 1)}
-                disabled={pagination.page <= 1}
-              >
-                <ChevronLeft className="h-4 w-4" />
-              </Button>
-              <div className="flex items-center gap-2">
-                <Input
-                  value={pageInput}
-                  onChange={(event) => setPageInput(event.target.value)}
-                  onBlur={handlePageInputSubmit}
-                  onKeyDown={(event) => {
-                    if (event.key === 'Enter') {
-                      handlePageInputSubmit()
-                    }
-                  }}
-                  className="w-14 text-center"
-                />
-                <span className="text-sm text-gray-600">of {pagination.totalPages || 1}</span>
-              </div>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => handlePageChange(pagination.page + 1)}
-                disabled={pagination.page >= pagination.totalPages}
-              >
-                <ChevronRight className="h-4 w-4" />
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => handlePageChange(pagination.totalPages)}
-                disabled={pagination.page >= pagination.totalPages}
-              >
-                <ChevronsRight className="h-4 w-4" />
-              </Button>
-            </div>
+          <div ref={loadMoreRef} className="flex justify-center py-4 text-sm text-gray-600">
+            {isLoadingMore ? (
+              <span className="inline-flex items-center gap-2">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Loading more students...
+              </span>
+            ) : hasMore ? (
+              <span>Scroll to load more students</span>
+            ) : (
+              <span>{pagination.total === 0 ? 'No students to show' : 'All students loaded'}</span>
+            )}
           </div>
         </CardContent>
       </Card>

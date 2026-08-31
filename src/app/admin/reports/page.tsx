@@ -21,7 +21,7 @@ import {
 import { Badge } from '@/components/ui/badge'
 import { toast } from 'sonner'
 import { CheckCircle2, XCircle, Loader2 } from 'lucide-react'
-import { formatClass } from '@/lib/class-utils'
+import { formatClassSection } from '@/lib/class-utils'
 import { getTermsForClass } from '@/lib/terms'
 
 interface AcademicYear {
@@ -34,6 +34,7 @@ interface AcademicYear {
 interface PublishRecord {
   id: string
   class: string
+  section?: string | null
   term: string
   academicYear: string
   isPublished: boolean
@@ -41,11 +42,26 @@ interface PublishRecord {
   publishedBy: string | null
 }
 
+interface ClassSection {
+  id: string
+  class: string
+  name: string
+  isActive: boolean
+}
+
+interface PublishTarget {
+  key: string
+  class: string
+  section: string | null
+  label: string
+}
+
 export default function ReportPublishPage() {
   const [academicYears, setAcademicYears] = useState<AcademicYear[]>([])
   const [selectedYear, setSelectedYear] = useState<string>('')
   const [selectedTerm, setSelectedTerm] = useState<string>('')
   const [publishedReports, setPublishedReports] = useState<PublishRecord[]>([])
+  const [sections, setSections] = useState<ClassSection[]>([])
   const [loading, setLoading] = useState(false)
   const [publishing, setPublishing] = useState<string | null>(null)
   const [selectedClasses, setSelectedClasses] = useState<Set<string>>(new Set())
@@ -81,11 +97,14 @@ export default function ReportPublishPage() {
     try {
       const response = await fetch('/api/academic-years')
       const responseData = await response.json()
+      const sectionsResponse = await fetch('/api/admin/sections?activeOnly=true')
+      const sectionsData = await sectionsResponse.json()
       
       // API returns {academicYears: []} so extract the array
       const data = responseData.academicYears || []
       
       setAcademicYears(data)
+      setSections(sectionsData.sections || [])
       
       // Set active year as default
       const activeYear = data.find((y: AcademicYear) => y.isActive)
@@ -113,10 +132,10 @@ export default function ReportPublishPage() {
   }
 
   const handlePublish = async (
-    className: string,
+    target: PublishTarget,
     term: string
   ) => {
-    const key = `${className}-${term}`
+    const key = `${target.key}-${term}`
     setPublishing(key)
 
     try {
@@ -124,7 +143,8 @@ export default function ReportPublishPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          class: className,
+          class: target.class,
+          section: target.section,
           term,
           academicYear: selectedYear,
         }),
@@ -136,7 +156,7 @@ export default function ReportPublishPage() {
         throw new Error(data.error || 'Failed to publish')
       }
 
-      toast.success(`Reports published for ${className}, ${term}`)
+      toast.success(`Reports published for ${target.label}, ${term}`)
       fetchPublishedReports()
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Failed to publish reports')
@@ -146,15 +166,15 @@ export default function ReportPublishPage() {
   }
 
   const handleUnpublish = async (
-    className: string,
+    target: PublishTarget,
     term: string
   ) => {
-    const key = `${className}-${term}`
+    const key = `${target.key}-${term}`
     setPublishing(key)
 
     try {
       const response = await fetch(
-        `/api/reports/publish?class=${className}&term=${term}&academicYear=${selectedYear}`,
+        `/api/reports/publish?class=${target.class}&section=${encodeURIComponent(target.section || '')}&term=${term}&academicYear=${selectedYear}`,
         { method: 'DELETE' }
       )
 
@@ -164,7 +184,7 @@ export default function ReportPublishPage() {
         throw new Error(data.error || 'Failed to unpublish')
       }
 
-      toast.success(`Reports unpublished for ${className}, ${term}`)
+      toast.success(`Reports unpublished for ${target.label}, ${term}`)
       fetchPublishedReports()
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Failed to unpublish reports')
@@ -175,7 +195,7 @@ export default function ReportPublishPage() {
 
   const handleBulkPublish = async () => {
     if (selectedClasses.size === 0) {
-      toast.error('Please select at least one class')
+      toast.error('Please select at least one publish target')
       return
     }
 
@@ -183,14 +203,16 @@ export default function ReportPublishPage() {
     let successCount = 0
     let failCount = 0
 
-    for (const classKey of selectedClasses) {
-      const className = classKey
+    for (const targetKey of selectedClasses) {
+      const target = publishTargets.find((item) => item.key === targetKey)
+      if (!target) continue
       try {
         const response = await fetch('/api/reports/publish', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            class: className,
+            class: target.class,
+            section: target.section,
             term: selectedTerm,
             academicYear: selectedYear,
           }),
@@ -211,10 +233,10 @@ export default function ReportPublishPage() {
     setSelectAll(false)
     
     if (successCount > 0) {
-      toast.success(`Published ${successCount} class(es) successfully`)
+      toast.success(`Published ${successCount} target(s) successfully`)
     }
     if (failCount > 0) {
-      toast.error(`Failed to publish ${failCount} class(es)`)
+      toast.error(`Failed to publish ${failCount} target(s)`)
     }
     
     fetchPublishedReports()
@@ -222,7 +244,7 @@ export default function ReportPublishPage() {
 
   const handleBulkUnpublish = async () => {
     if (selectedClasses.size === 0) {
-      toast.error('Please select at least one class')
+      toast.error('Please select at least one publish target')
       return
     }
 
@@ -230,11 +252,12 @@ export default function ReportPublishPage() {
     let successCount = 0
     let failCount = 0
 
-    for (const classKey of selectedClasses) {
-      const className = classKey
+    for (const targetKey of selectedClasses) {
+      const target = publishTargets.find((item) => item.key === targetKey)
+      if (!target) continue
       try {
         const response = await fetch(
-          `/api/reports/publish?class=${className}&term=${selectedTerm}&academicYear=${selectedYear}`,
+          `/api/reports/publish?class=${target.class}&section=${encodeURIComponent(target.section || '')}&term=${selectedTerm}&academicYear=${selectedYear}`,
           { method: 'DELETE' }
         )
 
@@ -253,10 +276,10 @@ export default function ReportPublishPage() {
     setSelectAll(false)
     
     if (successCount > 0) {
-      toast.success(`Unpublished ${successCount} class(es) successfully`)
+      toast.success(`Unpublished ${successCount} target(s) successfully`)
     }
     if (failCount > 0) {
-      toast.error(`Failed to unpublish ${failCount} class(es)`)
+      toast.error(`Failed to unpublish ${failCount} target(s)`)
     }
     
     fetchPublishedReports()
@@ -267,7 +290,7 @@ export default function ReportPublishPage() {
       setSelectedClasses(new Set())
       setSelectAll(false)
     } else {
-      const allClasses = new Set(classes)
+      const allClasses = new Set(publishTargets.map((target) => target.key))
       setSelectedClasses(allClasses)
       setSelectAll(true)
     }
@@ -281,21 +304,43 @@ export default function ReportPublishPage() {
       newSelected.add(classKey)
     }
     setSelectedClasses(newSelected)
-    setSelectAll(newSelected.size === classes.length)
+    setSelectAll(newSelected.size === publishTargets.length)
   }
 
   // Get unique classes
   const classes = [
-    '1', '2', '3', '4', '5', '6', '7', '8', '9', '10'
+    '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12'
   ]
+
+  const publishTargets: PublishTarget[] = classes.flatMap((className) => {
+    const classSections = sections
+      .filter((section) => section.class === className && section.isActive)
+      .map((section) => ({
+        key: `${className}::${section.name}`,
+        class: className,
+        section: section.name,
+        label: formatClassSection(className, section.name),
+      }))
+
+    return [
+      {
+        key: `${className}::`,
+        class: className,
+        section: null,
+        label: `${formatClassSection(className)} (class-wide)`,
+      },
+      ...classSections,
+    ]
+  })
   
   // Get all available terms from semesters.ts (use class 9 as reference for higher classes)
   const allTerms = getTermsForClass('9').map(t => t.name)
 
-  const isPublished = (className: string, term: string) => {
+  const isPublished = (target: PublishTarget, term: string) => {
     return publishedReports.find(
       (r) =>
-        r.class === className &&
+        r.class === target.class &&
+        (r.section || null) === target.section &&
         r.term === term &&
         r.isPublished
     )
@@ -415,7 +460,7 @@ export default function ReportPublishPage() {
                         className="h-4 w-4 rounded border-gray-300"
                       />
                     </TableHead>
-                    <TableHead>Class</TableHead>
+                    <TableHead>Class / Section</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead>Published At</TableHead>
                     <TableHead>Published By</TableHead>
@@ -423,21 +468,21 @@ export default function ReportPublishPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {classes.map((className) => {
-                    const published = isPublished(className, selectedTerm)
-                    const key = `${className}-${selectedTerm}`
+                  {publishTargets.map((target) => {
+                    const published = isPublished(target, selectedTerm)
+                    const key = `${target.key}-${selectedTerm}`
 
                     return (
-                      <TableRow key={className}>
+                      <TableRow key={target.key}>
                         <TableCell>
                           <input
                             type="checkbox"
-                            checked={selectedClasses.has(className)}
-                            onChange={() => toggleClassSelection(className)}
+                            checked={selectedClasses.has(target.key)}
+                            onChange={() => toggleClassSelection(target.key)}
                             className="h-4 w-4 rounded border-gray-300"
                           />
                         </TableCell>
-                        <TableCell className="font-medium">Class {formatClass(className)}</TableCell>
+                        <TableCell className="font-medium">{target.label}</TableCell>
                         <TableCell>
                           {published ? (
                             <Badge className="bg-green-100 text-green-700 hover:bg-green-100">
@@ -463,7 +508,7 @@ export default function ReportPublishPage() {
                               variant="outline"
                               size="sm"
                               onClick={() =>
-                                handleUnpublish(className, selectedTerm)
+                                handleUnpublish(target, selectedTerm)
                               }
                               disabled={publishing === key}
                             >
@@ -477,7 +522,7 @@ export default function ReportPublishPage() {
                             <Button
                               size="sm"
                               onClick={() =>
-                                handlePublish(className, selectedTerm)
+                                handlePublish(target, selectedTerm)
                               }
                               disabled={publishing === key}
                             >

@@ -4,11 +4,18 @@ export const studentSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters'),
   regNo: z.string().min(1, 'Registration number is required'),
   class: z.string().min(1, 'Class is required'),
+  section: z.string().trim().nullable().optional(),
   academicYear: z.string().optional(),
   secondLanguageSubject: z.string().nullable().optional(),
   thirdLanguageSubject: z.string().nullable().optional(),
   sixthSubject: z.string().nullable().optional(),
   valueFaithSubject: z.string().nullable().optional(),
+})
+
+export const classSectionSchema = z.object({
+  class: z.string().min(1, 'Class is required'),
+  name: z.string().trim().min(1, 'Section name is required').max(40, 'Section name must be 40 characters or less'),
+  teacherId: z.string().nullable().optional(),
 })
 
 export const teacherSchema = z.object({

@@ -15,9 +15,12 @@ import { formatClass } from '@/lib/class-utils'
 interface StudentFiltersProps {
   search: string
   classFilter: string
+  sectionFilter: string
   statusFilter: string
+  sections: Array<{ id: string; name: string }>
   onSearchChange: (value: string) => void
   onClassChange: (value: string) => void
+  onSectionChange: (value: string) => void
   onStatusChange: (value: string) => void
 }
 
@@ -26,13 +29,16 @@ const classes = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10']
 export function StudentFilters({
   search,
   classFilter,
+  sectionFilter,
   statusFilter,
+  sections,
   onSearchChange,
   onClassChange,
+  onSectionChange,
   onStatusChange,
 }: StudentFiltersProps) {
   return (
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
       <div className="space-y-2">
         <Label htmlFor="search">Search</Label>
         <div className="relative">
@@ -45,6 +51,27 @@ export function StudentFilters({
             className="pl-10"
           />
         </div>
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="section">Section</Label>
+        <Select
+          value={sectionFilter || undefined}
+          onValueChange={onSectionChange}
+          disabled={!classFilter || classFilter === 'all'}
+        >
+          <SelectTrigger id="section">
+            <SelectValue placeholder="All Sections" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Sections</SelectItem>
+            {sections.map((section) => (
+              <SelectItem key={section.id} value={section.name}>
+                {section.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
 
       <div className="space-y-2">

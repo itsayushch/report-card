@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { normalizeSection } from '@/lib/class-utils'
 
 // GET - Fetch all class teacher assignments
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     const session = await auth()
 
@@ -47,6 +48,7 @@ export async function POST(request: NextRequest) {
 
     const body = await request.json()
     const { teacherId, class: className } = body
+    const section = normalizeSection(body.section)
 
     if (!teacherId || !className) {
       return NextResponse.json(
@@ -55,15 +57,21 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const [teacher, existingAssignment] = await Promise.all([
+    const [teacher, existingAssignment, existingSection] = await Promise.all([
       prisma.teacher.findUnique({
         where: { id: teacherId },
       }),
-      prisma.classTeacher.findUnique({
+      prisma.classTeacher.findFirst({
         where: {
           class: className,
+          section,
         },
       }),
+      section
+        ? prisma.classSection.findFirst({
+            where: { class: className, name: section, isActive: true },
+          })
+        : Promise.resolve(null),
     ])
 
     if (!teacher) {
@@ -73,9 +81,16 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    if (section && !existingSection) {
+      return NextResponse.json(
+        { error: 'Selected section was not found for this class' },
+        { status: 400 }
+      )
+    }
+
     if (existingAssignment) {
       return NextResponse.json(
-        { error: 'This class already has a class teacher' },
+        { error: 'This class section already has a class teacher' },
         { status: 400 }
       )
     }
@@ -84,6 +99,7 @@ export async function POST(request: NextRequest) {
       data: {
         teacherId,
         class: className,
+        section,
       },
       include: {
         teacher: {

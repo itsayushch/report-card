@@ -136,9 +136,9 @@ function PrintableReportCardContent() {
 
   useEffect(() => {
     if (data?.student.class) {
-      setClassSignatureSrc(getSignatureUrl(data.student.class));
+      setClassSignatureSrc(getSignatureUrl(data.student.class, data.student.section));
     }
-  }, [data?.student.class]);
+  }, [data?.student.class, data?.student.section]);
 
   if (loading) {
     return (
@@ -798,7 +798,7 @@ function PrintableReportCardContent() {
                   <div className="h-24 flex items-end justify-center mb-2 print:h-12 print:mb-1">
                     <Image
                       src={toPublicPath(
-                        classSignatureSrc || getSignatureUrl(data.student.class)
+                        classSignatureSrc || getSignatureUrl(data.student.class, data.student.section)
                       )}
                       alt="Class Teacher Signature"
                       width={240}

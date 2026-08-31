@@ -51,6 +51,7 @@ import {
   Trash2,
 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useInfiniteScroll } from "@/hooks/useInfiniteScroll";
 import { calculateGrade, getGradeColor } from "@/lib/calculations";
 import Papa from "papaparse";
 import { formatClass } from "@/lib/class-utils";
@@ -116,6 +117,7 @@ export default function MarksEntryPage() {
     new Set(),
   );
   const [loading, setLoading] = useState(false);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [saving, setSaving] = useState(false);
   const [clearingMarks, setClearingMarks] = useState(false);
   const [teacherData, setTeacherData] = useState<any>(null);
@@ -140,13 +142,22 @@ export default function MarksEntryPage() {
   const [clearMarksDialogOpen, setClearMarksDialogOpen] = useState(false);
   const totalClassStudents = pagination.total || students.length;
 
+  const hasMore = pagination.page < pagination.totalPages;
+  const loadMoreRef = useInfiniteScroll({
+    hasMore,
+    isLoading: loading || isLoadingMore,
+    onLoadMore: () => {
+      setPaginationParams((prev) => ({ ...prev, page: prev.page + 1 }));
+    },
+  });
+
   useEffect(() => {
     fetchInitialData();
   }, []);
 
   useEffect(() => {
     if (selectedYear && selectedTerm && selectedClass && selectedSubject) {
-      fetchStudentsAndMarks();
+      fetchStudentsAndMarks(paginationParams.page > 1);
     }
   }, [
     selectedYear,
@@ -254,8 +265,12 @@ export default function MarksEntryPage() {
     }
   };
 
-  const fetchStudentsAndMarks = async () => {
-    setLoading(true);
+  const fetchStudentsAndMarks = async (isLoadMore = false) => {
+    if (isLoadMore) {
+      setIsLoadingMore(true);
+    } else {
+      setLoading(true);
+    }
     try {
       const studentParams = new URLSearchParams({
         class: selectedClass,
@@ -278,6 +293,7 @@ export default function MarksEntryPage() {
       ) {
         toast.error("Failed to fetch data");
         setLoading(false);
+        setIsLoadingMore(false);
         return;
       }
 
@@ -286,7 +302,7 @@ export default function MarksEntryPage() {
         studentsResponse.students || studentsResponse || [];
       const marksData = await results[1].value.json();
 
-      setStudents(studentsData);
+      setStudents((prev) => isLoadMore ? [...prev, ...studentsData] : studentsData);
       setPagination(
         studentsResponse.pagination || {
           total: studentsData.length,
@@ -296,44 +312,49 @@ export default function MarksEntryPage() {
         },
       );
 
-      // Initialize marks data
-      const newMarksMap = new Map<string, MarkEntry>();
-
       // Check if current subject is alphabetical
       const subjectDetail = getSubjectById(selectedClass, selectedSubject);
       const isAlphabetical = subjectDetail?.dataType === "string";
 
-      studentsData.forEach((student: Student) => {
-        const existingMark = marksData.find(
-          (m: ExistingMark) => m.studentId === student.id,
-        );
-        const isAbsent = Boolean(
-          existingMark?.isAbsent || existingMark?.grade === "AB",
-        );
+      setMarksData((prev) => {
+        const newMarksMap = isLoadMore ? new Map(prev) : new Map<string, MarkEntry>();
 
-        // For alphabetical subjects, prioritize grade over marks
+        studentsData.forEach((student: Student) => {
+          if (isLoadMore && newMarksMap.has(student.id)) return; // Keep existing unsaved data
 
-        newMarksMap.set(student.id, {
-          studentId: student.id,
-          subjectId: selectedSubject,
-          marks: isAbsent
-            ? ""
-            : isAlphabetical
-              ? existingMark?.grade || ""
-              : (existingMark?.marks ?? ""),
-          grade: isAbsent ? "AB" : existingMark?.grade || "",
-          isAbsent,
-          teacherRemarks: existingMark?.teacherRemarks || "",
+          const existingMark = marksData.find(
+            (m: ExistingMark) => m.studentId === student.id,
+          );
+          const isAbsent = Boolean(
+            existingMark?.isAbsent || existingMark?.grade === "AB",
+          );
+
+          newMarksMap.set(student.id, {
+            studentId: student.id,
+            subjectId: selectedSubject,
+            marks: isAbsent
+              ? ""
+              : isAlphabetical
+                ? existingMark?.grade || ""
+                : (existingMark?.marks ?? ""),
+            grade: isAbsent ? "AB" : existingMark?.grade || "",
+            isAbsent,
+            teacherRemarks: existingMark?.teacherRemarks || "",
+          });
         });
+
+        return newMarksMap;
       });
 
-      setMarksData(newMarksMap);
-      setHasChanges(false); // Reset changes flag when fetching fresh data
-      setChangedStudents(new Set()); // Reset changed students on fresh fetch
+      if (!isLoadMore) {
+        setHasChanges(false);
+        setChangedStudents(new Set());
+      }
     } catch (error) {
       toast.error("Failed to fetch students and marks");
     } finally {
       setLoading(false);
+      setIsLoadingMore(false);
     }
   };
 
@@ -1259,109 +1280,17 @@ export default function MarksEntryPage() {
                         </Table>
                       </div>
 
-                      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mt-4">
-                        <div className="flex flex-wrap items-center gap-3 text-sm text-gray-600">
-                          <span>
-                            Showing{" "}
-                            {pageStart === 0 ? 0 : `${pageStart}-${pageEnd}`} of{" "}
-                            {pagination.total}
-                          </span>
-                          <div className="flex items-center gap-2">
-                            <span>Rows per page</span>
-                            <Select
-                              value={pagination.limit.toString()}
-                              onValueChange={handleLimitChange}
-                            >
-                              <SelectTrigger className="h-9 w-24">
-                                <SelectValue placeholder="25" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {[10, 25, 50, 100].map((size) => (
-                                  <SelectItem
-                                    key={size}
-                                    value={size.toString()}
-                                  >
-                                    {size}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
+                      <div className="py-8 text-center text-sm text-slate-500" ref={loadMoreRef}>
+                        {isLoadingMore ? (
+                          <div className="flex items-center justify-center gap-2">
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                            <span>Loading more students...</span>
                           </div>
-                        </div>
-
-                        <div className="flex flex-wrap items-center gap-2">
-                          <div className="flex items-center gap-2 text-sm text-gray-600">
-                            <span>Page</span>
-                            <Input
-                              value={pageInput}
-                              onChange={(e) => setPageInput(e.target.value)}
-                              onKeyDown={(e) => {
-                                if (e.key === "Enter") {
-                                  handlePageInputSubmit();
-                                }
-                              }}
-                              className="w-16 h-9"
-                              inputMode="numeric"
-                            />
-                            <span>of {pagination.totalPages || 1}</span>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={handlePageInputSubmit}
-                            >
-                              Go
-                            </Button>
-                          </div>
-
-                          <div className="flex gap-2">
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => handlePageChange(1)}
-                              disabled={pagination.page === 1 || loading}
-                            >
-                              <ChevronsLeft className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() =>
-                                handlePageChange(pagination.page - 1)
-                              }
-                              disabled={pagination.page === 1 || loading}
-                            >
-                              <ChevronLeft className="h-4 w-4" />
-                              Previous
-                            </Button>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() =>
-                                handlePageChange(pagination.page + 1)
-                              }
-                              disabled={
-                                pagination.page >= pagination.totalPages ||
-                                loading
-                              }
-                            >
-                              Next
-                              <ChevronRight className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() =>
-                                handlePageChange(pagination.totalPages)
-                              }
-                              disabled={
-                                pagination.page >= pagination.totalPages ||
-                                loading
-                              }
-                            >
-                              <ChevronsRight className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </div>
+                        ) : hasMore ? (
+                          <span>Scroll down to load more students</span>
+                        ) : students.length > 0 ? (
+                          <span>All {students.length} students loaded</span>
+                        ) : null}
                       </div>
                     </>
                   )}

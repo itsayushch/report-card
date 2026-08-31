@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { Prisma, Status } from '@prisma/client'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 
@@ -12,15 +13,19 @@ export async function GET(request: NextRequest) {
 
     const { searchParams } = new URL(request.url)
     const classParam = searchParams.get('class')
+    const section = searchParams.get('section')
     const status = searchParams.get('status')
 
-    const where: any = {}
+    const where: Prisma.StudentWhereInput = {}
 
     if (classParam) {
       where.class = classParam
     }
-    if (status) {
-      where.status = status
+    if (section) {
+      where.section = section
+    }
+    if (status === 'ACTIVE' || status === 'INACTIVE') {
+      where.status = status === 'ACTIVE' ? Status.ACTIVE : Status.INACTIVE
     }
 
     const students = await prisma.student.findMany({
@@ -29,6 +34,7 @@ export async function GET(request: NextRequest) {
         name: true,
         regNo: true,
         class: true,
+        section: true,
       },
       orderBy: {
         regNo: 'asc',

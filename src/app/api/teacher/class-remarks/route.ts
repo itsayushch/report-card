@@ -4,6 +4,7 @@ import { prisma } from '@/lib/prisma'
 type StudentRow = {
   id: string
   class: string
+  section?: string | null
 }
 
 type AcademicRecordRow = {
@@ -77,10 +78,22 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    // Get academic records for the class
-    const academicRecords: AcademicRecordRow[] = await prisma.academicRecord.findMany({
+    const students = await prisma.student.findMany({
       where: {
         class: classParam,
+        ...(classTeacherAssignment.section ? { section: classTeacherAssignment.section } : {}),
+        academicYear,
+        status: 'ACTIVE',
+      },
+      select: {
+        id: true,
+      },
+    })
+
+    // Get academic records for the teacher's students.
+    const academicRecords: AcademicRecordRow[] = await prisma.academicRecord.findMany({
+      where: {
+        studentId: { in: students.map((student) => student.id) },
         academicYear,
       },
     })
@@ -159,7 +172,7 @@ export async function POST(request: NextRequest) {
     // Get the student's class from the first student
     const firstStudent = await prisma.student.findUnique({
       where: { id: remarks[0].studentId },
-      select: { class: true },
+      select: { class: true, section: true },
     })
 
     if (!firstStudent) {
@@ -174,6 +187,10 @@ export async function POST(request: NextRequest) {
       where: {
         teacherId: session.user.id,
         class: firstStudent.class,
+        OR: [
+          { section: firstStudent.section || null },
+          { section: null },
+        ],
       },
     })
 
@@ -188,8 +205,7 @@ export async function POST(request: NextRequest) {
     let errorCount = 0
 
     const remarkEntries = remarks.filter(
-      (entry): entry is RemarkEntry =>
-        !!entry?.studentId && !!entry.remarks && entry.remarks.trim() !== ''
+      (entry): entry is RemarkEntry => !!entry?.studentId
     )
 
     const studentIds = Array.from(
@@ -198,8 +214,12 @@ export async function POST(request: NextRequest) {
 
     const [students, academicRecords] = await Promise.all([
       prisma.student.findMany({
-        where: { id: { in: studentIds } },
-        select: { id: true, class: true },
+        where: {
+          id: { in: studentIds },
+          class: classTeacherAssignment.class,
+          ...(classTeacherAssignment.section ? { section: classTeacherAssignment.section } : {}),
+        },
+        select: { id: true, class: true, section: true },
       }) as Promise<StudentRow[]>,
       prisma.academicRecord.findMany({
         where: {
@@ -219,7 +239,8 @@ export async function POST(request: NextRequest) {
     const results = await Promise.all(
       remarkEntries.map(async (remarkEntry) => {
         try {
-          const { studentId, remarks: remarkText } = remarkEntry
+          const { studentId } = remarkEntry
+          const remarkText = remarkEntry.remarks?.trim() || null
           const student = studentMap.get(studentId)
 
           if (!student) {
@@ -234,6 +255,7 @@ export async function POST(request: NextRequest) {
                 studentId,
                 academicYear,
                 class: student.class,
+                section: student.section || null,
                 terms: [],
               },
             })

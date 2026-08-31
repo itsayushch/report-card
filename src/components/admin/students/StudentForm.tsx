@@ -38,8 +38,16 @@ interface StudentFormProps {
 const classes = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12']
 const noneValue = '__none__'
 
+interface ClassSection {
+  id: string
+  class: string
+  name: string
+  isActive: boolean
+}
+
 export function StudentForm({ open, onOpenChange, student, onSuccess }: StudentFormProps) {
   const [isLoading, setIsLoading] = useState(false)
+  const [sections, setSections] = useState<ClassSection[]>([])
 
   const {
     register,
@@ -58,6 +66,7 @@ export function StudentForm({ open, onOpenChange, student, onSuccess }: StudentF
         name: student.name,
         regNo: student.regNo,
         class: student.class,
+        section: student.section || noneValue,
         secondLanguageSubject: student.secondLanguageSubject || noneValue,
         thirdLanguageSubject: student.thirdLanguageSubject || noneValue,
         sixthSubject: student.sixthSubject || noneValue,
@@ -68,6 +77,7 @@ export function StudentForm({ open, onOpenChange, student, onSuccess }: StudentF
         name: '',
         regNo: '',
         class: '',
+        section: noneValue,
         secondLanguageSubject: noneValue,
         thirdLanguageSubject: noneValue,
         sixthSubject: noneValue,
@@ -77,10 +87,39 @@ export function StudentForm({ open, onOpenChange, student, onSuccess }: StudentF
   }, [student, reset])
 
   const selectedClass = watch('class')
+  const selectedSection = watch('section') || noneValue
   const secondLanguageValue = watch('secondLanguageSubject') || noneValue
   const thirdLanguageValue = watch('thirdLanguageSubject') || noneValue
   const sixthSubjectValue = watch('sixthSubject') || noneValue
   const valueFaithValue = watch('valueFaithSubject') || noneValue
+
+  useEffect(() => {
+    const fetchSections = async () => {
+      if (!selectedClass) {
+        setSections([])
+        setValue('section', noneValue)
+        return
+      }
+
+      try {
+        const response = await fetch(`/api/admin/sections?class=${selectedClass}&activeOnly=true`)
+        const data = await response.json()
+        const classSections = data.sections || []
+        setSections(classSections)
+
+        if (
+          selectedSection !== noneValue &&
+          !classSections.some((section: ClassSection) => section.name === selectedSection)
+        ) {
+          setValue('section', noneValue)
+        }
+      } catch {
+        toast.error('Failed to fetch sections')
+      }
+    }
+
+    fetchSections()
+  }, [selectedClass, selectedSection, setValue])
 
   const secondLanguageOptions = selectedClass
     ? getSubjectsByPrefixes(selectedClass, ['2ND-LANG-'])
@@ -135,6 +174,7 @@ export function StudentForm({ open, onOpenChange, student, onSuccess }: StudentF
 
       const payload: StudentFormData = {
         ...data,
+        section: normalizeChoice(data.section),
         secondLanguageSubject: normalizeChoice(data.secondLanguageSubject),
         thirdLanguageSubject: normalizeChoice(data.thirdLanguageSubject),
         sixthSubject: normalizeChoice(data.sixthSubject),
@@ -226,6 +266,28 @@ export function StudentForm({ open, onOpenChange, student, onSuccess }: StudentF
               <p className="text-sm text-red-600">{errors.class.message}</p>
             )}
           </div>
+
+          {selectedClass && (
+            <div className="space-y-2">
+              <Label htmlFor="section">Section</Label>
+              <Select
+                value={selectedSection}
+                onValueChange={(value) => setValue('section', value)}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select section" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={noneValue}>None</SelectItem>
+                  {sections.map((section) => (
+                    <SelectItem key={section.id} value={section.name}>
+                      {section.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
 
           {selectedClass && (secondLanguageOptions.length > 0 || thirdLanguageOptions.length > 0 || sixthSubjectOptions.length > 0 || valueFaithOptions.length > 0) && (
             <div className="space-y-4">

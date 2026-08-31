@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { normalizeSection } from '@/lib/class-utils'
 
 export async function POST(request: NextRequest) {
   try {
@@ -12,6 +13,7 @@ export async function POST(request: NextRequest) {
 
     const body = await request.json()
     const { class: className, term, academicYear } = body
+    const section = normalizeSection(body.section)
 
     if (!className || !term || !academicYear) {
       return NextResponse.json(
@@ -21,13 +23,12 @@ export async function POST(request: NextRequest) {
     }
 
     // Check if already published
-    const existing = await prisma.reportPublish.findUnique({
+    const existing = await prisma.reportPublish.findFirst({
       where: {
-        class_term_academicYear: {
-          class: className,
-          term,
-          academicYear,
-        },
+        class: className,
+        section,
+        term,
+        academicYear,
       },
     })
 
@@ -39,28 +40,26 @@ export async function POST(request: NextRequest) {
     }
 
     // Create or update publish record
-    const publishRecord = await prisma.reportPublish.upsert({
-      where: {
-        class_term_academicYear: {
-          class: className,
-          term,
-          academicYear,
-        },
-      },
-      update: {
-        isPublished: true,
-        publishedAt: new Date(),
-        publishedById: session.user.id,
-      },
-      create: {
-        class: className,
-        term,
-        academicYear,
-        isPublished: true,
-        publishedAt: new Date(),
-        publishedById: session.user.id,
-      },
-    })
+    const publishRecord = existing
+      ? await prisma.reportPublish.update({
+          where: { id: existing.id },
+          data: {
+            isPublished: true,
+            publishedAt: new Date(),
+            publishedById: session.user.id,
+          },
+        })
+      : await prisma.reportPublish.create({
+          data: {
+            class: className,
+            section,
+            term,
+            academicYear,
+            isPublished: true,
+            publishedAt: new Date(),
+            publishedById: session.user.id,
+          },
+        })
     
 
     return NextResponse.json({
@@ -87,6 +86,7 @@ export async function DELETE(request: NextRequest) {
 
     const { searchParams } = new URL(request.url)
     const className = searchParams.get('class')
+    const section = normalizeSection(searchParams.get('section'))
     const term = searchParams.get('term')
     const academicYear = searchParams.get('academicYear')
 
@@ -101,6 +101,7 @@ export async function DELETE(request: NextRequest) {
     await prisma.reportPublish.updateMany({
       where: {
         class: className,
+        section,
         term,
         academicYear,
       },
@@ -135,20 +136,33 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url)
     const academicYear = searchParams.get('academicYear')
 
-    const where: any = {}
+    const where: { academicYear?: string } = {}
     if (academicYear) {
       where.academicYear = academicYear
     }
 
     const publishedReports = await prisma.reportPublish.findMany({
       where,
+      include: {
+        publishedBy: {
+          select: {
+            name: true,
+          },
+        },
+      },
       orderBy: [
         { academicYear: 'desc' },
         { class: 'asc' },
+        { section: 'asc' },
       ],
     })
 
-    return NextResponse.json(publishedReports)
+    return NextResponse.json(
+      publishedReports.map((record) => ({
+        ...record,
+        publishedBy: record.publishedBy?.name || null,
+      }))
+    )
   } catch (error) {
     console.error('Get published reports error:', error)
     return NextResponse.json(

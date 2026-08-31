@@ -25,7 +25,8 @@ type TermRecord = {
 export async function getOrCreateAcademicRecordBucket(
   studentId: string,
   academicYear: string,
-  classValue: string
+  classValue: string,
+  section?: string | null
 ) {
   let bucket = await prisma.academicRecord.findUnique({
     where: {
@@ -42,6 +43,7 @@ export async function getOrCreateAcademicRecordBucket(
         studentId,
         academicYear,
         class: classValue,
+        section: section || null,
         terms: [],
       },
     });
@@ -57,6 +59,7 @@ export async function upsertTermMarks(
   studentId: string,
   academicYear: string,
   classValue: string,
+  section: string | null | undefined,
   termName: string,
   subjects: Array<{
     subjectCode: string;
@@ -67,7 +70,7 @@ export async function upsertTermMarks(
   enteredBy: string
 ) {
   // Get or create the bucket
-  const bucket = await getOrCreateAcademicRecordBucket(studentId, academicYear, classValue);
+  const bucket = await getOrCreateAcademicRecordBucket(studentId, academicYear, classValue, section);
 
   // Check if term already exists
   const existingTermIndex = (bucket.terms as TermRecord[]).findIndex((t: TermRecord) => t.name === termName);
@@ -107,6 +110,7 @@ export async function upsertTermMarks(
     data: {
       terms: updatedTerms,
       class: classValue, // Update class in case student was promoted
+      section: section || null,
     },
   });
 

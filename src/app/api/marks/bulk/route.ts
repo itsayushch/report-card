@@ -66,7 +66,7 @@ export async function POST(request: NextRequest) {
     const studentIds = Array.from(marksByStudent.keys())
     const students = await prisma.student.findMany({
       where: { id: { in: studentIds } },
-      select: { id: true, class: true, academicYear: true },
+      select: { id: true, class: true, section: true, academicYear: true },
     })
 
     const studentMap = new Map(students.map(s => [s.id, s]))
@@ -105,6 +105,7 @@ export async function POST(request: NextRequest) {
           studentId,
           academicYear,
           student.class,
+          student.section,
           term,
           subjects,
           session.user.id

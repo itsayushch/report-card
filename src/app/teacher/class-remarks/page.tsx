@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import {
@@ -12,13 +12,14 @@ import {
 } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
 import { toast } from 'sonner'
-import { Loader2, Save, AlertCircle, ExternalLink, Search, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Download } from 'lucide-react'
+import { Loader2, Save, AlertCircle, ExternalLink, Search, Download } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
-import { formatClass } from '@/lib/class-utils'
+import { formatClassSection } from '@/lib/class-utils'
 import { getTermsForClass } from '@/lib/terms'
 import { getSubjectById } from '@/lib/subjects'
 import { Alert, AlertDescription } from '@/components/ui/alert'
+import { useInfiniteScroll } from '@/hooks/useInfiniteScroll'
 
 interface AcademicYear {
   id: string
@@ -31,6 +32,7 @@ interface Student {
   name: string
   regNo: string
   class: string
+  section?: string | null
 }
 
 interface SubjectMark {
@@ -58,12 +60,15 @@ interface PaginationInfo {
   totalPages: number
 }
 
+const STUDENTS_PAGE_SIZE = 20
+
 export default function ClassRemarksPage() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [classTeacherInfo, setClassTeacherInfo] = useState<{
     isClassTeacher: boolean
     class?: string
+    section?: string | null
     message?: string
   } | null>(null)
   const [activeYear, setActiveYear] = useState<AcademicYear | null>(null)
@@ -75,35 +80,17 @@ export default function ClassRemarksPage() {
   const [exporting, setExporting] = useState(false)
   const [terms, setTerms] = useState<any[]>([])
   const [searchQuery, setSearchQuery] = useState('')
-  const [paginationParams, setPaginationParams] = useState({
-    page: 1,
-    limit: 20,
-  })
+  const [isLoadingMore, setIsLoadingMore] = useState(false)
   const [pagination, setPagination] = useState<PaginationInfo>({
     total: 0,
     page: 1,
-    limit: 20,
+    limit: STUDENTS_PAGE_SIZE,
     totalPages: 0,
   })
-  const [pageInput, setPageInput] = useState('1')
 
   useEffect(() => {
     fetchInitialData()
   }, [])
-
-  useEffect(() => {
-    if (
-      classTeacherInfo?.isClassTeacher &&
-      activeYear &&
-      selectedTerm
-    ) {
-      fetchStudentsAndRemarks()
-    }
-  }, [selectedTerm, paginationParams.page, paginationParams.limit, searchQuery])
-
-  useEffect(() => {
-    setPageInput(paginationParams.page.toString())
-  }, [paginationParams.page])
 
   const fetchInitialData = async () => {
     try {
@@ -154,29 +141,43 @@ export default function ClassRemarksPage() {
     }
   }
 
-  const fetchStudentsAndRemarks = async () => {
+  const fetchStudentsAndRemarks = useCallback(async (page = 1, append = false) => {
     if (!classTeacherInfo?.class || !activeYear || !selectedTerm) {
       return
     }
 
     try {
-      setLoading(true)
+      if (append) {
+        setIsLoadingMore(true)
+      } else {
+        setLoading(true)
+      }
       const params = new URLSearchParams({
         class: classTeacherInfo.class,
         status: 'ACTIVE',
-        page: paginationParams.page.toString(),
-        limit: paginationParams.limit.toString(),
+        page: page.toString(),
+        limit: STUDENTS_PAGE_SIZE.toString(),
       })
 
       if (searchQuery.trim()) {
         params.append('search', searchQuery.trim())
       }
+      if (classTeacherInfo.section) {
+        params.append('section', classTeacherInfo.section)
+      }
+
+      const remarksParams = new URLSearchParams({
+        class: classTeacherInfo.class,
+        term: selectedTerm,
+        academicYear: activeYear.year,
+      })
+      if (classTeacherInfo.section) {
+        remarksParams.append('section', classTeacherInfo.section)
+      }
 
       const [studentsRes, remarksRes] = await Promise.all([
         fetch(`/api/students?${params.toString()}`),
-        fetch(
-          `/api/teacher/class-remarks?class=${classTeacherInfo.class}&term=${selectedTerm}&academicYear=${activeYear.year}`
-        ),
+        fetch(`/api/teacher/class-remarks?${remarksParams.toString()}`),
       ])
 
       if (!studentsRes.ok || !remarksRes.ok) {
@@ -188,46 +189,82 @@ export default function ClassRemarksPage() {
 
       // Get students array from API response
       const studentsArray = studentsData.students || studentsData || []
-      setStudents(studentsArray)
+      setStudents((prev) => {
+        if (!append) return studentsArray
+
+        const seen = new Set(prev.map((student) => student.id))
+        const nextStudents = studentsArray.filter((student: Student) => !seen.has(student.id))
+        return [...prev, ...nextStudents]
+      })
       setPagination(
         studentsData.pagination || {
           total: studentsArray.length,
-          page: paginationParams.page,
-          limit: paginationParams.limit,
+          page,
+          limit: STUDENTS_PAGE_SIZE,
           totalPages: studentsArray.length > 0 ? 1 : 0,
         }
       )
 
-      // Initialize remarks data and marks data
-      const newRemarksMap = new Map<string, RemarksEntry>()
-      const newMarksMap = new Map<string, SubjectMark[]>()
-      
       // Ensure remarksDataFromAPI is an array
       const remarksArray = Array.isArray(remarksDataFromAPI) ? remarksDataFromAPI : []
-      
-      studentsArray.forEach((student: Student) => {
-        const existingData = remarksArray.find(
-          (r: StudentData) => r.studentId === student.id
-        )
 
-        newRemarksMap.set(student.id, {
-          studentId: student.id,
-          remarks: existingData?.remarks || '',
+      setRemarksData((prev) => {
+        const nextMap = append ? new Map(prev) : new Map<string, RemarksEntry>()
+        studentsArray.forEach((student: Student) => {
+          const existingData = remarksArray.find(
+            (r: StudentData) => r.studentId === student.id
+          )
+
+          nextMap.set(student.id, {
+            studentId: student.id,
+            remarks: existingData?.remarks || '',
+          })
         })
-
-        newMarksMap.set(student.id, existingData?.subjects || [])
+        return nextMap
       })
 
-      setRemarksData(newRemarksMap)
-      setStudentMarksData(newMarksMap)
-      setHasChanges(false)
+      setStudentMarksData((prev) => {
+        const nextMap = append ? new Map(prev) : new Map<string, SubjectMark[]>()
+        studentsArray.forEach((student: Student) => {
+          const existingData = remarksArray.find(
+            (r: StudentData) => r.studentId === student.id
+          )
+
+          nextMap.set(student.id, existingData?.subjects || [])
+        })
+        return nextMap
+      })
+      if (!append) {
+        setHasChanges(false)
+      }
     } catch (error) {
       toast.error('Failed to fetch students and remarks')
       console.error(error)
     } finally {
       setLoading(false)
+      setIsLoadingMore(false)
     }
-  }
+  }, [activeYear, classTeacherInfo?.class, classTeacherInfo?.section, searchQuery, selectedTerm])
+
+  useEffect(() => {
+    if (
+      classTeacherInfo?.isClassTeacher &&
+      activeYear &&
+      selectedTerm
+    ) {
+      void fetchStudentsAndRemarks(1, false)
+    }
+  }, [activeYear, classTeacherInfo?.isClassTeacher, fetchStudentsAndRemarks, selectedTerm])
+
+  const hasMore = pagination.page < pagination.totalPages
+  const loadMoreRef = useInfiniteScroll({
+    hasMore,
+    isLoading: loading || isLoadingMore,
+    onLoadMore: () => {
+      if (hasChanges) return
+      void fetchStudentsAndRemarks(pagination.page + 1, true)
+    },
+  })
 
   const updateRemarks = (studentId: string, remarks: string) => {
     const newRemarksMap = new Map(remarksData)
@@ -249,7 +286,6 @@ export default function ClassRemarksPage() {
 
     setSelectedTerm(term)
     setSearchQuery('')
-    setPaginationParams((prev) => ({ ...prev, page: 1 }))
   }
 
   const handleSearchChange = (value: string) => {
@@ -259,41 +295,7 @@ export default function ClassRemarksPage() {
     }
 
     setSearchQuery(value)
-    setPaginationParams((prev) => ({ ...prev, page: 1 }))
   }
-
-  const handlePageChange = (nextPage: number) => {
-    if (hasChanges) {
-      toast.error('Please save your changes before changing page')
-      return
-    }
-
-    setPaginationParams((prev) => {
-      const safeTotal = pagination.totalPages || 1
-      const clamped = Math.min(Math.max(1, nextPage), safeTotal)
-      return { ...prev, page: clamped }
-    })
-  }
-
-  const handleLimitChange = (value: string) => {
-    if (hasChanges) {
-      toast.error('Please save your changes before changing page size')
-      return
-    }
-
-    const numeric = Number(value)
-    if (!Number.isFinite(numeric) || numeric <= 0) return
-    setPaginationParams((prev) => ({ ...prev, limit: numeric, page: 1 }))
-  }
-
-  const handlePageInputSubmit = () => {
-    const numeric = Number(pageInput)
-    if (!Number.isFinite(numeric)) return
-    handlePageChange(numeric)
-  }
-
-  const pageStart = pagination.total === 0 ? 0 : (pagination.page - 1) * pagination.limit + 1
-  const pageEnd = Math.min(pagination.page * pagination.limit, pagination.total)
 
   const handleSaveRemarks = async () => {
     if (!activeYear || !selectedTerm) {
@@ -301,17 +303,15 @@ export default function ClassRemarksPage() {
       return
     }
 
-    // Only send remarks that have been entered (non-empty)
     const remarksArray = Array.from(remarksData.values())
-      .filter((entry) => entry.remarks && entry.remarks.trim() !== '')
       .map((entry) => ({
         ...entry,
         term: selectedTerm,
         academicYear: activeYear.year,
       }))
 
-    if (remarksArray.length === 0) {
-      toast.error('No remarks to save. Please enter at least one remark.')
+    if (!hasChanges) {
+      toast.error('No changes to save.')
       return
     }
 
@@ -330,7 +330,7 @@ export default function ClassRemarksPage() {
       }
 
       toast.success(data.message || 'Remarks saved successfully!')
-      await fetchStudentsAndRemarks()
+      await fetchStudentsAndRemarks(1, false)
       setHasChanges(false)
     } catch (error: any) {
       console.error('Save error:', error) // Debug log
@@ -359,7 +359,8 @@ export default function ClassRemarksPage() {
       const url = window.URL.createObjectURL(blob)
       const link = document.createElement('a')
       link.href = url
-      link.download = `class_${classTeacherInfo?.class || 'class'}_marks_${activeYear.year}.xlsx`
+      const sectionPart = classTeacherInfo?.section ? `_section_${classTeacherInfo.section.replace(/[^a-z0-9]+/gi, '_')}` : ''
+      link.download = `class_${classTeacherInfo?.class || 'class'}${sectionPart}_marks_${activeYear.year}.xlsx`
       document.body.appendChild(link)
       link.click()
       link.remove()
@@ -407,7 +408,7 @@ export default function ClassRemarksPage() {
       <div>
         <h1 className="text-3xl font-bold text-gray-900">Class Remarks Entry</h1>
         <p className="text-gray-500 mt-1">
-          Manage remarks for your class: {formatClass(classTeacherInfo.class!)} • {activeYear?.year || 'Not set'}
+          Manage remarks for your class: {formatClassSection(classTeacherInfo.class!, classTeacherInfo.section)} • {activeYear?.year || 'Not set'}
         </p>
       </div>
 
@@ -584,85 +585,17 @@ export default function ClassRemarksPage() {
                   )
                 })}
 
-                <div className="border-t pt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                  <p className="text-sm text-muted-foreground">
-                    Showing {pageStart}-{pageEnd} of {pagination.total} students
-                  </p>
-
-                  <div className="flex flex-wrap items-center gap-2">
-                    <Select value={paginationParams.limit.toString()} onValueChange={handleLimitChange}>
-                      <SelectTrigger className="h-9 w-28">
-                        <SelectValue placeholder="Rows" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="10">10 / page</SelectItem>
-                        <SelectItem value="20">20 / page</SelectItem>
-                        <SelectItem value="50">50 / page</SelectItem>
-                      </SelectContent>
-                    </Select>
-
-                    <div className="flex items-center gap-1">
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        className="h-9 w-9"
-                        onClick={() => handlePageChange(1)}
-                        disabled={pagination.page <= 1}
-                        aria-label="First page"
-                      >
-                        <ChevronsLeft className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        className="h-9 w-9"
-                        onClick={() => handlePageChange(pagination.page - 1)}
-                        disabled={pagination.page <= 1}
-                        aria-label="Previous page"
-                      >
-                        <ChevronLeft className="h-4 w-4" />
-                      </Button>
-                    </div>
-
-                    <div className="flex items-center gap-2">
-                      <Input
-                        value={pageInput}
-                        onChange={(e) => setPageInput(e.target.value.replace(/[^0-9]/g, ''))}
-                        onBlur={handlePageInputSubmit}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter') {
-                            handlePageInputSubmit()
-                          }
-                        }}
-                        className="h-9 w-16 text-center"
-                        aria-label="Page number"
-                      />
-                      <span className="text-sm text-muted-foreground">/ {Math.max(pagination.totalPages, 1)}</span>
-                    </div>
-
-                    <div className="flex items-center gap-1">
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        className="h-9 w-9"
-                        onClick={() => handlePageChange(pagination.page + 1)}
-                        disabled={pagination.page >= pagination.totalPages}
-                        aria-label="Next page"
-                      >
-                        <ChevronRight className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        className="h-9 w-9"
-                        onClick={() => handlePageChange(pagination.totalPages)}
-                        disabled={pagination.page >= pagination.totalPages}
-                        aria-label="Last page"
-                      >
-                        <ChevronsRight className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </div>
+                <div ref={loadMoreRef} className="border-t pt-4 flex justify-center text-sm text-muted-foreground">
+                  {isLoadingMore ? (
+                    <span className="inline-flex items-center gap-2">
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Loading more students...
+                    </span>
+                  ) : hasMore ? (
+                    <span>Showing {students.length} of {pagination.total}. Scroll to load more students</span>
+                  ) : (
+                    <span>{pagination.total === 0 ? 'No students to show' : 'All students loaded'}</span>
+                  )}
                 </div>
               </div>
             )}

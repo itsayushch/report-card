@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button'
 import { Loader2, Download, FileSpreadsheet } from 'lucide-react'
 import { toast } from 'sonner'
-import { formatClass } from '@/lib/class-utils'
+import { formatClassSection } from '@/lib/class-utils'
 
 interface AcademicYear {
   year: string
@@ -18,6 +18,7 @@ export default function MarksSheetPage() {
   const [classTeacherInfo, setClassTeacherInfo] = useState<{
     isClassTeacher: boolean
     class?: string
+    section?: string | null
     message?: string
   } | null>(null)
   const [activeYear, setActiveYear] = useState<AcademicYear | null>(null)
@@ -72,7 +73,8 @@ export default function MarksSheetPage() {
       const url = window.URL.createObjectURL(blob)
       const link = document.createElement('a')
       link.href = url
-      link.download = `class_${classTeacherInfo?.class || 'class'}_marks_${activeYear.year}.xlsx`
+      const sectionPart = classTeacherInfo?.section ? `_section_${classTeacherInfo.section.replace(/[^a-z0-9]+/gi, '_')}` : ''
+      link.download = `class_${classTeacherInfo?.class || 'class'}${sectionPart}_marks_${activeYear.year}.xlsx`
       document.body.appendChild(link)
       link.click()
       link.remove()
@@ -123,7 +125,7 @@ export default function MarksSheetPage() {
       <div>
         <h1 className="text-3xl font-bold text-gray-900">Marks Sheet</h1>
         <p className="text-gray-500 mt-1">
-          Class {formatClass(classTeacherInfo.class || '')} • {activeYear?.year || 'Year not set'}
+          {formatClassSection(classTeacherInfo.class || '', classTeacherInfo.section)} • {activeYear?.year || 'Year not set'}
         </p>
       </div>
 

@@ -41,6 +41,7 @@ export async function GET(request: NextRequest) {
     const students = await prisma.student.findMany({
       where: {
         class: classTeacherAssignment.class,
+        ...(classTeacherAssignment.section ? { section: classTeacherAssignment.section } : {}),
         academicYear,
         status: 'ACTIVE',
       },
@@ -146,6 +147,7 @@ export async function GET(request: NextRequest) {
         name: student.name,
         regNo: student.regNo,
         class: student.class,
+        section: student.section,
         promotionStatus: student.promotionStatus,
         hasMarks,
         totalObtained,

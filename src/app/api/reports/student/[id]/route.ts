@@ -53,12 +53,17 @@ export async function GET(
     // Get the academic record bucket for this year
     const yearRecord = student.academicRecords[0]; // Should only be one per year
     const classForYear = yearRecord?.class || student.class;
+    const sectionForYear = yearRecord?.section || student.section || null;
 
     // Get publish statuses for each term for the student's class in that academic year
     const publishStatuses = await prisma.reportPublish.findMany({
       where: {
         academicYear,
         class: classForYear,
+        OR: [
+          { section: sectionForYear },
+          { section: null },
+        ],
         isPublished: true,
       },
     })
@@ -176,6 +181,7 @@ export async function GET(
         name: student.name,
         regNo: student.regNo,
         class: classForYear, // Use the class from that academic year
+        section: sectionForYear,
         secondLanguageSubject: student.secondLanguageSubject,
         thirdLanguageSubject: student.thirdLanguageSubject,
         sixthSubject: student.sixthSubject,
