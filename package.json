@@ -10,9 +10,6 @@
     "postinstall": "prisma generate",
     "migrate:sections": "ts-node --compiler-options {\"module\":\"CommonJS\"} prisma/section-migration.ts"
   },
-  "prisma": {
-    "seed": "ts-node --compiler-options {\"module\":\"CommonJS\"} prisma/seed.ts"
-  },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",
     "@prisma/client": "^6.19.0",
