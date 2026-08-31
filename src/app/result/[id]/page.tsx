@@ -13,6 +13,7 @@ interface ReportData {
     name: string;
     regNo: string;
     class: string;
+    section?: string | null;
     secondLanguageSubject?: string | null;
     thirdLanguageSubject?: string | null;
     sixthSubject?: string | null;
