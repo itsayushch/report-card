@@ -60,6 +60,27 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       },
     })
 
+    if (existing.class !== section.class || existing.name !== section.name) {
+      await Promise.all([
+        prisma.student.updateMany({
+          where: { class: existing.class, section: existing.name },
+          data: { class: section.class, section: section.name },
+        }),
+        prisma.academicRecord.updateMany({
+          where: { class: existing.class, section: existing.name },
+          data: { class: section.class, section: section.name },
+        }),
+        prisma.classTeacher.updateMany({
+          where: { class: existing.class, section: existing.name },
+          data: { class: section.class, section: section.name },
+        }),
+        prisma.reportPublish.updateMany({
+          where: { class: existing.class, section: existing.name },
+          data: { class: section.class, section: section.name },
+        }),
+      ])
+    }
+
     if (validatedData.teacherId === null) {
       // Remove any existing teacher assignment for this section
       await prisma.classTeacher.deleteMany({
@@ -84,27 +105,6 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
           },
         })
       }
-    }
-
-    if (existing.class !== section.class || existing.name !== section.name) {
-      await Promise.all([
-        prisma.student.updateMany({
-          where: { class: existing.class, section: existing.name },
-          data: { class: section.class, section: section.name },
-        }),
-        prisma.academicRecord.updateMany({
-          where: { class: existing.class, section: existing.name },
-          data: { class: section.class, section: section.name },
-        }),
-        prisma.classTeacher.updateMany({
-          where: { class: existing.class, section: existing.name },
-          data: { class: section.class, section: section.name },
-        }),
-        prisma.reportPublish.updateMany({
-          where: { class: existing.class, section: existing.name },
-          data: { class: section.class, section: section.name },
-        }),
-      ])
     }
 
     return NextResponse.json({ section })
