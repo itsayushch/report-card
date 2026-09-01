@@ -176,12 +176,20 @@ export async function GET(
     const overallGrade = calculateGrade(overallPercentage);
     const result = overallPercentage >= 33 ? 'PASS' : 'FAIL';
 
+    const classTeacher = await prisma.classTeacher.findFirst({
+      where: {
+        class: classForYear,
+        section: sectionForYear,
+      },
+    });
+
     return NextResponse.json({
       student: {
         name: student.name,
         regNo: student.regNo,
         class: classForYear, // Use the class from that academic year
         section: sectionForYear,
+        teacherId: classTeacher?.teacherId || null,
         secondLanguageSubject: student.secondLanguageSubject,
         thirdLanguageSubject: student.thirdLanguageSubject,
         sixthSubject: student.sixthSubject,

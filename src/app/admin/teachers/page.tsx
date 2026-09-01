@@ -299,7 +299,7 @@ export default function TeachersPage() {
                             <div className="flex flex-wrap gap-1.5">
                               {teacher.classSubjectPairs.map((pair, idx) => (
                                 <Badge key={idx} variant="outline" className="text-xs font-normal">
-                                  <span className="font-medium">Class {formatClass(pair.classAssigned)}</span>
+                                  <span className="font-medium">Class {formatClass(pair.classAssigned)}{pair.section ? ` ${pair.section}` : ""}</span>
                                   <span className="mx-1">·</span>
                                   <span>{getSubjectById(pair.classAssigned, pair.subject)?.name || pair.subject}</span>
                                 </Badge>
@@ -427,3 +427,4 @@ export default function TeachersPage() {
     </div>
   )
 }
+

@@ -15,7 +15,8 @@ import { Loader2, X, Shield } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { toast } from 'sonner'
 import { getSubjectsForClasses } from '@/lib/subjects'
-import { formatClass } from '@/lib/class-utils'
+import { formatClass, formatSection } from '@/lib/class-utils'
+import { useSections } from '@/hooks/useSections'
 
 interface TeacherFormProps {
   open: boolean
@@ -29,6 +30,7 @@ const availableClasses = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10']
 type ClassSubjectPair = {
   subject: string
   classAssigned: string
+  section?: string | null
 }
 
 // Helper to get subject name from ID
@@ -42,7 +44,9 @@ export function TeacherForm({ open, onOpenChange, teacher, onSuccess }: TeacherF
   const [isLoading, setIsLoading] = useState(false)
   const [classSubjectPairs, setClassSubjectPairs] = useState<ClassSubjectPair[]>([])
   const [selectedClass, setSelectedClass] = useState('')
+  const [selectedSection, setSelectedSection] = useState('__ALL__')
   const [selectedSubject, setSelectedSubject] = useState('')
+  const { data: allSections = [] } = useSections()
   const [originalData, setOriginalData] = useState<TeacherFormData | null>(null)
   const [hasChanges, setHasChanges] = useState(false)
   const [isAdmin, setIsAdmin] = useState(false)
@@ -86,6 +90,7 @@ export function TeacherForm({ open, onOpenChange, teacher, onSuccess }: TeacherF
     }
     setHasChanges(false)
     setSelectedClass('')
+    setSelectedSection('__ALL__')
     setSelectedSubject('')
   }, [teacher, reset])
 
@@ -107,7 +112,7 @@ export function TeacherForm({ open, onOpenChange, teacher, onSuccess }: TeacherF
   useEffect(() => {
     if (selectedClass && selectedSubject) {
       const isDuplicate = classSubjectPairs.some(
-        p => p.classAssigned === selectedClass && p.subject === selectedSubject
+        p => p.classAssigned === selectedClass && p.subject === selectedSubject && p.section === (selectedSection === '__ALL__' ? null : selectedSection)
       )
 
       if (isDuplicate) {
@@ -115,8 +120,9 @@ export function TeacherForm({ open, onOpenChange, teacher, onSuccess }: TeacherF
         setSelectedSubject('')
       } else {
         const updated = [...classSubjectPairs, {
-          subject: selectedSubject, // Store subject ID instead of name
-          classAssigned: selectedClass
+          subject: selectedSubject,
+          classAssigned: selectedClass,
+          section: selectedSection === '__ALL__' ? null : selectedSection
         }]
         setClassSubjectPairs(updated)
         setValue('classSubjectPairs', updated)
@@ -130,7 +136,7 @@ export function TeacherForm({ open, onOpenChange, teacher, onSuccess }: TeacherF
 
   const removePair = (pair: ClassSubjectPair) => {
     const updated = classSubjectPairs.filter(
-      p => !(p.classAssigned === pair.classAssigned && p.subject === pair.subject)
+      p => !(p.classAssigned === pair.classAssigned && p.subject === pair.subject && p.section === pair.section)
     )
     setClassSubjectPairs(updated)
     setValue('classSubjectPairs', updated)
@@ -213,9 +219,9 @@ export function TeacherForm({ open, onOpenChange, teacher, onSuccess }: TeacherF
           <div className="space-y-2">
             <Label>Class & Subject Assignments</Label>
             
-            <div className="grid grid-cols-2 gap-2">
+                        <div className="grid grid-cols-3 gap-2">
               <div>
-                <Select value={selectedClass} onValueChange={setSelectedClass}>
+                <Select value={selectedClass} onValueChange={(val) => { setSelectedClass(val); setSelectedSection('__ALL__'); }}>
                   <SelectTrigger>
                     <SelectValue placeholder="Select Class" />
                   </SelectTrigger>
@@ -223,6 +229,26 @@ export function TeacherForm({ open, onOpenChange, teacher, onSuccess }: TeacherF
                     {availableClasses.map(cls => (
                       <SelectItem key={cls} value={cls}>
                         {formatClass(cls)}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
+                <Select 
+                  value={selectedSection} 
+                  onValueChange={setSelectedSection}
+                  disabled={!selectedClass}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select Section" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__ALL__">All Sections</SelectItem>
+                    {allSections.filter(s => s.class === selectedClass && s.isActive).map(s => (
+                      <SelectItem key={s.id} value={s.name}>
+                        {s.name}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -260,7 +286,7 @@ export function TeacherForm({ open, onOpenChange, teacher, onSuccess }: TeacherF
                       variant="secondary"
                       className="pl-2 pr-1 py-1 gap-1.5 text-xs font-normal"
                     >
-                      <span className="font-medium">Class {formatClass(pair.classAssigned)}</span>
+                      <span className="font-medium">Class {formatClass(pair.classAssigned)}{pair.section ? ` ${pair.section}` : ""}</span>
                       <span className="text-gray-500">-</span>
                       <span>{getSubjectNameById(pair.subject, pair.classAssigned)}</span>
                       <button
@@ -303,3 +329,5 @@ export function TeacherForm({ open, onOpenChange, teacher, onSuccess }: TeacherF
     </Dialog>
   )
 }
+
+

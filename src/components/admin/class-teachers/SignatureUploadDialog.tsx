@@ -17,16 +17,16 @@ import Image from 'next/image'
 interface SignatureUploadDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
-  className: string
-  sectionName?: string | null
+  teacherId: string
+  teacherName: string
   onSuccess: () => void
 }
 
 export function SignatureUploadDialog({
   open,
   onOpenChange,
-  className,
-  sectionName,
+  teacherId,
+  teacherName,
   onSuccess,
 }: SignatureUploadDialogProps) {
   const [isUploading, setIsUploading] = useState(false)
@@ -95,10 +95,7 @@ export function SignatureUploadDialog({
     try {
       const formData = new FormData()
       formData.append('signature', processedFile)
-      formData.append('class', className)
-      if (sectionName) {
-        formData.append('section', sectionName)
-      }
+      formData.append('teacherId', teacherId)
 
       const res = await fetch('/api/admin/signatures', {
         method: 'POST',
@@ -133,7 +130,7 @@ export function SignatureUploadDialog({
     }}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Upload Signature for Class {className}{sectionName ? ` Section ${sectionName}` : ''}</DialogTitle>
+          <DialogTitle>Upload Signature for {teacherName}</DialogTitle>
           <DialogDescription>
             Upload a photo or scan of the signature. We will automatically remove the white background to make it transparent.
           </DialogDescription>

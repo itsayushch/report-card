@@ -14,24 +14,17 @@ export async function POST(request: NextRequest) {
 
     const formData = await request.formData()
     const file = formData.get('signature') as File | null
-    const className = formData.get('class') as string | null
-    const sectionName = formData.get('section') as string | null
+    const teacherId = formData.get('teacherId') as string | null
 
-    if (!file || !className) {
-      return NextResponse.json({ error: 'Missing file or class name' }, { status: 400 })
+    if (!file || !teacherId) {
+      return NextResponse.json({ error: 'Missing file or teacherId' }, { status: 400 })
     }
 
     const bytes = await file.arrayBuffer()
     const buffer = Buffer.from(bytes)
 
-    const isPrincipal = className.toLowerCase() === 'principal'
-    const normalizedClass = className.toLowerCase()
-    const normalizedSection = sectionName ? sectionName.trim().toLowerCase() : ''
-    
-    let fileName = normalizedClass
-    if (!isPrincipal) {
-      fileName = normalizedSection ? `class_${normalizedClass}_${normalizedSection}` : `class_${normalizedClass}`
-    }
+    const isPrincipal = teacherId.toLowerCase() === 'principal'
+    const fileName = isPrincipal ? 'principal' : `teacher_${teacherId}`
 
     // Upload to Cloudinary if configured
     if (process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME && process.env.CLOUDINARY_API_KEY && process.env.CLOUDINARY_API_SECRET) {

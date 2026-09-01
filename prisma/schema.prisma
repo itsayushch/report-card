@@ -107,6 +107,7 @@ model Teacher {
 type ClassSubjectPair {
   subject       String
   classAssigned String
+  section       String?
 }
 
 
@@ -197,3 +198,4 @@ model Signature {
 
   @@map("signatures")
 }
+

@@ -14,6 +14,7 @@ interface ReportData {
     regNo: string;
     class: string;
     section?: string | null;
+    teacherId?: string | null;
     secondLanguageSubject?: string | null;
     thirdLanguageSubject?: string | null;
     sixthSubject?: string | null;
@@ -136,10 +137,10 @@ function PrintableReportCardContent() {
   }, [params.id, searchParams]);
 
   useEffect(() => {
-    if (data?.student.class) {
-      setClassSignatureSrc(getSignatureUrl(data.student.class, data.student.section));
+    if (data?.student.teacherId) {
+      setClassSignatureSrc(getSignatureUrl(data.student.teacherId));
     }
-  }, [data?.student.class, data?.student.section]);
+  }, [data?.student.teacherId]);
 
   if (loading) {
     return (
@@ -799,7 +800,7 @@ function PrintableReportCardContent() {
                   <div className="h-24 flex items-end justify-center mb-2 print:h-12 print:mb-1">
                     <Image
                       src={toPublicPath(
-                        classSignatureSrc || getSignatureUrl(data.student.class, data.student.section)
+                        classSignatureSrc || (data.student.teacherId ? getSignatureUrl(data.student.teacherId) : getSignatureUrl("principal"))
                       )}
                       alt="Class Teacher Signature"
                       width={240}

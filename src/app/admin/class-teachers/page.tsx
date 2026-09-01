@@ -76,8 +76,8 @@ export default function ClassTeachersPage() {
   
   // Signature upload state
   const [showSignatureDialog, setShowSignatureDialog] = useState(false)
-  const [uploadClass, setUploadClass] = useState<string>('')
-  const [uploadSection, setUploadSection] = useState<string | null>(null)
+  const [uploadTeacherId, setUploadTeacherId] = useState<string>('')
+  const [uploadTeacherName, setUploadTeacherName] = useState<string>('')
   const [signatureTimestamp, setSignatureTimestamp] = useState(Date.now())
 
   const [formData, setFormData] = useState({
@@ -296,7 +296,7 @@ export default function ClassTeachersPage() {
                             {hasTeacher ? (
                               <div className="flex items-center">
                                 <Image
-                                  src={`${getSignatureUrl(ct.class, ct.section)}?t=${signatureTimestamp}`}
+                                  src={`${getSignatureUrl(ct.teacherId)}?t=${signatureTimestamp}`}
                                   alt={`${teacherName} signature`}
                                   width={120}
                                   height={40}
@@ -319,8 +319,8 @@ export default function ClassTeachersPage() {
                                   size="sm"
                                   title="Upload Signature"
                                   onClick={() => {
-                                    setUploadClass(ct.class)
-                                    setUploadSection(ct.section || null)
+                                    setUploadTeacherId(ct.teacherId)
+                                    setUploadTeacherName(teacherName)
                                     setShowSignatureDialog(true)
                                   }}
                                 >
@@ -434,8 +434,8 @@ export default function ClassTeachersPage() {
       <SignatureUploadDialog 
         open={showSignatureDialog}
         onOpenChange={setShowSignatureDialog}
-        className={uploadClass}
-        sectionName={uploadSection}
+        teacherId={uploadTeacherId}
+        teacherName={uploadTeacherName}
         onSuccess={() => {
           setSignatureTimestamp(Date.now())
         }}

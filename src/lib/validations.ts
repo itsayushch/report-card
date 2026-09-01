@@ -24,6 +24,7 @@ export const teacherSchema = z.object({
   classSubjectPairs: z.array(z.object({
     subject: z.string(),
     classAssigned: z.string(),
+    section: z.string().nullable().optional(),
   })).optional().default([]),
   isAdmin: z.boolean().optional().default(false),
 })
@@ -76,3 +77,4 @@ export type TeacherFormData = z.infer<typeof teacherSchema>
 export type SubjectFormData = z.infer<typeof subjectSchema>
 export type AcademicYearFormData = z.infer<typeof academicYearSchema>
 export type LoginFormData = z.infer<typeof loginSchema>
+
