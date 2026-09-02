@@ -108,31 +108,28 @@ export function TeacherForm({ open, onOpenChange, teacher, onSuccess }: TeacherF
     setHasChanges(hasFormChanges)
   }, [formValues, classSubjectPairs, isAdmin, originalData])
 
-  // Auto-add subject when both class and subject are selected
-  useEffect(() => {
-    if (selectedClass && selectedSubject) {
-      const isDuplicate = classSubjectPairs.some(
-        p => p.classAssigned === selectedClass && p.subject === selectedSubject && p.section === (selectedSection === '__ALL__' ? null : selectedSection)
-      )
+    const handleAddPair = () => {
+    if (!selectedClass || !selectedSubject) return;
 
-      if (isDuplicate) {
-        toast.error('This subject is already assigned to this class')
-        setSelectedSubject('')
-      } else {
-        const updated = [...classSubjectPairs, {
-          subject: selectedSubject,
-          classAssigned: selectedClass,
-          section: selectedSection === '__ALL__' ? null : selectedSection
-        }]
-        setClassSubjectPairs(updated)
-        setValue('classSubjectPairs', updated)
-        
-        setSelectedClass('')
-        setSelectedSubject('')
-        toast.success('Subject assigned successfully')
-      }
+    const isDuplicate = classSubjectPairs.some(
+      p => p.classAssigned === selectedClass && p.subject === selectedSubject && p.section === (selectedSection === '__ALL__' ? null : selectedSection)
+    )
+
+    if (isDuplicate) {
+      toast.error('This subject is already assigned to this class and section')
+    } else {
+      const updated = [...classSubjectPairs, {
+        subject: selectedSubject,
+        classAssigned: selectedClass,
+        section: selectedSection === '__ALL__' ? null : selectedSection
+      }]
+      setClassSubjectPairs(updated)
+      setValue('classSubjectPairs', updated)
+      
+      setSelectedSubject('')
+      toast.success('Subject assigned successfully')
     }
-  }, [selectedClass, selectedSubject])
+  }
 
   const removePair = (pair: ClassSubjectPair) => {
     const updated = classSubjectPairs.filter(
@@ -246,7 +243,7 @@ export function TeacherForm({ open, onOpenChange, teacher, onSuccess }: TeacherF
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="__ALL__">All Sections</SelectItem>
-                    {allSections.filter(s => s.class === selectedClass && s.isActive).map(s => (
+                    {allSections.filter(s => s.class === selectedClass).map(s => (
                       <SelectItem key={s.id} value={s.name}>
                         {s.name}
                       </SelectItem>
@@ -255,7 +252,7 @@ export function TeacherForm({ open, onOpenChange, teacher, onSuccess }: TeacherF
                 </Select>
               </div>
 
-              <div>
+                            <div>
                 <Select 
                   value={selectedSubject} 
                   onValueChange={setSelectedSubject}
@@ -273,6 +270,12 @@ export function TeacherForm({ open, onOpenChange, teacher, onSuccess }: TeacherF
                   </SelectContent>
                 </Select>
               </div>
+            </div>
+            
+            <div className="flex justify-end mt-2">
+              <Button type="button" variant="secondary" size="sm" onClick={handleAddPair} disabled={!selectedClass || !selectedSubject}>
+                Add Assignment
+              </Button>
             </div>
 
             {/* Current Assignments */}
@@ -329,5 +332,9 @@ export function TeacherForm({ open, onOpenChange, teacher, onSuccess }: TeacherF
     </Dialog>
   )
 }
+
+
+
+
 
 
