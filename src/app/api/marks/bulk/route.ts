@@ -139,7 +139,7 @@ export async function DELETE(request: NextRequest) {
     }
 
     const body = await request.json()
-    const { class: classValue, subjectId, term, academicYear } = body ?? {}
+    const { class: classValue, section, subjectId, term, academicYear } = body ?? {}
 
     if (!classValue || !subjectId || !term || !academicYear) {
       return NextResponse.json(
@@ -153,6 +153,7 @@ export async function DELETE(request: NextRequest) {
         class: classValue,
         academicYear,
         status: 'ACTIVE',
+        ...(section ? { section } : {}),
       },
       select: { id: true },
     })

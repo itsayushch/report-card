@@ -63,6 +63,7 @@ export async function GET(
         OR: [
           { section: sectionForYear },
           { section: null },
+          { section: { isSet: false } },
         ],
         isPublished: true,
       },

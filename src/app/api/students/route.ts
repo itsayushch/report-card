@@ -14,6 +14,7 @@ export async function GET(request: NextRequest) {
     const search = searchParams.get('search') || ''
     const classFilter = searchParams.get('class') || ''
     const statusFilter = searchParams.get('status') || ''
+    const sectionFilter = searchParams.get('section') || ''
     const subjectFilter = searchParams.get('subject') || ''
     const page = parseInt(searchParams.get('page') || '1')
     const limit = Math.min(parseInt(searchParams.get('limit') || '20'), 100) // Default 20, Max 100
@@ -34,6 +35,10 @@ export async function GET(request: NextRequest) {
 
     if (statusFilter && statusFilter !== 'all') {
       where.status = statusFilter
+    }
+
+    if (sectionFilter && sectionFilter !== 'all') {
+      where.section = sectionFilter
     }
 
     const studentsAll = await prisma.student.findMany({

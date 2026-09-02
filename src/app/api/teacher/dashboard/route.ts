@@ -25,8 +25,46 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Teacher not found' }, { status: 404 })
     }
 
-    // Get assigned classes and subjects from classSubjectPairs
-    const assignedClasses = Array.from(new Set(teacher.classSubjectPairs.map(p => p.classAssigned))).sort((a, b) => parseInt(a) - parseInt(b))
+    // A null section means the teacher teaches every active section of that
+    // class. Resolve those assignments from ClassSection instead of assuming
+    // which sections a class has.
+    const assignedClasses = Array.from(new Set(teacher.classSubjectPairs.map(p => p.classAssigned)))
+      .sort((a, b) => parseInt(a) - parseInt(b))
+    const activeSections = assignedClasses.length
+      ? await prisma.classSection.findMany({
+          where: { class: { in: assignedClasses }, isActive: true },
+          select: { class: true, name: true, sortOrder: true },
+          orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }],
+        })
+      : []
+
+    const sectionsByClass = new Map<string, string[]>()
+    for (const section of activeSections) {
+      const sections = sectionsByClass.get(section.class) || []
+      sections.push(section.name)
+      sectionsByClass.set(section.class, sections)
+    }
+
+    const assignedClassSections = Array.from(
+      new Map(
+        teacher.classSubjectPairs.flatMap(pair => {
+          if (pair.section) {
+            return [[`${pair.classAssigned}::${pair.section}`, {
+              class: pair.classAssigned,
+              section: pair.section,
+            }]] as const
+          }
+
+          const sections = sectionsByClass.get(pair.classAssigned) || []
+          return (sections.length ? sections : [null]).map(section => [
+            `${pair.classAssigned}::${section || ''}`,
+            { class: pair.classAssigned, section },
+          ] as const)
+        })
+      ).values()
+    ).sort((a, b) =>
+      parseInt(a.class) - parseInt(b.class) || (a.section || '').localeCompare(b.section || '')
+    )
     
     // Convert subject IDs to subject details using the subjects utility
     const subjectDetails = teacher.classSubjectPairs.map(pair => {
@@ -43,25 +81,39 @@ export async function GET(request: NextRequest) {
       new Map(subjectDetails.map(s => [s!.id, s])).values()
     )
 
-    const studentCountsByClass = assignedClasses.length
-      ? await prisma.student.groupBy({
-          by: ['class'],
+    // Prisma's MongoDB connector cannot group by a nullable field reliably.
+    // Fetch only the fields needed for the lightweight per-section count instead.
+    const assignedStudents = assignedClasses.length
+      ? await prisma.student.findMany({
           where: {
             class: { in: assignedClasses },
             status: 'ACTIVE',
             ...(activeYear?.year ? { academicYear: activeYear.year } : {}),
           },
-          _count: { _all: true },
+          select: { class: true, section: true },
         })
       : []
 
-    const studentCountMap = new Map(
-      studentCountsByClass.map(item => [item.class, item._count._all])
-    )
+    const studentCountMap = new Map<string, number>()
+    const classStudentCountMap = new Map<string, number>()
+    for (const student of assignedStudents) {
+      const classSectionKey = `${student.class}::${student.section || ''}`
+      studentCountMap.set(
+        classSectionKey,
+        (studentCountMap.get(classSectionKey) || 0) + 1
+      )
+      classStudentCountMap.set(
+        student.class,
+        (classStudentCountMap.get(student.class) || 0) + 1
+      )
+    }
 
-    const studentCounts = assignedClasses.map((cls: string) => ({
-      class: cls,
-      count: studentCountMap.get(cls) ?? 0,
+    const studentCounts = assignedClassSections.map(({ class: classValue, section }) => ({
+      class: classValue,
+      section,
+      count: section
+        ? studentCountMap.get(`${classValue}::${section}`) ?? 0
+        : classStudentCountMap.get(classValue) ?? 0,
     }))
 
     const totalStudents = studentCounts.reduce(
@@ -137,12 +189,13 @@ export async function GET(request: NextRequest) {
         name: teacher.name,
         email: teacher.email,
         assignedClasses,
+        assignedClassSections,
         subjects: uniqueSubjects,
         classSubjectPairs: teacher.classSubjectPairs,
       },
       stats: {
         totalStudents,
-        totalClasses: assignedClasses.length,
+        totalClasses: assignedClassSections.length,
         totalSubjects: uniqueSubjects.length,
         studentCounts,
       },

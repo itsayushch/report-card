@@ -42,6 +42,7 @@ export async function GET(request: NextRequest) {
         OR: [
           { section: student.section || null },
           { section: null },
+          { section: { isSet: false } },
         ],
         academicYear: activeYear.year,
         isPublished: true,

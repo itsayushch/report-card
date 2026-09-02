@@ -1,12 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { normalizeSection } from '@/lib/class-utils'
 
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
     const className = searchParams.get('class')
-    const section = normalizeSection(searchParams.get('section'))
+    const section = null
     const term = searchParams.get('term')
     const academicYear = searchParams.get('academicYear')
 
@@ -20,7 +19,10 @@ export async function GET(request: NextRequest) {
     const publishRecord = await prisma.reportPublish.findFirst({
       where: {
         class: className,
-        section,
+        OR: [
+          { section },
+          { section: { isSet: false } },
+        ],
         term,
         academicYear,
       },

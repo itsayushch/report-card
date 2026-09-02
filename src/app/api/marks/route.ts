@@ -15,6 +15,7 @@ export async function GET(request: NextRequest) {
     const subject = searchParams.get('subject')
     const term = searchParams.get('term')
     const academicYear = searchParams.get('academicYear')
+    const section = searchParams.get('section')
 
     if (!classParam || !subject || !term || !academicYear) {
       return NextResponse.json(
@@ -28,7 +29,8 @@ export async function GET(request: NextRequest) {
       classParam,
       academicYear,
       term,
-      subject
+      subject,
+      section
     )
 
     // Transform to match expected format

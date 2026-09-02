@@ -54,7 +54,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useInfiniteScroll } from "@/hooks/useInfiniteScroll";
 import { calculateGrade, getGradeColor } from "@/lib/calculations";
 import Papa from "papaparse";
-import { formatClass } from "@/lib/class-utils";
+import { formatClass, formatClassSection } from "@/lib/class-utils";
 import { getTermsForClass } from "@/lib/terms";
 import { getSubjectById } from "@/lib/subjects";
 
@@ -111,6 +111,7 @@ export default function MarksEntryPage() {
   const [selectedYear, setSelectedYear] = useState<string>("");
   const [selectedTerm, setSelectedTerm] = useState<string>("");
   const [selectedClass, setSelectedClass] = useState<string>("");
+  const [selectedSection, setSelectedSection] = useState<string | null>(null);
   const [selectedSubject, setSelectedSubject] = useState<string>("");
   const [marksData, setMarksData] = useState<Map<string, MarkEntry>>(new Map());
   const [changedStudents, setChangedStudents] = useState<Set<string>>(
@@ -125,7 +126,7 @@ export default function MarksEntryPage() {
   const [initialLoading, setInitialLoading] = useState(true);
   const [cardTerms, setCardTerms] = useState<Map<string, string>>(new Map());
   const [classSubjectMap, setClassSubjectMap] = useState<
-    Array<{ class: string; subjects: Subject[] }>
+    Array<{ class: string; section: string | null; subjects: Subject[] }>
   >([]);
   const [hasChanges, setHasChanges] = useState(false);
   const [paginationParams, setPaginationParams] = useState({
@@ -163,6 +164,7 @@ export default function MarksEntryPage() {
     selectedYear,
     selectedTerm,
     selectedClass,
+    selectedSection,
     selectedSubject,
     paginationParams.page,
     paginationParams.limit,
@@ -198,49 +200,41 @@ export default function MarksEntryPage() {
         setAcademicYears(years);
         setTeacherData(teacherResponse);
 
-        // Build class-subject map from classSubjectPairs using subject IDs
-        const classSubjectPairs =
-          teacherResponse.teacher.classSubjectPairs || [];
+        // Resolve each subject assignment to its actual assigned section. A
+        // class-wide assignment is expanded by the dashboard API from active sections.
+        const classSubjectPairs = teacherResponse.teacher.classSubjectPairs || [];
+        const assignedClassSections = teacherResponse.teacher.assignedClassSections || [];
+        const classMapArray: Array<{ class: string; section: string | null; subjects: Subject[] }> = assignedClassSections
+          .map((assignment: { class: string; section: string | null }) => {
+            const subjects = classSubjectPairs
+              .filter((pair: any) =>
+                pair.classAssigned === assignment.class &&
+                (!pair.section || pair.section === assignment.section)
+              )
+              .map((pair: any) => {
+                const subjectDetail = getSubjectById(pair.classAssigned, pair.subject);
+                return subjectDetail
+                  ? {
+                      id: subjectDetail.id,
+                      name: subjectDetail.name,
+                      code: subjectDetail.id,
+                      maxMarks: 0,
+                      passingMarks: 0,
+                    }
+                  : null;
+              })
+              .filter(Boolean) as Subject[];
 
-        console.log("Class-subject pairs from teacher:", classSubjectPairs);
-
-        // Group by class and get subject details
-        const classMap = new Map<string, Subject[]>();
-
-        classSubjectPairs.forEach((pair: any) => {
-          const subjectDetail = getSubjectById(
-            pair.classAssigned,
-            pair.subject,
+            return { ...assignment, subjects };
+          })
+          .filter((assignment: { subjects: Subject[] }) => assignment.subjects.length > 0)
+          .sort((a: { class: string; section: string | null }, b: { class: string; section: string | null }) =>
+            parseInt(a.class) - parseInt(b.class) || (a.section || '').localeCompare(b.section || '')
           );
 
-          if (subjectDetail) {
-            const subject: Subject = {
-              id: subjectDetail.id,
-              name: subjectDetail.name,
-              code: subjectDetail.id, // Use ID as code
-              maxMarks: 0, // Will be set based on term
-              passingMarks: 0, // Will be set based on term
-            };
-
-            if (!classMap.has(pair.classAssigned)) {
-              classMap.set(pair.classAssigned, []);
-            }
-
-            classMap.get(pair.classAssigned)!.push(subject);
-          }
-        });
-
-        // Convert map to array format
-        const classMapArray = Array.from(classMap.entries())
-          .map(([cls, subjects]) => ({
-            class: cls,
-            subjects: subjects,
-          }))
-          .sort((a, b) => parseInt(a.class) - parseInt(b.class));
-
-        console.log("Class-subject map:", classMapArray);
         setClassSubjectMap(classMapArray);
-        setSubjects(classMapArray.flatMap((cm) => cm.subjects));
+        const assignedSubjects = classMapArray.flatMap((item) => item.subjects);
+        setSubjects(Array.from(new Map<string, Subject>(assignedSubjects.map((subject) => [subject.id, subject])).values()));
 
         // Set default term to Unit Test 1
         if (!selectedTerm && classMapArray.length > 0) {
@@ -279,11 +273,22 @@ export default function MarksEntryPage() {
         limit: paginationParams.limit.toString(),
         subject: selectedSubject,
       });
+      if (selectedSection) {
+        studentParams.set("section", selectedSection);
+      }
+
+      const marksParams = new URLSearchParams({
+        class: selectedClass,
+        subject: selectedSubject,
+        term: selectedTerm,
+        academicYear: selectedYear,
+      });
+      if (selectedSection) marksParams.set("section", selectedSection);
 
       const results = await Promise.allSettled([
         fetch(`/api/students?${studentParams.toString()}`),
         fetch(
-          `/api/marks?class=${selectedClass}&subject=${selectedSubject}&term=${selectedTerm}&academicYear=${selectedYear}`,
+          `/api/marks?${marksParams.toString()}`,
         ),
       ]);
 
@@ -508,6 +513,7 @@ export default function MarksEntryPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           class: selectedClass,
+          section: selectedSection,
           subjectId: selectedSubject,
           term: selectedTerm,
           academicYear: selectedYear,
@@ -627,10 +633,12 @@ export default function MarksEntryPage() {
 
   const handleClassSelect = (
     className: string,
+    section: string | null,
     term: string,
     subjectId: string,
   ) => {
     setSelectedClass(className);
+    setSelectedSection(section);
     setSelectedTerm(term);
     setSelectedSubject(subjectId);
     setPaginationParams((prev) => ({ ...prev, page: 1 }));
@@ -761,11 +769,12 @@ export default function MarksEntryPage() {
 
                     return (
                       <Card
-                        key={`${classData.class}-${subject.id}`}
+                        key={`${classData.class}-${classData.section || "unsectioned"}-${subject.id}`}
                         className="group relative overflow-hidden border border-slate-200 bg-white hover:border-slate-300 hover:shadow-md transition-all duration-200 cursor-pointer"
                         onClick={() =>
                           handleClassSelect(
                             classData.class,
+                            classData.section,
                             termForCard.name,
                             subject.id,
                           )
@@ -778,7 +787,7 @@ export default function MarksEntryPage() {
                                 variant="outline"
                                 className="bg-slate-100 text-slate-700 border-slate-200 font-medium px-2 py-0.5 text-xs mb-1.5"
                               >
-                                Class {formatClass(classData.class)}
+                                {formatClassSection(classData.class, classData.section)}
                               </Badge>
                               <CardTitle className="text-sm font-semibold text-slate-900 leading-tight">
                                 {subject.name}
@@ -905,6 +914,7 @@ export default function MarksEntryPage() {
                         variant="outline"
                         onClick={() => {
                           setSelectedClass("");
+                          setSelectedSection(null);
                           setSelectedSubject("");
                         }}
                         className="bg-white border border-slate-200 text-slate-700 hover:bg-slate-100 font-semibold px-6 py-5 rounded-xl shadow-sm"
@@ -940,7 +950,7 @@ export default function MarksEntryPage() {
                       </CardTitle>
                       <CardDescription className="mt-1">
                         Showing {students.length} of {pagination.total} students
-                        in Class {formatClass(selectedClass)}
+                        in {formatClassSection(selectedClass, selectedSection)}
                       </CardDescription>
                     </div>
                     {students.length > 0 && (

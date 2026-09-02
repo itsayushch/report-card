@@ -299,7 +299,8 @@ export async function getClassSubjectMarks(
   classValue: string,
   academicYear: string,
   termName: string,
-  subjectCode: string
+  subjectCode: string,
+  section?: string | null
 ) {
   // Get all students in the class
   const students = await prisma.student.findMany({
@@ -307,6 +308,7 @@ export async function getClassSubjectMarks(
       class: classValue,
       academicYear,
       status: 'ACTIVE',
+      ...(section ? { section } : {}),
     },
     include: {
       academicRecords: {

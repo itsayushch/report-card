@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
-import { normalizeSection } from '@/lib/class-utils'
 
 export async function POST(request: NextRequest) {
   try {
@@ -13,7 +12,7 @@ export async function POST(request: NextRequest) {
 
     const body = await request.json()
     const { class: className, term, academicYear } = body
-    const section = normalizeSection(body.section)
+    const section = null
 
     if (!className || !term || !academicYear) {
       return NextResponse.json(
@@ -26,7 +25,10 @@ export async function POST(request: NextRequest) {
     const existing = await prisma.reportPublish.findFirst({
       where: {
         class: className,
-        section,
+        OR: [
+          { section },
+          { section: { isSet: false } },
+        ],
         term,
         academicYear,
       },
@@ -86,7 +88,7 @@ export async function DELETE(request: NextRequest) {
 
     const { searchParams } = new URL(request.url)
     const className = searchParams.get('class')
-    const section = normalizeSection(searchParams.get('section'))
+    const section = null
     const term = searchParams.get('term')
     const academicYear = searchParams.get('academicYear')
 
@@ -101,7 +103,10 @@ export async function DELETE(request: NextRequest) {
     await prisma.reportPublish.updateMany({
       where: {
         class: className,
-        section,
+        OR: [
+          { section },
+          { section: { isSet: false } },
+        ],
         term,
         academicYear,
       },

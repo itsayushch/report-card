@@ -3,7 +3,7 @@ import { Printer } from "lucide-react";
 import { useEffect, useState, Suspense } from "react";
 import Image from "next/image";
 import { useSearchParams, useParams } from "next/navigation";
-import { formatClass } from "@/lib/class-utils";
+import { formatClassSection } from "@/lib/class-utils";
 import { getSubjectById, getSubjectsForClassWithChoices, subjectsByClass } from "@/lib/subjects";
 import { getTermsForClass } from "@/lib/terms";
 import { getSignatureUrl } from "@/lib/signatures";
@@ -171,7 +171,7 @@ function PrintableReportCardContent() {
 
           {error?.includes("parameter") && (
             <div className="bg-white border-2 border-blue-200 rounded-xl p-6 shadow-lg text-left mb-6">
-              <h3 className="font-bold text-slate-800 mb-3 text-lg">📋 Required URL Format:</h3>
+              <h3 className="font-bold text-slate-800 mb-3 text-lg">Ã°Å¸â€œâ€¹ Required URL Format:</h3>
               <div className="bg-slate-50 rounded-lg p-4 mb-4">
                 <code className="text-sm text-blue-700 font-mono break-all">
                   /result/[studentId]?year=[academicYear]&term=[termName]
@@ -195,7 +195,7 @@ function PrintableReportCardContent() {
             onClick={() => window.history.back()}
             className="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-8 py-3 rounded-lg shadow-lg transition-all hover:shadow-xl"
           >
-            ← Go Back
+            Ã¢â€ Â Go Back
           </button>
         </div>
       </div>
@@ -512,7 +512,7 @@ function PrintableReportCardContent() {
                       CLASS:
                     </span>
                     <span className="text-gray-900 font-semibold text-xs">
-                      {formatClass(data.student.class)}
+                      {formatClassSection(data.student.class, data.student.section)}
                     </span>
                   </div>
                   <div className="flex px-2 py-1">

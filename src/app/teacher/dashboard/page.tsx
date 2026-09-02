@@ -7,14 +7,14 @@ import { Users, BookOpen, GraduationCap, ClipboardEdit } from 'lucide-react'
 import { Skeleton } from '@/components/ui/skeleton'
 import Link from 'next/link'
 import { toast } from 'sonner'
-import { formatClass } from '@/lib/class-utils'
+import { formatClassSection } from '@/lib/class-utils'
 
 
 interface TeacherStats {
   totalStudents: number
   totalClasses: number
   totalSubjects: number
-  studentCounts: { class: string; count: number }[]
+  studentCounts: { class: string; section: string | null; count: number }[]
 }
 
 interface Subject {
@@ -205,11 +205,11 @@ export default function TeacherDashboardPage() {
           <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
             {stats?.studentCounts.map((item) => (
               <div
-                key={item.class}
+                key={`${item.class}-${item.section || 'all'}`}
                 className="flex items-center justify-between p-4 border border-slate-200 rounded-lg bg-white"
               >
                 <div>
-                  <p className="font-medium text-slate-900">Class {formatClass(item.class)}</p>
+                  <p className="font-medium text-slate-900">{formatClassSection(item.class, item.section)}</p>
                   <p className="text-sm text-slate-500">{item.count} students</p>
                 </div>
               </div>

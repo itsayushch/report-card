@@ -21,8 +21,8 @@ import {
 import { Badge } from '@/components/ui/badge'
 import { toast } from 'sonner'
 import { CheckCircle2, XCircle, Loader2 } from 'lucide-react'
-import { formatClassSection } from '@/lib/class-utils'
 import { getTermsForClass } from '@/lib/terms'
+import { formatClass } from '@/lib/class-utils'
 
 interface AcademicYear {
   id: string
@@ -42,13 +42,6 @@ interface PublishRecord {
   publishedBy: string | null
 }
 
-interface ClassSection {
-  id: string
-  class: string
-  name: string
-  isActive: boolean
-}
-
 interface PublishTarget {
   key: string
   class: string
@@ -61,7 +54,6 @@ export default function ReportPublishPage() {
   const [selectedYear, setSelectedYear] = useState<string>('')
   const [selectedTerm, setSelectedTerm] = useState<string>('')
   const [publishedReports, setPublishedReports] = useState<PublishRecord[]>([])
-  const [sections, setSections] = useState<ClassSection[]>([])
   const [loading, setLoading] = useState(false)
   const [publishing, setPublishing] = useState<string | null>(null)
   const [selectedClasses, setSelectedClasses] = useState<Set<string>>(new Set())
@@ -97,15 +89,10 @@ export default function ReportPublishPage() {
     try {
       const response = await fetch('/api/academic-years')
       const responseData = await response.json()
-      const sectionsResponse = await fetch('/api/admin/sections?activeOnly=true')
-      const sectionsData = await sectionsResponse.json()
-      
       // API returns {academicYears: []} so extract the array
       const data = responseData.academicYears || []
       
       setAcademicYears(data)
-      setSections(sectionsData.sections || [])
-      
       // Set active year as default
       const activeYear = data.find((y: AcademicYear) => y.isActive)
       if (activeYear) {
@@ -312,26 +299,14 @@ export default function ReportPublishPage() {
     '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12'
   ]
 
-  const publishTargets: PublishTarget[] = classes.flatMap((className) => {
-    const classSections = sections
-      .filter((section) => section.class === className && section.isActive)
-      .map((section) => ({
-        key: `${className}::${section.name}`,
-        class: className,
-        section: section.name,
-        label: formatClassSection(className, section.name),
-      }))
-
-    return [
-      {
-        key: `${className}::`,
-        class: className,
-        section: null,
-        label: `${formatClassSection(className)} (class-wide)`,
-      },
-      ...classSections,
-    ]
-  })
+  // Publication applies to an entire class. Sections only organise students
+  // and teaching assignments; they never create separate publish states.
+  const publishTargets: PublishTarget[] = classes.map((className) => ({
+    key: className,
+    class: className,
+    section: null,
+    label: `Class ${formatClass(className)}`,
+  }))
   
   // Get all available terms from semesters.ts (use class 9 as reference for higher classes)
   const allTerms = getTermsForClass('9').map(t => t.name)
