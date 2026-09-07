@@ -798,11 +798,11 @@ function PrintableReportCardContent() {
                         alt="Class Teacher Signature"
                         width={240}
                         height={80}
-                        className="h-20 w-60 object-contain print:h-20"
+                        className="h-20 w-60 object-contain print:h-20 border border-gray-800"
                         onError={() => setClassSignatureFailed(true)}
                       />
                     ) : (
-                      <div className="h-20 w-60 print:h-20" />
+                      <div className="h-20 w-60 print:h-20 border border-gray-800" />
                     )}
                   </div>
                   <div className="pt-2 mx-8 print:mx-2 print:pt-0">
