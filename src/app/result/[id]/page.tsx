@@ -828,11 +828,11 @@ function PrintableReportCardContent() {
                     )}
                   </div>
                   <div className="pt-2 mx-8 print:mx-2 print:pt-0">
-                    {data.student.teacherName && (
+                    {/* {data.student.teacherName && (
                       <p className="text-sm font-semibold text-gray-900">
                         {data.student.teacherName}
                       </p>
-                    )}
+                    )} */}
                     <p className="text-sm font-bold text-gray-900">
                       Class Teacher Signature
                     </p>
