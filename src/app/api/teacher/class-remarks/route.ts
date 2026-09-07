@@ -34,6 +34,49 @@ type RemarkEntry = {
   academicYear: string
 }
 
+const normalizeTermName = (value: string | null | undefined) => {
+  const normalized = (value || '').trim().toLowerCase().replace(/\s+/g, ' ')
+
+  if (['1st unit test', 'first unit test', 'unit test 1', 'unit test i'].includes(normalized)) {
+    return '1st unit test'
+  }
+
+  if (['mid term', 'midterm'].includes(normalized)) {
+    return 'mid term'
+  }
+
+  if (['2nd unit test', 'second unit test', 'unit test 2', 'unit test ii'].includes(normalized)) {
+    return '2nd unit test'
+  }
+
+  if (['final term', 'final'].includes(normalized)) {
+    return 'final term'
+  }
+
+  return normalized
+}
+
+const findBestTermRecord = (terms: TermRecord[], term: string) => {
+  const normalizedTerm = normalizeTermName(term)
+  const matches = terms.filter((item) => normalizeTermName(item.name) === normalizedTerm)
+
+  return matches.find((item) => Boolean(item.teacherRemarks?.trim()))
+    || matches.find((item) => item.subjects.length > 0)
+    || matches[0]
+    || null
+}
+
+const getSessionTeacherId = async (sessionTeacherId: string, email?: string | null) => {
+  if (!email) return sessionTeacherId
+
+  const teacher = await prisma.teacher.findUnique({
+    where: { email },
+    select: { id: true },
+  })
+
+  return teacher?.id || sessionTeacherId
+}
+
 // GET - Fetch remarks for a class and term
 export async function GET(request: NextRequest) {
   try {
@@ -55,10 +98,12 @@ export async function GET(request: NextRequest) {
       )
     }
 
+    const teacherId = await getSessionTeacherId(session.user.id, session.user.email)
+
     // Verify that the teacher is a class teacher for this class
     const classTeacherAssignment = await prisma.classTeacher.findFirst({
       where: {
-        teacherId: session.user.id,
+        teacherId,
         class: classParam,
       },
     })
@@ -102,7 +147,7 @@ export async function GET(request: NextRequest) {
     const studentsData = academicRecords
       .map((record: AcademicRecordRow) => {
         const terms = record.terms as TermRecord[]
-        const termRecord = terms.find((t) => t.name === term)
+        const termRecord = findBestTermRecord(terms, term)
         if (!termRecord) return null
 
         return {
@@ -182,14 +227,17 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    const teacherId = await getSessionTeacherId(session.user.id, session.user.email)
+
     // Verify that the teacher is a class teacher for this class
     const classTeacherAssignment = await prisma.classTeacher.findFirst({
       where: {
-        teacherId: session.user.id,
+        teacherId,
         class: firstStudent.class,
         OR: [
           { section: firstStudent.section || null },
           { section: null },
+          { section: { isSet: false } },
         ],
       },
     })
@@ -268,15 +316,18 @@ export async function POST(request: NextRequest) {
           }
 
           const terms = academicRecord.terms as TermRecord[]
-          const termIndex = terms.findIndex((t) => t.name === term)
+          const normalizedTerm = normalizeTermName(term)
+          const termIndexes = terms
+            .map((item, index) => normalizeTermName(item.name) === normalizedTerm ? index : -1)
+            .filter((index) => index >= 0)
 
-          if (termIndex === -1) {
+          if (termIndexes.length === 0) {
             const updatedTerms: TermRecord[] = [
               ...terms,
               {
                 name: term,
                 subjects: [],
-                enteredBy: session.user.id,
+                enteredBy: teacherId,
                 enteredAt: new Date(),
                 published: false,
                 teacherRemarks: remarkText,
@@ -294,8 +345,9 @@ export async function POST(request: NextRequest) {
             return { success: true }
           }
 
+          const termIndexSet = new Set(termIndexes)
           const updatedTerms = terms.map((t, i) => {
-            if (i !== termIndex) return t
+            if (!termIndexSet.has(i)) return t
             return {
               name: t.name,
               subjects: t.subjects,

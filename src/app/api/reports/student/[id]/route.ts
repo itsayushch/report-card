@@ -5,6 +5,38 @@ import { calculateResult } from '@/lib/calculations'
 import { getSubjectById, resolveLegacySubjectCode } from '@/lib/subjects'
 import { getTermsForClass } from '@/lib/terms'
 
+const normalizeTermName = (value: string | null | undefined) => {
+  const normalized = (value || '').trim().toLowerCase().replace(/\s+/g, ' ')
+
+  if (['1st unit test', 'first unit test', 'unit test 1', 'unit test i'].includes(normalized)) {
+    return '1st unit test'
+  }
+
+  if (['mid term', 'midterm'].includes(normalized)) {
+    return 'mid term'
+  }
+
+  if (['2nd unit test', 'second unit test', 'unit test 2', 'unit test ii'].includes(normalized)) {
+    return '2nd unit test'
+  }
+
+  if (['final term', 'final'].includes(normalized)) {
+    return 'final term'
+  }
+
+  return normalized
+}
+
+const findBestTermRecord = (yearTerms: any[], term: string) => {
+  const normalizedTerm = normalizeTermName(term)
+  const matches = yearTerms.filter((item: any) => normalizeTermName(item?.name) === normalizedTerm)
+
+  return matches.find((item: any) => Boolean(item?.teacherRemarks?.trim()))
+    || matches.find((item: any) => (item?.subjects || []).length > 0)
+    || matches[0]
+    || null
+}
+
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -100,7 +132,7 @@ export async function GET(
     const termMaxMarksMap = new Map(termConfigs.map(t => [t.name, t.maxMarks]));
 
     terms.forEach(term => {
-      const termRecord = yearTerms.find((t: any) => t.name === term);
+      const termRecord = findBestTermRecord(yearTerms, term);
       const isTermPublished = publishedTerms.has(term);
       // Use the class config maxMarks, not the stored value (stored value may be stale)
       const correctMaxMarks = termMaxMarksMap.get(term) || 100;

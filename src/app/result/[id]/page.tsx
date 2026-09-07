@@ -248,7 +248,29 @@ function PrintableReportCardContent() {
     return termMark.marks;
   };
 
-  const currentTerm = searchParams.get("term");
+  const normalizeTermName = (value: string | null | undefined) => {
+    const normalized = (value || "").trim().toLowerCase().replace(/\s+/g, " ");
+
+    if (["1st unit test", "first unit test", "unit test 1", "unit test i"].includes(normalized)) {
+      return "1st Unit Test";
+    }
+
+    if (["mid term", "midterm"].includes(normalized)) {
+      return "Mid Term";
+    }
+
+    if (["2nd unit test", "second unit test", "unit test 2", "unit test ii"].includes(normalized)) {
+      return "2nd Unit Test";
+    }
+
+    if (["final term", "final"].includes(normalized)) {
+      return "Final Term";
+    }
+
+    return value || "";
+  };
+
+  const currentTerm = normalizeTermName(searchParams.get("term"));
 
   // Calculate cumulative marks up to each term
   const getCumulativeMarks = (subjectCode: string, upToTerm: string) => {
