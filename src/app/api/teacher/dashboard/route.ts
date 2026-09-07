@@ -33,8 +33,8 @@ export async function GET(request: NextRequest) {
     const activeSections = assignedClasses.length
       ? await prisma.classSection.findMany({
           where: { class: { in: assignedClasses }, isActive: true },
-          select: { class: true, name: true, sortOrder: true },
-          orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }],
+          select: { class: true, name: true },
+          orderBy: [{ name: 'asc' }],
         })
       : []
 

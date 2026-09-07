@@ -15,6 +15,7 @@ interface ReportData {
     class: string;
     section?: string | null;
     teacherId?: string | null;
+    teacherName?: string | null;
     secondLanguageSubject?: string | null;
     thirdLanguageSubject?: string | null;
     sixthSubject?: string | null;
@@ -85,18 +86,7 @@ function PrintableReportCardContent() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [classSignatureSrc, setClassSignatureSrc] = useState<string | null>(null);
-
-  const toPublicPath = (url: string) => {
-    if (!url) return url;
-    if (url.startsWith("http://") || url.startsWith("https://")) {
-      try {
-        return new URL(url).pathname;
-      } catch {
-        return url;
-      }
-    }
-    return url;
-  };
+  const [classSignatureFailed, setClassSignatureFailed] = useState(false);
 
   useEffect(() => {
     const fetchReport = async () => {
@@ -139,6 +129,10 @@ function PrintableReportCardContent() {
   useEffect(() => {
     if (data?.student.teacherId) {
       setClassSignatureSrc(getSignatureUrl(data.student.teacherId));
+      setClassSignatureFailed(false);
+    } else {
+      setClassSignatureSrc(null);
+      setClassSignatureFailed(false);
     }
   }, [data?.student.teacherId]);
 
@@ -798,18 +792,25 @@ function PrintableReportCardContent() {
               <div className="grid grid-cols-2 gap-12 mt-4 print:gap-3 print:mt-0">
                 <div className="text-center">
                   <div className="h-24 flex items-end justify-center mb-2 print:h-12 print:mb-1">
-                    <Image
-                      src={toPublicPath(
-                        classSignatureSrc || (data.student.teacherId ? getSignatureUrl(data.student.teacherId) : getSignatureUrl("principal"))
-                      )}
-                      alt="Class Teacher Signature"
-                      width={240}
-                      height={80}
-                      className="h-20 w-60 object-contain print:h-20 border border-gray-800"
-                      onError={() => setClassSignatureSrc(getSignatureUrl("principal"))}
-                    />
+                    {classSignatureSrc && !classSignatureFailed ? (
+                      <Image
+                        src={classSignatureSrc}
+                        alt="Class Teacher Signature"
+                        width={240}
+                        height={80}
+                        className="h-20 w-60 object-contain print:h-20"
+                        onError={() => setClassSignatureFailed(true)}
+                      />
+                    ) : (
+                      <div className="h-20 w-60 print:h-20" />
+                    )}
                   </div>
                   <div className="pt-2 mx-8 print:mx-2 print:pt-0">
+                    {data.student.teacherName && (
+                      <p className="text-sm font-semibold text-gray-900">
+                        {data.student.teacherName}
+                      </p>
+                    )}
                     <p className="text-sm font-bold text-gray-900">
                       Class Teacher Signature
                     </p>
@@ -818,7 +819,7 @@ function PrintableReportCardContent() {
                 <div className="text-center">
                   <div className="h-24 flex items-end justify-center mb-2 print:h-12 print:mb-1">
                     <Image
-                      src={toPublicPath(getSignatureUrl("principal"))}
+                      src={getSignatureUrl("principal")}
                       alt="Principal Signature"
                       width={240}
                       height={80}

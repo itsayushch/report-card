@@ -5,7 +5,6 @@ export interface ClassSection {
   class: string
   name: string
   isActive: boolean
-  sortOrder: number
 }
 
 interface SectionsResponse {

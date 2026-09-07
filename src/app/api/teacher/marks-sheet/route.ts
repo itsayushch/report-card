@@ -61,7 +61,7 @@ export async function GET(request: NextRequest) {
     const classValue = classTeacherAssignment.class
     const sectionValue = classTeacherAssignment.section
 
-    const students = await prisma.student.findMany({
+    const studentsByName = await prisma.student.findMany({
       where: {
         class: classValue,
         ...(sectionValue ? { section: sectionValue } : {}),
@@ -73,10 +73,19 @@ export async function GET(request: NextRequest) {
           where: { academicYear },
         },
       },
-      orderBy: {
-        regNo: 'asc',
-      },
+      orderBy: [
+        { name: 'asc' },
+        { regNo: 'asc' },
+      ],
     })
+    const studentNameSorter = new Intl.Collator('en', {
+      numeric: true,
+      sensitivity: 'base',
+    })
+    const students = studentsByName.sort((a, b) =>
+      studentNameSorter.compare(a.name, b.name) ||
+      studentNameSorter.compare(a.regNo, b.regNo)
+    )
 
     const classTerms = getTermsForClass(classValue)
     const terms = classTerms.length > 0
