@@ -271,7 +271,27 @@ export async function POST(request: NextRequest) {
           const termIndex = terms.findIndex((t) => t.name === term)
 
           if (termIndex === -1) {
-            return { success: false, error: 'Term not found' }
+            const updatedTerms: TermRecord[] = [
+              ...terms,
+              {
+                name: term,
+                subjects: [],
+                enteredBy: session.user.id,
+                enteredAt: new Date(),
+                published: false,
+                teacherRemarks: remarkText,
+              },
+            ]
+
+            await prisma.academicRecord.update({
+              where: { id: academicRecord.id },
+              data: {
+                terms: updatedTerms,
+              },
+            })
+
+            console.log(`[save-remarks] studentId=${studentId}, term=${term}, created remark-only term`)
+            return { success: true }
           }
 
           const updatedTerms = terms.map((t, i) => {
@@ -310,6 +330,13 @@ export async function POST(request: NextRequest) {
     errorCount = results.length - successCount
 
     console.log('Remarks update complete:', { successCount, errorCount })
+
+    if (successCount === 0) {
+      return NextResponse.json(
+        { error: 'No remarks were saved', success: successCount, failed: errorCount },
+        { status: 400 }
+      )
+    }
 
     return NextResponse.json({
       message: `Successfully updated remarks for ${successCount} student(s)`,

@@ -106,7 +106,10 @@ export async function GET(
       const correctMaxMarks = termMaxMarksMap.get(term) || 100;
       
       // Show data if: no session (direct URL access), OR teacher, OR published (for logged-in students)
-      if (termRecord && termRecord.subjects && termRecord.subjects.length > 0 && (!session || isTeacher || isTermPublished)) {
+      const termSubjects = termRecord?.subjects || [];
+      const hasTermRemarks = Boolean(termRecord?.teacherRemarks?.trim());
+
+      if (termRecord && (termSubjects.length > 0 || hasTermRemarks) && (!session || isTeacher || isTermPublished)) {
         const choices = {
           secondLanguageSubject: student.secondLanguageSubject,
           thirdLanguageSubject: student.thirdLanguageSubject,
@@ -114,7 +117,7 @@ export async function GET(
         };
         const subjectMap = new Map<string, { subjectCode: string; marks: number; maxMarks: number; grade: string }>();
 
-        termRecord.subjects.forEach((s: any) => {
+        termSubjects.forEach((s: any) => {
           const resolvedCode = resolveLegacySubjectCode(classForYear, s.subjectCode, choices);
           const gradeValue = s.grade !== undefined && s.grade !== null && s.grade !== ''
             ? s.grade
